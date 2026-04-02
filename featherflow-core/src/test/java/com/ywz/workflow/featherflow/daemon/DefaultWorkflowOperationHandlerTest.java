@@ -141,7 +141,7 @@ class DefaultWorkflowOperationHandlerTest {
         WorkflowOperation skipOperation = WorkflowOperation.pending(
             workflow.getWorkflowId(),
             com.ywz.workflow.featherflow.model.OperationType.SKIP_ACTIVITY,
-            "{\"activityId\":\"" + workflow.getWorkflowId() + "-02\",\"payload\":{\"manual\":true}}",
+            "{\"payload\":{\"manual\":true}}",
             clock.instant()
         );
         operationRepository.savePendingOperation(skipOperation);

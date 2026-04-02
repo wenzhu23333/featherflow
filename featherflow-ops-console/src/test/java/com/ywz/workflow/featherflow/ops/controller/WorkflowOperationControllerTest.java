@@ -41,8 +41,7 @@ class WorkflowOperationControllerTest {
         assertThat(listPage).contains("/workflows/wf-op-running-001/terminate");
         assertThat(listPage).contains("/workflows/wf-op-terminated/retry");
         assertThat(listPage).contains("/workflows/wf-op-terminated/skip");
-        assertThat(listPage).contains("name=\"activityId\" value=\"act-op-term-099\"");
-        assertThat(listPage).doesNotContain("name=\"activityId\" value=\"act-op-term-050\"");
+        assertThat(listPage).doesNotContain("name=\"activityId\"");
 
         MvcResult detailResult = mockMvc.perform(get("/workflows/wf-op-terminated"))
             .andExpect(status().isOk())
@@ -51,7 +50,7 @@ class WorkflowOperationControllerTest {
         assertThat(detailPage).contains("<dialog");
         assertThat(detailPage).contains("/workflows/wf-op-terminated/retry");
         assertThat(detailPage).contains("/workflows/wf-op-terminated/skip");
-        assertThat(detailPage).contains("name=\"activityId\" value=\"act-op-term-099\"");
+        assertThat(detailPage).doesNotContain("name=\"activityId\"");
     }
 
     @Test
@@ -107,38 +106,24 @@ class WorkflowOperationControllerTest {
     }
 
     @Test
-    void shouldSubmitSkipForLatestActivityOnly() throws Exception {
+    void shouldSubmitSkipForLatestActivity() throws Exception {
         int beforeCount = countOperations("wf-op-terminated", "SKIP_ACTIVITY");
 
         mockMvc.perform(post("/workflows/wf-op-terminated/skip")
                 .param("operator", "alice")
-                .param("reason", "manual-skip")
-                .param("activityId", "act-op-term-099"))
+                .param("reason", "manual-skip"))
             .andExpect(status().is3xxRedirection())
             .andExpect(redirectedUrl("/workflows/wf-op-terminated"));
 
         assertThat(countOperations("wf-op-terminated", "SKIP_ACTIVITY")).isEqualTo(beforeCount + 1);
         assertThat(operationInput("wf-op-terminated", "SKIP_ACTIVITY"))
             .contains("\"operator\":\"alice\"")
-            .contains("\"reason\":\"manual-skip\"")
-            .contains("\"activityId\":\"act-op-term-099\"");
+            .contains("\"reason\":\"manual-skip\"");
     }
 
     @Test
-    void shouldRejectSkipWhenActivityIsNotLatest() throws Exception {
-        int beforeCount = countOperations("wf-op-terminated", "SKIP_ACTIVITY");
-
-        mockMvc.perform(post("/workflows/wf-op-terminated/skip")
-                .param("operator", "alice")
-                .param("reason", "invalid")
-                .param("activityId", "act-op-term-010"))
-            .andExpect(status().isBadRequest());
-
-        assertThat(countOperations("wf-op-terminated", "SKIP_ACTIVITY")).isEqualTo(beforeCount);
-    }
-
-    @Test
-    void shouldRejectSkipWhenActivityIdMissing() throws Exception {
+    void shouldRejectSkipWhenLatestActivityIsMissing() throws Exception {
+        jdbcTemplate.update("delete from activity_instance where workflow_id = ?", "wf-op-terminated");
         int beforeCount = countOperations("wf-op-terminated", "SKIP_ACTIVITY");
 
         mockMvc.perform(post("/workflows/wf-op-terminated/skip")

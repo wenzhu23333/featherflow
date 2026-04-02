@@ -92,15 +92,15 @@
             <td>
                 <div class="action-group">
                     <th:block th:if="${workflow.allowedActions.canTerminate}">
-                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/terminate|, buttonLabel='终止', workflowId=${workflow.workflowId}, activityId=${null}, redirectTo=${listRedirectTo}, operationKey='terminate')}">
+                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/terminate|, buttonLabel='终止', workflowId=${workflow.workflowId}, redirectTo=${listRedirectTo}, operationKey='terminate')}">
                         </div>
                     </th:block>
                     <th:block th:if="${workflow.allowedActions.canRetry}">
-                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/retry|, buttonLabel='重试', workflowId=${workflow.workflowId}, activityId=${null}, redirectTo=${listRedirectTo}, operationKey='retry')}">
+                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/retry|, buttonLabel='重试', workflowId=${workflow.workflowId}, redirectTo=${listRedirectTo}, operationKey='retry')}">
                         </div>
                     </th:block>
                     <th:block th:if="${workflow.allowedActions.canSkipLatest}">
-                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/skip|, buttonLabel='跳过最新活动', workflowId=${workflow.workflowId}, activityId=${workflow.latestActivityId}, redirectTo=${listRedirectTo}, operationKey='skip')}">
+                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/skip|, buttonLabel='跳过最新活动', workflowId=${workflow.workflowId}, redirectTo=${listRedirectTo}, operationKey='skip')}">
                         </div>
                     </th:block>
                 </div>

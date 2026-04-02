@@ -114,10 +114,10 @@ public class WorkflowEngine {
     /**
      * Mark the latest persisted activity as skipped and reopen the workflow to continue from the next step.
      */
-    public void skipActivity(String workflowId, String activityId, String skipInput) {
+    public void skipActivity(String workflowId, String skipInput) {
         WorkflowInstance workflowInstance = workflowRepository.findRequired(workflowId);
         try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflowInstance)) {
-            ActivityInstance target = requireLatestSkippableActivity(workflowInstance, activityId);
+            ActivityInstance target = requireLatestSkippableActivity(workflowInstance);
             String baseContext = resolveContextBefore(workflowId, target.getActivityName(), workflowInstance.getInput());
             String skipOutput = buildSkipOutput(baseContext, skipInput, target);
 
@@ -217,24 +217,19 @@ public class WorkflowEngine {
         }
     }
 
-    private ActivityInstance requireLatestSkippableActivity(WorkflowInstance workflowInstance, String activityId) {
+    private ActivityInstance requireLatestSkippableActivity(WorkflowInstance workflowInstance) {
         if (workflowInstance.getStatus() != WorkflowStatus.TERMINATED) {
             throw new IllegalStateException("Skip is only allowed when workflow is TERMINATED");
         }
 
-        ActivityInstance target = activityRepository.findByActivityId(activityId);
-        if (target == null || !workflowInstance.getWorkflowId().equals(target.getWorkflowId())) {
-            throw new IllegalArgumentException("Activity not found: " + activityId);
-        }
-
         ActivityInstance latestActivity = findLatestActivity(workflowInstance.getWorkflowId());
-        if (latestActivity == null || !target.getActivityId().equals(latestActivity.getActivityId())) {
-            throw new IllegalStateException("Skip only supports the latest recorded activity");
+        if (latestActivity == null) {
+            throw new IllegalStateException("Skip requires the latest recorded activity");
         }
-        if (target.getStatus() == ActivityExecutionStatus.SUCCESSFUL) {
+        if (latestActivity.getStatus() == ActivityExecutionStatus.SUCCESSFUL) {
             throw new IllegalStateException("Latest activity is already SUCCESSFUL, skip is not needed");
         }
-        return target;
+        return latestActivity;
     }
 
     private String executeActivity(

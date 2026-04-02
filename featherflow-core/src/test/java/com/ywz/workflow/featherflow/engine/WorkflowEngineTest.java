@@ -273,31 +273,13 @@ class WorkflowEngineTest {
     }
 
     @Test
-    void shouldOnlyAllowSkippingLatestRecordedActivity() {
+    void shouldRequireLatestRecordedActivityWhenSkipping() {
         WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-skip-check", "{\"amount\":100}");
-        activityRepository.saveOrUpdateResult(
-            workflow.getWorkflowId() + "-01",
-            workflow.getWorkflowId(),
-            "createOrder",
-            "{\"amount\":100}",
-            serializer.merge("{\"amount\":100}", "{\"orderCreated\":true}"),
-            ActivityExecutionStatus.SUCCESSFUL,
-            clock.instant()
-        );
-        activityRepository.saveOrUpdateResult(
-            workflow.getWorkflowId() + "-02",
-            workflow.getWorkflowId(),
-            "notifyCustomer",
-            serializer.merge("{\"amount\":100}", "{\"orderCreated\":true}"),
-            "{\"error\":\"notify failed\"}",
-            ActivityExecutionStatus.FAILED,
-            clock.instant()
-        );
         workflowRepository.updateStatus(workflow.getWorkflowId(), WorkflowStatus.TERMINATED, clock.instant());
 
         WorkflowEngine engine = newEngine();
 
-        assertThatThrownBy(() -> engine.skipActivity(workflow.getWorkflowId(), workflow.getWorkflowId() + "-01", "{\"manual\":true}"))
+        assertThatThrownBy(() -> engine.skipActivity(workflow.getWorkflowId(), "{\"manual\":true}"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("latest recorded activity");
     }

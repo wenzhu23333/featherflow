@@ -76,11 +76,11 @@ public class DefaultWorkflowRuntimeService implements WorkflowRuntimeService {
     }
 
     @Override
-    public void skipActivity(String workflowId, String activityId, String input) {
+    public void skipActivity(String workflowId, String input) {
         WorkflowInstance workflowInstance = workflowRepository.findRequired(workflowId);
         try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflowInstance)) {
-            workflowEngine.skipActivity(workflowId, activityId, input);
-            log.info("Continue workflow after manual skip, activityId={}", activityId);
+            workflowEngine.skipActivity(workflowId, input);
+            log.info("Continue workflow after manual skip of latest activity");
             workflowExecutionScheduler.schedule(workflowId);
         }
     }

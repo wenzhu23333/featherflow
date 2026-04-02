@@ -23,5 +23,5 @@ public interface WorkflowRuntimeService {
     /**
      * Mark the latest activity as skipped and continue the workflow.
      */
-    void skipActivity(String workflowId, String activityId, String input);
+    void skipActivity(String workflowId, String input);
 }

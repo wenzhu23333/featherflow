@@ -137,9 +137,8 @@ class WorkflowCommandServiceTest {
     @Test
     void shouldOnlyAllowSkipFromTerminatedWorkflow() {
         WorkflowInstance workflow = service.startWorkflow("orderWorkflow", "biz-2", "{\"amount\":100}");
-        String activityId = workflow.getWorkflowId() + "-01";
         activityRepository.saveOrUpdateResult(
-            activityId,
+            workflow.getWorkflowId() + "-01",
             workflow.getWorkflowId(),
             "createOrder",
             "{\"amount\":100}",
@@ -148,12 +147,12 @@ class WorkflowCommandServiceTest {
             clock.instant()
         );
 
-        assertThatThrownBy(() -> service.skipActivity(workflow.getWorkflowId(), activityId, "{\"manual\":true}"))
+        assertThatThrownBy(() -> service.skipActivity(workflow.getWorkflowId(), "{\"manual\":true}"))
             .isInstanceOf(IllegalStateException.class)
             .hasMessageContaining("TERMINATED");
 
         workflowRepository.updateStatus(workflow.getWorkflowId(), WorkflowStatus.TERMINATED, clock.instant());
-        service.skipActivity(workflow.getWorkflowId(), activityId, "{\"manual\":true}");
+        service.skipActivity(workflow.getWorkflowId(), "{\"manual\":true}");
 
         assertThat(operationRepository.findDuePendingOperations(clock.instant())).isEmpty();
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(0).getStatus()).isEqualTo(ActivityExecutionStatus.SUCCESSFUL);

@@ -53,8 +53,8 @@ public class DemoWorkflowFacade {
         workflowCommandService.retryWorkflow(workflowId);
     }
 
-    public void skip(String workflowId, String activityId) {
-        workflowCommandService.skipActivity(workflowId, activityId, "{\"manualSkip\":true}");
+    public void skip(String workflowId) {
+        workflowCommandService.skipActivity(workflowId, "{\"manualSkip\":true}");
     }
 
     public DemoWorkflowView getWorkflow(String workflowId) {

@@ -40,9 +40,9 @@ public class DemoWorkflowController {
         demoWorkflowFacade.retry(workflowId);
     }
 
-    @PostMapping("/{workflowId}/skip/{activityId}")
-    public void skip(@PathVariable("workflowId") String workflowId, @PathVariable("activityId") String activityId) {
-        demoWorkflowFacade.skip(workflowId, activityId);
+    @PostMapping("/{workflowId}/skip")
+    public void skip(@PathVariable("workflowId") String workflowId) {
+        demoWorkflowFacade.skip(workflowId);
     }
 
     @GetMapping("/{workflowId}")

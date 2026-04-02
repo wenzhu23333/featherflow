@@ -36,5 +36,5 @@ public interface WorkflowCommandService {
     /**
      * Mark the latest persisted activity as skipped and continue the workflow from the next step.
      */
-    void skipActivity(String workflowId, String activityId, String input);
+    void skipActivity(String workflowId, String input);
 }

@@ -63,12 +63,7 @@ public class WorkflowOperationService {
             throw badRequest("Skip requires an existing latest activity");
         }
 
-        String requestedActivityId = required(form.getActivityId(), "activityId");
-        if (!latestActivityId.equals(requestedActivityId)) {
-            throw badRequest("Skip only allowed for latest activity");
-        }
-
-        insertOperation(workflowId, "SKIP_ACTIVITY", buildInput(operator, reason, requestedActivityId));
+        insertOperation(workflowId, "SKIP_ACTIVITY", buildInput(operator, reason, null));
     }
 
     private WorkflowDetailView loadWorkflow(String workflowId) {

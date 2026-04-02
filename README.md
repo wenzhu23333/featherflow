@@ -81,7 +81,7 @@ curl -X POST http://localhost:8080/demo/workflows/{workflowId}/retry
 跳过最新步骤：
 
 ```bash
-curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip/{latestActivityId}
+curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip
 ```
 
 说明：
@@ -249,7 +249,7 @@ WorkflowInstance workflow = workflowCommandService.startWorkflow(
 
 workflowCommandService.terminateWorkflow(workflow.getWorkflowId(), "{\"reason\":\"manual-stop\"}");
 workflowCommandService.retryWorkflow(workflow.getWorkflowId());
-workflowCommandService.skipActivity(workflow.getWorkflowId(), "abcd-1234-abcd-1234-02", "{\"manual\":true}");
+workflowCommandService.skipActivity(workflow.getWorkflowId(), "{\"manual\":true}");
 ```
 
 接口语义：
@@ -257,7 +257,7 @@ workflowCommandService.skipActivity(workflow.getWorkflowId(), "abcd-1234-abcd-12
 - `startWorkflow`：同步写入工作流实例，然后直接把执行任务放入线程池；若调度失败会直接抛错。
 - `terminateWorkflow`：本地 API 直接把工作流改成 `TERMINATED`；引擎在下一个步骤前检查状态并停止。外部运维系统也可以写入 `TERMINATE` operation，由守护线程消费后执行同样的逻辑。
 - `retryWorkflow`：仅 `HUMAN_PROCESSING` 或 `TERMINATED` 状态允许，本地 API 会直接恢复为 `RUNNING` 并调度到统一执行线程池；恢复上下文直接取最新 activity 的持久化快照，若最新 activity 成功则复用其 `output`，若失败则复用其 `input`。外部运维系统也可以写入 `RETRY` operation，由守护线程消费后执行同样的逻辑。
-- `skipActivity`：按 `activityId` 跳过步骤，仅 `TERMINATED` 状态允许。
+- `skipActivity`：默认跳过当前最新一条 activity，仅 `TERMINATED` 状态允许。
 - `workflow_operation.status`：`PENDING -> PROCESSING -> SUCCESSFUL/FAILED`，仅表示外部操作命令的消费状态，不代表整个工作流是否成功。
 
 ## 构建方式

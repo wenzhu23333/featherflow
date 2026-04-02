@@ -103,11 +103,11 @@ public class DefaultWorkflowCommandService implements WorkflowCommandService {
     }
 
     @Override
-    public void skipActivity(String workflowId, String activityId, String input) {
-        workflowRuntimeService.skipActivity(workflowId, activityId, normalizeJson(input));
+    public void skipActivity(String workflowId, String input) {
+        workflowRuntimeService.skipActivity(workflowId, normalizeJson(input));
         WorkflowInstance workflowInstance = workflowRepository.findRequired(workflowId);
         try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflowInstance)) {
-            log.info("Workflow skip activity requested, activityId={}", activityId);
+            log.info("Workflow skip latest activity requested");
         }
     }
 

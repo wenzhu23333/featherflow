@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <body>
-<th:block th:fragment="operationForm(actionPath, buttonLabel, workflowId, activityId, redirectTo, operationKey)"
+<th:block th:fragment="operationForm(actionPath, buttonLabel, workflowId, redirectTo, operationKey)"
           th:with="dialogId=${'operation-dialog-' + workflowId + '-' + operationKey}">
     <button type="button"
             th:classappend="${operationKey == 'terminate'} ? ' danger-button' : ' secondary-button'"
@@ -22,7 +22,6 @@
                     <input type="text" name="reason" placeholder="reason" required>
                 </div>
                 <input type="hidden" name="redirectTo" th:value="${redirectTo}">
-                <input th:if="${activityId != null}" type="hidden" name="activityId" th:value="${activityId}">
                 <div class="dialog-actions">
                     <button type="submit"
                             th:classappend="${operationKey == 'terminate'} ? ' danger-button' : ' primary-button'">

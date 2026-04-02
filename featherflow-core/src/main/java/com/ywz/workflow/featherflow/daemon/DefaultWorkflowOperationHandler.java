@@ -73,18 +73,9 @@ public class DefaultWorkflowOperationHandler implements WorkflowOperationHandler
 
     private void applySkip(WorkflowOperation operation) {
         Map<String, Object> instruction = serializer.deserialize(operation.getInput());
-        String activityId = readRequiredActivityId(instruction);
         String payloadJson = readPayloadJson(instruction);
-        log.info("Apply workflow skip activity operation, activityId={}", activityId);
-        workflowRuntimeService.skipActivity(operation.getWorkflowId(), activityId, payloadJson);
-    }
-
-    private String readRequiredActivityId(Map<String, Object> instruction) {
-        Object activityId = instruction.get("activityId");
-        if (activityId == null) {
-            throw new IllegalArgumentException("Skip activity operation requires activityId");
-        }
-        return activityId.toString();
+        log.info("Apply workflow skip latest activity operation");
+        workflowRuntimeService.skipActivity(operation.getWorkflowId(), payloadJson);
     }
 
     @SuppressWarnings("unchecked")

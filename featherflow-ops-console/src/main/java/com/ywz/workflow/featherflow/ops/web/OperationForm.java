@@ -4,7 +4,6 @@ public class OperationForm {
 
     private String operator;
     private String reason;
-    private String activityId;
     private String redirectTo;
 
     public String getOperator() {
@@ -21,14 +20,6 @@ public class OperationForm {
 
     public void setReason(String reason) {
         this.reason = reason;
-    }
-
-    public String getActivityId() {
-        return activityId;
-    }
-
-    public void setActivityId(String activityId) {
-        this.activityId = activityId;
     }
 
     public String getRedirectTo() {

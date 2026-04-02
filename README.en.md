@@ -81,7 +81,7 @@ curl -X POST http://localhost:8080/demo/workflows/{workflowId}/retry
 Skip the latest activity:
 
 ```bash
-curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip/{latestActivityId}
+curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip
 ```
 
 Notes:
@@ -249,7 +249,7 @@ WorkflowInstance workflow = workflowCommandService.startWorkflow(
 
 workflowCommandService.terminateWorkflow(workflow.getWorkflowId(), "{\"reason\":\"manual-stop\"}");
 workflowCommandService.retryWorkflow(workflow.getWorkflowId());
-workflowCommandService.skipActivity(workflow.getWorkflowId(), "abcd-1234-abcd-1234-02", "{\"manual\":true}");
+workflowCommandService.skipActivity(workflow.getWorkflowId(), "{\"manual\":true}");
 ```
 
 Command semantics:
@@ -257,7 +257,7 @@ Command semantics:
 - `startWorkflow`: synchronously persists the workflow instance and immediately submits it into the execution scheduler; submission failure is raised to the caller.
 - `terminateWorkflow`: the local API directly moves the workflow to `TERMINATED`; the engine stops before the next activity. External operations systems can also write a `TERMINATE` operation, which the daemon consumes and forwards to the same runtime logic.
 - `retryWorkflow`: allowed only when the workflow is `HUMAN_PROCESSING` or `TERMINATED`; the local API reopens the workflow to `RUNNING` and submits it into the unified execution pool. The resumed context is derived from the latest persisted activity snapshot, reusing `output` after success and `input` after failure. External operations systems can also write a `RETRY` operation, which the daemon consumes and forwards to the same runtime logic.
-- `skipActivity`: skips a step by `activityId`, allowed only when the workflow is `TERMINATED`.
+- `skipActivity`: skips the latest recorded activity, allowed only when the workflow is `TERMINATED`.
 - `workflow_operation.status`: `PENDING -> PROCESSING -> SUCCESSFUL/FAILED`, which represents only external command-consumption state rather than overall workflow success.
 
 ## Build
