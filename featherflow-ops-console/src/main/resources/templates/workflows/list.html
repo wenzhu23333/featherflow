@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Workflow 列表</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+<div class="page-shell">
+    <header class="page-header">
+        <div>
+            <p class="page-kicker">FeatherFlow Ops Console</p>
+            <h1 class="page-title">Workflow 列表</h1>
+            <p class="page-subtitle">按状态、业务标识和时间范围筛选工作流，并在列表页直接发起常见运维操作。</p>
+        </div>
+        <nav class="page-nav">
+            <a class="nav-link" th:href="@{/operations}">查看操作历史</a>
+        </nav>
+    </header>
+
+    <section class="panel filter-panel">
+        <div class="panel-header">
+            <div>
+                <h2>筛选条件</h2>
+                <p>列表每 5 秒自动刷新，并自动保留当前筛选与分页状态。</p>
+            </div>
+        </div>
+        <form id="workflow-filter-form"
+              class="filter-grid"
+              hx-get="/workflows/table"
+              hx-target="#workflow-list-container"
+              hx-swap="innerHTML">
+            <input type="hidden" id="workflow-size-input" name="size" th:value="${size}">
+            <div class="field-group">
+                <label for="workflow-id-filter">Workflow ID</label>
+                <input id="workflow-id-filter" type="text" name="workflowId" placeholder="workflowId" th:value="${workflowId}">
+            </div>
+            <div class="field-group">
+                <label for="biz-id-filter">Biz ID</label>
+                <input id="biz-id-filter" type="text" name="bizId" placeholder="bizId" th:value="${bizId}">
+            </div>
+            <div class="field-group">
+                <label for="workflow-status-filter">状态</label>
+                <input id="workflow-status-filter" type="text" name="status" placeholder="status" th:value="${status}">
+            </div>
+            <div class="field-group">
+                <label for="workflow-name-filter">Workflow 名称</label>
+                <input id="workflow-name-filter" type="text" name="workflowName" placeholder="workflowName" th:value="${workflowName}">
+            </div>
+            <div class="field-group">
+                <label for="created-from-filter">创建时间起</label>
+                <input id="created-from-filter" type="text" name="createdFrom" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${createdFrom}">
+            </div>
+            <div class="field-group">
+                <label for="created-to-filter">创建时间止</label>
+                <input id="created-to-filter" type="text" name="createdTo" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${createdTo}">
+            </div>
+            <div class="field-group">
+                <label for="modified-from-filter">更新时间起</label>
+                <input id="modified-from-filter" type="text" name="modifiedFrom" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${modifiedFrom}">
+            </div>
+            <div class="field-group">
+                <label for="modified-to-filter">更新时间止</label>
+                <input id="modified-to-filter" type="text" name="modifiedTo" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${modifiedTo}">
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="primary-button">筛选</button>
+                <a class="secondary-button" th:href="@{/workflows}">重置</a>
+            </div>
+        </form>
+    </section>
+
+    <input type="hidden" id="workflow-page-input" name="page" th:value="${page}">
+    <div id="workflow-list-container"
+         class="panel table-panel"
+         hx-get="/workflows/table"
+         hx-trigger="every 5s"
+         hx-include="#workflow-filter-form,#workflow-page-input"
+         hx-swap="innerHTML">
+        <div th:replace="~{workflows/list-table :: table(${workflows},${workflowPage},${dateFilterErrors})}"></div>
+    </div>
+</div>
+</body>
+</html>

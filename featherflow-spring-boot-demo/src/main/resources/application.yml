@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: featherflow-demo
+  datasource:
+    url: jdbc:h2:mem:featherflow-demo-${random.uuid};MODE=MYSQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:/db/featherflow-h2.sql
+
+logging:
+  pattern:
+    level: "%5p [workflowId:%X{workflowId:-}] [bizId:%X{bizId:-}]"
+
+featherflow:
+  enabled: true
+  auto-start-daemon: false
+  definition-locations:
+    - classpath:/workflows/*.yml
+  instance-id: 127.0.0.1:featherflow-demo

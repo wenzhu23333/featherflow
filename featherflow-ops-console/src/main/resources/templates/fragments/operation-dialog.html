@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="operationForm(actionPath, buttonLabel, workflowId, activityId, redirectTo, operationKey)"
+          th:with="dialogId=${'operation-dialog-' + workflowId + '-' + operationKey}">
+    <button type="button"
+            th:classappend="${operationKey == 'terminate'} ? ' danger-button' : ' secondary-button'"
+            th:attr="onclick=|document.getElementById('${dialogId}').showModal()|">
+        <span th:text="${buttonLabel}">提交</span>
+    </button>
+    <dialog th:id="${dialogId}">
+        <div class="dialog-card">
+            <h3 th:text="${buttonLabel}">操作</h3>
+            <p>请填写操作人和原因，系统会将这次动作写入 <code>workflow_operation</code>。</p>
+            <form class="dialog-form" method="post" th:action="${actionPath}" th:attr="data-workflow-id=${workflowId}">
+                <div class="field-group">
+                    <label>操作人</label>
+                    <input type="text" name="operator" placeholder="operator" required>
+                </div>
+                <div class="field-group">
+                    <label>操作原因</label>
+                    <input type="text" name="reason" placeholder="reason" required>
+                </div>
+                <input type="hidden" name="redirectTo" th:value="${redirectTo}">
+                <input th:if="${activityId != null}" type="hidden" name="activityId" th:value="${activityId}">
+                <div class="dialog-actions">
+                    <button type="submit"
+                            th:classappend="${operationKey == 'terminate'} ? ' danger-button' : ' primary-button'">
+                        <span th:text="${buttonLabel}">提交</span>
+                    </button>
+                    <button type="button" class="secondary-button" th:attr="onclick=|document.getElementById('${dialogId}').close()|">取消</button>
+                </div>
+            </form>
+        </div>
+    </dialog>
+</th:block>
+</body>
+</html>

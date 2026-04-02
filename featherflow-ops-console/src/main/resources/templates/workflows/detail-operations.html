@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="operations(operations)">
+    <section class="panel history-section">
+        <div class="panel-header">
+            <div>
+                <h2>操作历史</h2>
+                <p>展示运维台或外部系统写入的 workflow_operation 记录及其原始输入。</p>
+            </div>
+        </div>
+        <table class="data-table">
+            <thead>
+            <tr>
+                <th>Operation ID</th>
+                <th>类型</th>
+                <th>状态</th>
+                <th>operator</th>
+                <th>reason</th>
+                <th>activityId</th>
+                <th>原始输入</th>
+                <th>创建时间</th>
+                <th>更新时间</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="operation : ${operations}" th:id="'operation-row-' + ${operation.operationId}">
+                <td th:text="${operation.operationId}">operation-id</td>
+                <td th:text="${operation.operationType}">operation-type</td>
+                <td>
+                    <span class="status-badge"
+                          th:classappend="${' status-' + #strings.toLowerCase(operation.status)}"
+                          th:text="${operation.status}">status</span>
+                </td>
+                <td th:text="${operation.operator}">operator</td>
+                <td th:text="${operation.reason}">reason</td>
+                <td th:text="${operation.activityId}">activity-id</td>
+                <td>
+                    <div class="cell-block" th:text="${operation.rawInput}">raw-input</div>
+                </td>
+                <td th:text="${operation.gmtCreatedDisplay}">gmt-created</td>
+                <td th:text="${operation.gmtModifiedDisplay}">gmt-modified</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+</th:block>
+</body>
+</html>

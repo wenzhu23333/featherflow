@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>操作历史</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+<div class="page-shell">
+    <header class="page-header">
+        <div>
+            <p class="page-kicker">FeatherFlow Ops Console</p>
+            <h1 class="page-title">操作历史</h1>
+            <p class="page-subtitle">查看运维按钮或外部系统写入的 workflow_operation 记录，辅助追踪命令执行情况。</p>
+        </div>
+        <nav class="page-nav">
+            <a class="nav-link" th:href="@{/workflows}">返回 Workflow 列表</a>
+        </nav>
+    </header>
+
+    <section class="panel filter-panel">
+        <div class="panel-header">
+            <div>
+                <h2>筛选条件</h2>
+                <p>操作历史每 5 秒自动刷新，适合观察命令消费状态变化。</p>
+            </div>
+        </div>
+        <form id="operation-filter-form"
+              class="filter-grid"
+              hx-get="/operations/table"
+              hx-target="#operation-history-container"
+              hx-swap="innerHTML">
+            <div class="field-group">
+                <label for="operation-workflow-id">Workflow ID</label>
+                <input id="operation-workflow-id" type="text" name="workflowId" placeholder="workflowId" th:value="${workflowId}">
+            </div>
+            <div class="field-group">
+                <label for="operation-biz-id">Biz ID</label>
+                <input id="operation-biz-id" type="text" name="bizId" placeholder="bizId" th:value="${bizId}">
+            </div>
+            <div class="field-group">
+                <label for="operation-type">Operation 类型</label>
+                <input id="operation-type" type="text" name="operationType" placeholder="operationType" th:value="${operationType}">
+            </div>
+            <div class="field-group">
+                <label for="operation-status">状态</label>
+                <input id="operation-status" type="text" name="status" placeholder="status" th:value="${status}">
+            </div>
+            <div class="field-group">
+                <label for="operation-operator">操作人</label>
+                <input id="operation-operator" type="text" name="operator" placeholder="operator" th:value="${operator}">
+            </div>
+            <div class="field-group">
+                <label for="operation-created-from">创建时间起</label>
+                <input id="operation-created-from" type="text" name="createdFrom" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${createdFrom}">
+            </div>
+            <div class="field-group">
+                <label for="operation-created-to">创建时间止</label>
+                <input id="operation-created-to" type="text" name="createdTo" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${createdTo}">
+            </div>
+            <div class="filter-actions">
+                <button type="submit" class="primary-button">筛选</button>
+                <a class="secondary-button" th:href="@{/operations}">重置</a>
+            </div>
+        </form>
+    </section>
+
+    <section id="operation-history-container"
+             class="panel table-panel"
+             hx-get="/operations/table"
+             hx-trigger="every 5s"
+             hx-include="#operation-filter-form"
+             hx-swap="innerHTML">
+        <th:block th:replace="~{operations/list :: table(${operations},${dateFilterErrors})}"></th:block>
+    </section>
+</div>
+
+<th:block th:fragment="table(operations,dateFilterErrors)">
+    <div id="operation-filter-errors" class="alert" th:if="${dateFilterErrors != null and !dateFilterErrors.isEmpty()}">
+        <p>日期筛选输入无效:</p>
+        <ul>
+            <li th:each="error : ${dateFilterErrors.values()}" th:text="${error}">error</li>
+        </ul>
+    </div>
+    <div class="table-toolbar">
+        <div>
+            <h2>命令记录</h2>
+            <p>支持按 workflow、operator 和时间范围检索 operation 历史。</p>
+        </div>
+    </div>
+    <table id="operation-history-table" class="data-table">
+        <thead>
+        <tr>
+            <th>Operation ID</th>
+            <th>Workflow ID</th>
+            <th>Biz ID</th>
+            <th>类型</th>
+            <th>状态</th>
+            <th>operator</th>
+            <th>reason</th>
+            <th>activityId</th>
+            <th>原始输入</th>
+            <th>创建时间</th>
+            <th>更新时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="operation : ${operations}" th:id="'operation-history-row-' + ${operation.operationId}">
+            <td th:text="${operation.operationId}">operation-id</td>
+            <td th:text="${operation.workflowId}">workflow-id</td>
+            <td th:text="${operation.bizId}">biz-id</td>
+            <td th:text="${operation.operationType}">operation-type</td>
+            <td>
+                <span class="status-badge"
+                      th:classappend="${' status-' + #strings.toLowerCase(operation.status)}"
+                      th:text="${operation.status}">status</span>
+            </td>
+            <td th:text="${operation.operator}">operator</td>
+            <td th:text="${operation.reason}">reason</td>
+            <td th:text="${operation.activityId}">activity-id</td>
+            <td>
+                <div class="cell-block" th:text="${operation.rawInput}">raw-input</div>
+            </td>
+            <td th:text="${operation.gmtCreatedDisplay}">gmt-created</td>
+            <td th:text="${operation.gmtModifiedDisplay}">gmt-modified</td>
+        </tr>
+        </tbody>
+    </table>
+</th:block>
+</body>
+</html>

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="summary(detail)">
+    <div class="detail-summary-grid">
+        <section class="panel summary-section">
+            <div class="panel-header">
+                <div>
+                    <h2>基础信息</h2>
+                    <p>摘要区域每 3 秒自动刷新，便于观察状态变化。</p>
+                </div>
+            </div>
+            <table class="data-table info-table">
+                <tbody>
+                <tr>
+                    <th>Workflow ID</th>
+                    <td th:text="${detail.workflowId}">workflow-id</td>
+                </tr>
+                <tr>
+                    <th>Biz ID</th>
+                    <td th:text="${detail.bizId}">biz-id</td>
+                </tr>
+                <tr>
+                    <th>Workflow 名称</th>
+                    <td th:text="${detail.workflowName}">workflow-name</td>
+                </tr>
+                <tr>
+                    <th>状态</th>
+                    <td>
+                        <span class="status-badge"
+                              th:classappend="${' status-' + #strings.toLowerCase(detail.workflowStatus)}"
+                              th:text="${detail.workflowStatus}">workflow-status</span>
+                    </td>
+                </tr>
+                <tr>
+                    <th>创建时间</th>
+                    <td th:text="${detail.gmtCreatedDisplay}">gmt-created</td>
+                </tr>
+                <tr>
+                    <th>更新时间</th>
+                    <td th:text="${detail.gmtModifiedDisplay}">gmt-modified</td>
+                </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <div class="stacked-panels">
+            <section class="panel summary-section" th:attr="data-latest-activity-id=${detail.latestActivityId}">
+                <div class="panel-header">
+                    <div>
+                        <h2>可用操作</h2>
+                        <p>根据当前 workflow 状态动态展示可执行动作。</p>
+                    </div>
+                </div>
+                <div class="operation-actions">
+                    <th:block th:if="${detail.allowedActions.canTerminate}">
+                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${detail.workflowId}/terminate|, buttonLabel='终止', workflowId=${detail.workflowId}, activityId=${null}, redirectTo=|/workflows/${detail.workflowId}|, operationKey='terminate')}">
+                        </div>
+                    </th:block>
+                    <th:block th:if="${detail.allowedActions.canRetry}">
+                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${detail.workflowId}/retry|, buttonLabel='重试', workflowId=${detail.workflowId}, activityId=${null}, redirectTo=|/workflows/${detail.workflowId}|, operationKey='retry')}">
+                        </div>
+                    </th:block>
+                    <th:block th:if="${detail.allowedActions.canSkipLatest}">
+                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${detail.workflowId}/skip|, buttonLabel='跳过最新活动', workflowId=${detail.workflowId}, activityId=${detail.latestActivityId}, redirectTo=|/workflows/${detail.workflowId}|, operationKey='skip')}">
+                        </div>
+                    </th:block>
+                    <span class="muted-text" th:if="${!detail.allowedActions.canTerminate and !detail.allowedActions.canRetry and !detail.allowedActions.canSkipLatest}">
+                        当前状态下暂无可执行运维动作
+                    </span>
+                </div>
+            </section>
+
+            <section class="panel summary-section">
+                <div class="panel-header">
+                    <div>
+                        <h2>Workflow 输入</h2>
+                        <p>展示 workflow 启动时持久化的原始输入快照。</p>
+                    </div>
+                </div>
+                <pre class="json-block" th:text="${detail.workflowInput}">workflow-input</pre>
+            </section>
+        </div>
+    </div>
+</th:block>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Workflow 详情</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script defer th:src="@{/js/app.js}"></script>
+</head>
+<body>
+<div class="page-shell">
+    <header class="page-header">
+        <div>
+            <p class="page-kicker">FeatherFlow Ops Console</p>
+            <h1 class="page-title">Workflow 详情</h1>
+            <p class="page-subtitle">查看单个工作流的基础信息、步骤流转、原始上下文和运维命令历史。</p>
+        </div>
+        <nav class="page-nav">
+            <a class="nav-link" th:href="@{/workflows}">返回 Workflow 列表</a>
+            <a class="nav-link" th:href="@{/operations}">查看操作历史</a>
+        </nav>
+    </header>
+    <div id="workflow-detail-container" class="detail-grid">
+        <div id="workflow-detail-summary-container"
+             th:attr="hx-get=@{/workflows/{workflowId}/summary(workflowId=${detail.workflowId})}"
+             hx-trigger="every 3s"
+             hx-swap="innerHTML">
+            <div th:replace="~{workflows/detail-summary :: summary(${detail})}"></div>
+        </div>
+        <div th:replace="~{workflows/detail-timeline :: timelineContainer(${detail.workflowId},${detail.activities},${detail.activityPagination})}"></div>
+        <div th:replace="~{workflows/detail-operations :: operations(${detail.operations})}"></div>
+    </div>
+</div>
+</body>
+</html>

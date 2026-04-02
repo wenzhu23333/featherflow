@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="timelineContainer(workflowId,activities,activityPagination)">
+    <div id="workflow-detail-timeline-container"
+         class="panel timeline-section"
+         th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.page},activitySize=${activityPagination.size})}"
+         hx-trigger="every 3s"
+         hx-sync="#workflow-detail-timeline-container:abort"
+         hx-swap="outerHTML">
+        <div class="table-toolbar">
+            <div>
+                <h2>活动时间线</h2>
+                <p>展示每一步 activity 的输入、输出和失败摘要，便于快速定位链路问题。</p>
+            </div>
+            <div class="action-group" th:if="${activityPagination != null}">
+                <div class="pager-summary">
+                    <span th:text="'活动第 ' + ${activityPagination.page} + ' / ' + ${activityPagination.totalPages} + ' 页'">活动第 1 / 1 页</span>
+                    <span th:text="'共 ' + ${activityPagination.totalElements} + ' 步'">共 0 步</span>
+                </div>
+                <form id="activity-page-size-form"
+                      class="page-size-form"
+                      th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId})}"
+                      hx-target="#workflow-detail-timeline-container"
+                      hx-sync="#workflow-detail-timeline-container:replace"
+                      hx-swap="outerHTML">
+                    <input type="hidden" name="activityPage" value="1">
+                    <label for="activity-page-size">每页</label>
+                    <select id="activity-page-size" name="activitySize" onchange="this.form.requestSubmit()">
+                        <option value="1" th:selected="${activityPagination.size == 1}">1</option>
+                        <option value="2" th:selected="${activityPagination.size == 2}">2</option>
+                        <option value="5" th:selected="${activityPagination.size == 5}">5</option>
+                        <option value="10" th:selected="${activityPagination.size == 10}">10</option>
+                        <option value="20" th:selected="${activityPagination.size == 20}">20</option>
+                    </select>
+                </form>
+                <div class="pager-links">
+                    <a th:if="${activityPagination.hasPrevious}"
+                       class="pager-link"
+                       th:href="@{/workflows/{workflowId}(workflowId=${workflowId},activityPage=${activityPagination.previousPage},activitySize=${activityPagination.size})}"
+                       th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.previousPage},activitySize=${activityPagination.size})}"
+                       hx-target="#workflow-detail-timeline-container"
+                       hx-sync="#workflow-detail-timeline-container:replace"
+                       hx-swap="outerHTML">上一页</a>
+                    <a th:if="${activityPagination.hasNext}"
+                       class="pager-link"
+                       th:href="@{/workflows/{workflowId}(workflowId=${workflowId},activityPage=${activityPagination.nextPage},activitySize=${activityPagination.size})}"
+                       th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.nextPage},activitySize=${activityPagination.size})}"
+                       hx-target="#workflow-detail-timeline-container"
+                       hx-sync="#workflow-detail-timeline-container:replace"
+                       hx-swap="outerHTML">下一页</a>
+                </div>
+            </div>
+        </div>
+        <table id="activity-timeline-table" class="data-table activity-timeline">
+            <thead>
+            <tr>
+                <th>活动名称</th>
+                <th>Activity ID</th>
+                <th>状态</th>
+                <th>创建时间</th>
+                <th>更新时间</th>
+                <th>输入</th>
+                <th>输出</th>
+                <th>失败摘要</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="activity : ${activities}" th:id="'timeline-row-' + ${activity.activityId}">
+                <td th:text="${activity.activityName}">activity-name</td>
+                <td th:text="${activity.activityId}">activity-id</td>
+                <td>
+                    <span class="status-badge"
+                          th:classappend="${' status-' + #strings.toLowerCase(activity.status)}"
+                          th:text="${activity.status}">status</span>
+                </td>
+                <td th:text="${activity.gmtCreatedDisplay}">gmt-created</td>
+                <td th:text="${activity.gmtModifiedDisplay}">gmt-modified</td>
+                <td>
+                    <div class="cell-block" th:text="${activity.input}">input</div>
+                </td>
+                <td>
+                    <div class="cell-block" th:text="${activity.output}">output</div>
+                </td>
+                <td>
+                    <div class="cell-block" th:classappend="${activity.failureSummary == '-' ? ' is-empty' : ''}"
+                         th:text="${activity.failureSummary}">failure-summary</div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</th:block>
+</body>
+</html>
