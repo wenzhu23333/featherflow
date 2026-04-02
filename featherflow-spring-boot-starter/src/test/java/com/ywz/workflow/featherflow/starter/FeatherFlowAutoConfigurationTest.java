@@ -54,6 +54,39 @@ class FeatherFlowAutoConfigurationTest {
     }
 
     @Test
+    void shouldLoadMultipleWorkflowDefinitionsAcrossYamlAndXmlFiles() {
+        new ApplicationContextRunner()
+            .withUserConfiguration(TestConfiguration.class)
+            .withPropertyValues(
+                "featherflow.enabled=true",
+                "featherflow.auto-start-daemon=false",
+                "featherflow.definition-locations=classpath:/workflows/multi/*.yml,classpath:/workflows/multi/*.xml"
+            )
+            .withConfiguration(org.springframework.boot.autoconfigure.AutoConfigurations.of(FeatherFlowAutoConfiguration.class))
+            .run(context -> {
+                WorkflowDefinitionRegistry registry = context.getBean(WorkflowDefinitionRegistry.class);
+                assertThat(registry.find("sampleOrderWorkflow")).isNotNull();
+                assertThat(registry.find("samplePaymentWorkflow")).isNotNull();
+            });
+    }
+
+    @Test
+    void shouldFailWhenMultipleDefinitionFilesShareTheSameWorkflowName() {
+        new ApplicationContextRunner()
+            .withUserConfiguration(TestConfiguration.class)
+            .withPropertyValues(
+                "featherflow.enabled=true",
+                "featherflow.auto-start-daemon=false",
+                "featherflow.definition-locations=classpath:/workflows/duplicate/*.yml,classpath:/workflows/duplicate/*.xml"
+            )
+            .withConfiguration(org.springframework.boot.autoconfigure.AutoConfigurations.of(FeatherFlowAutoConfiguration.class))
+            .run(context -> {
+                assertThat(context).hasFailed();
+                assertThat(context.getStartupFailure()).hasMessageContaining("Duplicate workflow definition name");
+            });
+    }
+
+    @Test
     void shouldUseConfiguredInstanceIdForJdbcWorkflowLockOwner() {
         FeatherFlowAutoConfiguration autoConfiguration = new FeatherFlowAutoConfiguration();
         FeatherFlowProperties properties = new FeatherFlowProperties();

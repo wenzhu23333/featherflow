@@ -19,6 +19,7 @@ FeatherFlow is a self-developed lightweight Java workflow framework with persist
 
 - Supports sequential workflow orchestration.
 - Supports both YAML and XML workflow definitions.
+- Supports loading different workflows from multiple YAML/XML definition files.
 - Persists the three core tables: `workflow_instance`, `activity_instance`, and `workflow_operation`.
 - Supports per-activity retry interval and maximum retry count.
 - Persists exception details into `activity_instance.output` when an activity fails.
@@ -139,6 +140,7 @@ featherflow:
   instance-id: 10.9.8.7:workflow-engine-a
   definition-locations:
     - classpath:/workflows/*.yml
+    - classpath:/workflows/*.yaml
     - classpath:/workflows/*.xml
 ```
 
@@ -147,6 +149,8 @@ Configuration notes:
 - `enabled`: whether FeatherFlow is enabled.
 - `auto-start-daemon`: whether to automatically start the daemon that scans `workflow_operation` for externally submitted commands.
 - `definition-locations`: resource locations used to load workflow definition files.
+- `definition-locations` supports multiple entries. Each entry can point to a single file or to wildcard patterns such as `*.yml`, `*.yaml`, and `*.xml`.
+- Workflow `name` values must be unique across files. FeatherFlow fails fast at startup when duplicate workflow names are detected.
 - `instance-id`: optional instance identifier. A readable value such as `IP:node-name` or `IP:service-name` is recommended; if omitted, FeatherFlow generates `IP:hostname:PID:random-suffix`.
 - `persistence-write-retry-max-attempts`: maximum retry attempts for framework-owned persistence writes.
 - `persistence-write-retry-initial-delay-millis`: delay before the first retry.
@@ -181,6 +185,16 @@ XML example:
   <activity name="createOrder" handler="createOrderHandler" retryInterval="PT5S" maxRetryTimes="2"/>
   <activity name="notifyCustomer" handler="notifyCustomerHandler" retryInterval="PT10S" maxRetryTimes="1"/>
 </workflow>
+```
+
+Multiple files example:
+
+```yaml
+featherflow:
+  definition-locations:
+    - classpath:/workflows/order/*.yml
+    - classpath:/workflows/payment/*.xml
+    - classpath:/workflows/common/*.yaml
 ```
 
 Field notes:

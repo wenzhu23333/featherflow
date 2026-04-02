@@ -1,0 +1,7 @@
+workflow:
+  name: duplicateWorkflow
+  activities:
+    - name: firstStep
+      handler: createOrderHandler
+      retryInterval: PT5S
+      maxRetryTimes: 1

@@ -20,4 +20,6 @@ featherflow:
   auto-start-daemon: false
   definition-locations:
     - classpath:/workflows/*.yml
+    - classpath:/workflows/*.yaml
+    - classpath:/workflows/*.xml
   instance-id: 127.0.0.1:featherflow-demo
