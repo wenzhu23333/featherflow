@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="table(operations,dateFilterErrors)">
+    <div id="operation-filter-errors" class="alert" th:if="${dateFilterErrors != null and !dateFilterErrors.isEmpty()}">
+        <p>日期筛选输入无效:</p>
+        <ul>
+            <li th:each="error : ${dateFilterErrors.values()}" th:text="${error}">error</li>
+        </ul>
+    </div>
+    <div class="table-toolbar">
+        <div>
+            <h2>命令记录</h2>
+            <p>支持按 workflow、operator 和时间范围检索 operation 历史。</p>
+        </div>
+    </div>
+    <table id="operation-history-table" class="data-table">
+        <thead>
+        <tr>
+            <th>Operation ID</th>
+            <th>Workflow ID</th>
+            <th>Biz ID</th>
+            <th>类型</th>
+            <th>状态</th>
+            <th>operator</th>
+            <th>reason</th>
+            <th>activityId</th>
+            <th>原始输入</th>
+            <th>创建时间</th>
+            <th>更新时间</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="operation : ${operations}" th:id="'operation-history-row-' + ${operation.operationId}">
+            <td th:text="${operation.operationId}">operation-id</td>
+            <td th:text="${operation.workflowId}">workflow-id</td>
+            <td th:text="${operation.bizId}">biz-id</td>
+            <td th:text="${operation.operationType}">operation-type</td>
+            <td>
+                <span class="status-badge"
+                      th:classappend="${' status-' + #strings.toLowerCase(operation.status)}"
+                      th:text="${operation.status}">status</span>
+            </td>
+            <td th:text="${operation.operator}">operator</td>
+            <td th:text="${operation.reason}">reason</td>
+            <td th:text="${operation.activityId}">activity-id</td>
+            <td>
+                <div class="cell-block" th:text="${operation.rawInput}">raw-input</div>
+            </td>
+            <td th:text="${operation.gmtCreatedDisplay}">gmt-created</td>
+            <td th:text="${operation.gmtModifiedDisplay}">gmt-modified</td>
+        </tr>
+        </tbody>
+    </table>
+</th:block>
+</body>
+</html>

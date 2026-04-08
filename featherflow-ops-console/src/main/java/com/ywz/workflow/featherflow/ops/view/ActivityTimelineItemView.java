@@ -4,6 +4,7 @@ public class ActivityTimelineItemView {
 
     private final String activityId;
     private final String activityName;
+    private final String executedNode;
     private final String status;
     private final String gmtCreatedDisplay;
     private final String gmtModifiedDisplay;
@@ -14,6 +15,7 @@ public class ActivityTimelineItemView {
     public ActivityTimelineItemView(
         String activityId,
         String activityName,
+        String executedNode,
         String status,
         String gmtCreatedDisplay,
         String gmtModifiedDisplay,
@@ -23,6 +25,7 @@ public class ActivityTimelineItemView {
     ) {
         this.activityId = activityId;
         this.activityName = activityName;
+        this.executedNode = executedNode;
         this.status = status;
         this.gmtCreatedDisplay = gmtCreatedDisplay;
         this.gmtModifiedDisplay = gmtModifiedDisplay;
@@ -37,6 +40,10 @@ public class ActivityTimelineItemView {
 
     public String getActivityName() {
         return activityName;
+    }
+
+    public String getExecutedNode() {
+        return executedNode;
     }
 
     public String getStatus() {

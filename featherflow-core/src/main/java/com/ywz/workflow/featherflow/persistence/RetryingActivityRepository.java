@@ -25,18 +25,19 @@ public class RetryingActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public void saveOrUpdateResult(
+    public void saveAttempt(
         String activityId,
         String workflowId,
         String activityName,
+        String executedNode,
         String input,
         String output,
         ActivityExecutionStatus status,
         Instant modifiedAt
     ) {
         retrier.run(
-            "activityRepository.saveOrUpdateResult",
-            () -> delegate.saveOrUpdateResult(activityId, workflowId, activityName, input, output, status, modifiedAt)
+            "activityRepository.saveAttempt",
+            () -> delegate.saveAttempt(activityId, workflowId, activityName, executedNode, input, output, status, modifiedAt)
         );
     }
 
@@ -46,8 +47,8 @@ public class RetryingActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public ActivityInstance findByWorkflowIdAndActivityName(String workflowId, String activityName) {
-        return delegate.findByWorkflowIdAndActivityName(workflowId, activityName);
+    public ActivityInstance findLatestByWorkflowIdAndActivityName(String workflowId, String activityName) {
+        return delegate.findLatestByWorkflowIdAndActivityName(workflowId, activityName);
     }
 
     @Override
@@ -56,17 +57,7 @@ public class RetryingActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public void update(ActivityInstance activityInstance) {
-        retrier.run("activityRepository.update", () -> delegate.update(activityInstance));
-    }
-
-    @Override
-    public void markSuccessful(String workflowId, String activityName, String output, Instant modifiedAt) {
-        retrier.run("activityRepository.markSuccessful", () -> delegate.markSuccessful(workflowId, activityName, output, modifiedAt));
-    }
-
-    @Override
-    public void updateResult(String activityId, String input, String output, ActivityExecutionStatus status, Instant modifiedAt) {
-        retrier.run("activityRepository.updateResult", () -> delegate.updateResult(activityId, input, output, status, modifiedAt));
+    public long countByWorkflowIdAndActivityNameAndStatus(String workflowId, String activityName, ActivityExecutionStatus status) {
+        return delegate.countByWorkflowIdAndActivityNameAndStatus(workflowId, activityName, status);
     }
 }

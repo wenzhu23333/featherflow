@@ -57,6 +57,7 @@
             <tr>
                 <th>活动名称</th>
                 <th>Activity ID</th>
+                <th>执行节点</th>
                 <th>状态</th>
                 <th>创建时间</th>
                 <th>更新时间</th>
@@ -69,6 +70,7 @@
             <tr th:each="activity : ${activities}" th:id="'timeline-row-' + ${activity.activityId}">
                 <td th:text="${activity.activityName}">activity-name</td>
                 <td th:text="${activity.activityId}">activity-id</td>
+                <td th:text="${activity.executedNode}">executed-node</td>
                 <td>
                     <span class="status-badge"
                           th:classappend="${' status-' + #strings.toLowerCase(activity.status)}"

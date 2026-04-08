@@ -8,8 +8,6 @@ import com.ywz.workflow.featherflow.model.WorkflowStatus;
 import com.ywz.workflow.featherflow.repository.WorkflowRepository;
 import com.ywz.workflow.featherflow.support.WorkflowContextSerializer;
 import java.time.Clock;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +21,6 @@ public class DefaultWorkflowRuntimeService implements WorkflowRuntimeService {
     private final WorkflowRepository workflowRepository;
     private final WorkflowEngine workflowEngine;
     private final WorkflowExecutionScheduler workflowExecutionScheduler;
-    private final WorkflowContextSerializer serializer;
     private final Clock clock;
 
     public DefaultWorkflowRuntimeService(
@@ -36,7 +33,6 @@ public class DefaultWorkflowRuntimeService implements WorkflowRuntimeService {
         this.workflowRepository = workflowRepository;
         this.workflowEngine = workflowEngine;
         this.workflowExecutionScheduler = workflowExecutionScheduler;
-        this.serializer = serializer;
         this.clock = clock;
     }
 
@@ -57,7 +53,6 @@ public class DefaultWorkflowRuntimeService implements WorkflowRuntimeService {
                 throw new IllegalStateException("Only HUMAN_PROCESSING or TERMINATED workflows support retry");
             }
             WorkflowStatus previousStatus = workflowInstance.getStatus();
-            workflowInstance.setExtCol(serializer.serialize(resetRetryCounts(workflowInstance)));
             workflowInstance.setStatus(WorkflowStatus.RUNNING);
             workflowInstance.setGmtModified(clock.instant());
             workflowRepository.update(workflowInstance);
@@ -83,11 +78,5 @@ public class DefaultWorkflowRuntimeService implements WorkflowRuntimeService {
             log.info("Continue workflow after manual skip of latest activity");
             workflowExecutionScheduler.schedule(workflowId);
         }
-    }
-
-    private Map<String, Object> resetRetryCounts(WorkflowInstance workflowInstance) {
-        Map<String, Object> ext = serializer.deserialize(workflowInstance.getExtCol());
-        ext.put("retryCounts", new LinkedHashMap<String, Object>());
-        return ext;
     }
 }

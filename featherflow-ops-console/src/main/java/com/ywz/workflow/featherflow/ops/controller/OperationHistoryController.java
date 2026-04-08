@@ -68,7 +68,7 @@ public class OperationHistoryController {
         );
         addFilterAttributes(model, filter, createdFrom, createdTo, dateFilterErrors);
         model.addAttribute("operations", workflowQueryService.listOperations(filter));
-        return "operations/list :: table(operations=${operations},dateFilterErrors=${dateFilterErrors})";
+        return "operations/list-table :: table(operations=${operations},dateFilterErrors=${dateFilterErrors})";
     }
 
     private void addFilterAttributes(

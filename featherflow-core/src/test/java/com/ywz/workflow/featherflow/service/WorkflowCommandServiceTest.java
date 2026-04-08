@@ -87,7 +87,8 @@ class WorkflowCommandServiceTest {
             new DefaultWorkflowIdGenerator(),
             new JsonWorkflowContextSerializer(),
             clock,
-            workflowRuntimeService
+            workflowRuntimeService,
+            "test-node"
         );
     }
 
@@ -137,10 +138,11 @@ class WorkflowCommandServiceTest {
     @Test
     void shouldOnlyAllowSkipFromTerminatedWorkflow() {
         WorkflowInstance workflow = service.startWorkflow("orderWorkflow", "biz-2", "{\"amount\":100}");
-        activityRepository.saveOrUpdateResult(
-            workflow.getWorkflowId() + "-01",
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-01-01",
             workflow.getWorkflowId(),
             "createOrder",
+            "seed-node",
             "{\"amount\":100}",
             "{\"error\":\"failed\"}",
             ActivityExecutionStatus.FAILED,
@@ -155,7 +157,9 @@ class WorkflowCommandServiceTest {
         service.skipActivity(workflow.getWorkflowId(), "{\"manual\":true}");
 
         assertThat(operationRepository.findDuePendingOperations(clock.instant())).isEmpty();
-        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(0).getStatus()).isEqualTo(ActivityExecutionStatus.SUCCESSFUL);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(activity -> activity.getStatus())
+            .containsExactly(ActivityExecutionStatus.FAILED, ActivityExecutionStatus.SUCCESSFUL);
         assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.RUNNING);
         assertThat(workflowExecutionScheduler.workflowIds).containsExactly(workflow.getWorkflowId(), workflow.getWorkflowId());
     }

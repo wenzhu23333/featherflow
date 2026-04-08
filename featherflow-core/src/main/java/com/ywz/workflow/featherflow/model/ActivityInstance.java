@@ -7,16 +7,41 @@ public class ActivityInstance {
     private final String activityId;
     private final String workflowId;
     private final String activityName;
+    private final String executedNode;
     private final Instant gmtCreated;
-    private Instant gmtModified;
-    private String input;
-    private String output;
-    private ActivityExecutionStatus status;
+    private final Instant gmtModified;
+    private final String input;
+    private final String output;
+    private final ActivityExecutionStatus status;
 
-    public ActivityInstance(String activityId, String workflowId, String activityName, Instant gmtCreated, Instant gmtModified, String input, String output, ActivityExecutionStatus status) {
+    public ActivityInstance(
+        String activityId,
+        String workflowId,
+        String activityName,
+        Instant gmtCreated,
+        Instant gmtModified,
+        String input,
+        String output,
+        ActivityExecutionStatus status
+    ) {
+        this(activityId, workflowId, activityName, null, gmtCreated, gmtModified, input, output, status);
+    }
+
+    public ActivityInstance(
+        String activityId,
+        String workflowId,
+        String activityName,
+        String executedNode,
+        Instant gmtCreated,
+        Instant gmtModified,
+        String input,
+        String output,
+        ActivityExecutionStatus status
+    ) {
         this.activityId = activityId;
         this.workflowId = workflowId;
         this.activityName = activityName;
+        this.executedNode = executedNode;
         this.gmtCreated = gmtCreated;
         this.gmtModified = gmtModified;
         this.input = input;
@@ -36,6 +61,10 @@ public class ActivityInstance {
         return activityName;
     }
 
+    public String getExecutedNode() {
+        return executedNode;
+    }
+
     public Instant getGmtCreated() {
         return gmtCreated;
     }
@@ -44,31 +73,15 @@ public class ActivityInstance {
         return gmtModified;
     }
 
-    public void setGmtModified(Instant gmtModified) {
-        this.gmtModified = gmtModified;
-    }
-
     public String getInput() {
         return input;
-    }
-
-    public void setInput(String input) {
-        this.input = input;
     }
 
     public String getOutput() {
         return output;
     }
 
-    public void setOutput(String output) {
-        this.output = output;
-    }
-
     public ActivityExecutionStatus getStatus() {
         return status;
-    }
-
-    public void setStatus(ActivityExecutionStatus status) {
-        this.status = status;
     }
 }

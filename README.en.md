@@ -21,6 +21,9 @@ FeatherFlow is a self-developed lightweight Java workflow framework with persist
 - Supports both YAML and XML workflow definitions.
 - Supports loading different workflows from multiple YAML/XML definition files.
 - Persists the three core tables: `workflow_instance`, `activity_instance`, and `workflow_operation`.
+- Stores the workflow definition name in `workflow_instance.workflow_name` and the workflow start node in `workflow_instance.start_node`.
+- Stores the execution node for each activity attempt in `activity_instance.executed_node`.
+- Uses append-only activity history: each completed activity attempt is persisted as one row, whether it succeeds or fails, and the retry budget is derived from failed history counts for the same `workflow_id + activity_name`.
 - Supports per-activity retry interval and maximum retry count.
 - Persists exception details into `activity_instance.output` when an activity fails.
 - Moves the workflow into `HUMAN_PROCESSING` after retries are exhausted and supports manual retry.
@@ -123,6 +126,15 @@ Reference SQL files:
 
 - `featherflow-core/src/main/resources/db/featherflow-h2.sql`
 - `featherflow-core/src/main/resources/db/featherflow-mysql.sql`
+
+Key `workflow_instance` and `activity_instance` field semantics:
+
+- `workflow_id`: workflow runtime instance ID
+- `biz_id`: business identifier supplied by the caller or defaulted from the workflow ID
+- `workflow_name`: workflow definition name, matching `workflow.name` in YAML/XML
+- `start_node`: the node that created and initially dispatched the workflow instance
+- `executed_node`: the node that actually executed a given activity attempt
+- `activity_instance`: one row is written after each completed activity attempt, regardless of success or failure
 
 ## Spring Boot Configuration
 

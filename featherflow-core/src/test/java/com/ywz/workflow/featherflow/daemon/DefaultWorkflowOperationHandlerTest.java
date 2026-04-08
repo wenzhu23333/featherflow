@@ -95,22 +95,25 @@ class DefaultWorkflowOperationHandlerTest {
                 new NoOpWorkflowExecutionScheduler(),
                 serializer,
                 clock
-            )
+            ),
+            "test-node"
         );
         WorkflowInstance workflow = commandService.startWorkflow("skipWorkflow", "biz-skip", "{\"base\":1}");
-        activityRepository.saveOrUpdateResult(
-            workflow.getWorkflowId() + "-01",
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-01-01",
             workflow.getWorkflowId(),
             "step1",
+            "seed-node",
             "{\"base\":1}",
             serializer.merge("{\"base\":1}", "{\"step1\":true}"),
             ActivityExecutionStatus.SUCCESSFUL,
             clock.instant()
         );
-        activityRepository.saveOrUpdateResult(
-            workflow.getWorkflowId() + "-02",
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-02-01",
             workflow.getWorkflowId(),
             "step2",
+            "seed-node",
             serializer.merge("{\"base\":1}", "{\"step1\":true}"),
             "{\"error\":\"step2 failed\"}",
             ActivityExecutionStatus.FAILED,
@@ -150,10 +153,19 @@ class DefaultWorkflowOperationHandlerTest {
         waitForWorkflowStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
 
         assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.SUCCESSFUL);
-        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(1).getOutput()).contains("manual");
-        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(1).getOutput()).contains("_featherflowSkip");
-        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(2).getOutput()).contains("step3");
-        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(2).getOutput()).contains("step1");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).hasSize(4);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .filteredOn(activity -> activity.getActivityName().equals("step2"))
+            .extracting(activity -> activity.getStatus())
+            .containsExactly(ActivityExecutionStatus.FAILED, ActivityExecutionStatus.SUCCESSFUL);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .filteredOn(activity -> activity.getActivityName().equals("step2"))
+            .extracting(activity -> activity.getActivityId())
+            .containsExactly(workflow.getWorkflowId() + "-02-01", workflow.getWorkflowId() + "-02-02");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(2).getOutput()).contains("manual");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(2).getOutput()).contains("_featherflowSkip");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(3).getOutput()).contains("step3");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(3).getOutput()).contains("step1");
     }
 
     @Test
@@ -161,11 +173,12 @@ class DefaultWorkflowOperationHandlerTest {
         WorkflowInstance workflow = new WorkflowInstance(
             "wf-running-retry-1",
             "biz-running-retry-1",
+            "skipWorkflow",
+            "test-node",
             clock.instant(),
             clock.instant(),
             "{\"base\":1}",
-            WorkflowStatus.RUNNING,
-            "{\"definitionName\":\"skipWorkflow\",\"retryCounts\":{\"step2\":1}}"
+            WorkflowStatus.RUNNING
         );
         workflowRepository.save(workflow);
 
@@ -214,17 +227,19 @@ class DefaultWorkflowOperationHandlerTest {
         WorkflowInstance workflow = new WorkflowInstance(
             "wf-retry-ignore-input-1",
             "biz-retry-ignore-input-1",
+            "skipWorkflow",
+            "test-node",
             clock.instant(),
             clock.instant(),
             "{\"base\":1}",
-            WorkflowStatus.TERMINATED,
-            "{\"definitionName\":\"skipWorkflow\",\"retryCounts\":{}}"
+            WorkflowStatus.TERMINATED
         );
         workflowRepository.save(workflow);
-        activityRepository.saveOrUpdateResult(
-            workflow.getWorkflowId() + "-01",
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-01-01",
             workflow.getWorkflowId(),
             "step1",
+            "seed-node",
             "{\"base\":1}",
             serializer.merge("{\"base\":1}", "{\"step1\":true}"),
             ActivityExecutionStatus.SUCCESSFUL,

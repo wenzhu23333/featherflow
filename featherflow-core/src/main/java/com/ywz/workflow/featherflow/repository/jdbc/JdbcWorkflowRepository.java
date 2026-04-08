@@ -22,26 +22,28 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
     @Override
     public void save(WorkflowInstance workflowInstance) {
         jdbcTemplate.update(
-            "insert into workflow_instance (workflow_id, biz_id, gmt_created, gmt_modified, input, status, ext_col) values (?, ?, ?, ?, ?, ?, ?)",
+            "insert into workflow_instance (workflow_id, biz_id, workflow_name, start_node, gmt_created, gmt_modified, input, status) values (?, ?, ?, ?, ?, ?, ?, ?)",
             workflowInstance.getWorkflowId(),
             workflowInstance.getBizId(),
+            workflowInstance.getWorkflowName(),
+            workflowInstance.getStartNode(),
             Timestamp.from(workflowInstance.getGmtCreated()),
             Timestamp.from(workflowInstance.getGmtModified()),
             workflowInstance.getInput(),
-            workflowInstance.getStatus().name(),
-            workflowInstance.getExtCol()
+            workflowInstance.getStatus().name()
         );
     }
 
     @Override
     public void update(WorkflowInstance workflowInstance) {
         jdbcTemplate.update(
-            "update workflow_instance set biz_id = ?, gmt_modified = ?, input = ?, status = ?, ext_col = ? where workflow_id = ?",
+            "update workflow_instance set biz_id = ?, workflow_name = ?, start_node = ?, gmt_modified = ?, input = ?, status = ? where workflow_id = ?",
             workflowInstance.getBizId(),
+            workflowInstance.getWorkflowName(),
+            workflowInstance.getStartNode(),
             Timestamp.from(workflowInstance.getGmtModified()),
             workflowInstance.getInput(),
             workflowInstance.getStatus().name(),
-            workflowInstance.getExtCol(),
             workflowInstance.getWorkflowId()
         );
     }
@@ -49,7 +51,7 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
     @Override
     public WorkflowInstance find(String workflowId) {
         List<WorkflowInstance> results = jdbcTemplate.query(
-            "select workflow_id, biz_id, gmt_created, gmt_modified, input, status, ext_col from workflow_instance where workflow_id = ?",
+            "select workflow_id, biz_id, workflow_name, start_node, gmt_created, gmt_modified, input, status from workflow_instance where workflow_id = ?",
             new WorkflowInstanceRowMapper(),
             workflowId
         );
@@ -81,11 +83,12 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
             return new WorkflowInstance(
                 rs.getString("workflow_id"),
                 rs.getString("biz_id"),
+                rs.getString("workflow_name"),
+                rs.getString("start_node"),
                 rs.getTimestamp("gmt_created").toInstant(),
                 rs.getTimestamp("gmt_modified").toInstant(),
                 rs.getString("input"),
-                WorkflowStatus.valueOf(rs.getString("status")),
-                rs.getString("ext_col")
+                WorkflowStatus.valueOf(rs.getString("status"))
             );
         }
     }

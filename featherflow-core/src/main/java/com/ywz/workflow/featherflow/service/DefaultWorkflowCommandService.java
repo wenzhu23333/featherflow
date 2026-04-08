@@ -9,8 +9,6 @@ import com.ywz.workflow.featherflow.repository.WorkflowRepository;
 import com.ywz.workflow.featherflow.support.WorkflowContextSerializer;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.LinkedHashMap;
-import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +22,7 @@ public class DefaultWorkflowCommandService implements WorkflowCommandService {
     private final WorkflowContextSerializer serializer;
     private final Clock clock;
     private final WorkflowRuntimeService workflowRuntimeService;
+    private final String nodeIdentity;
 
     public DefaultWorkflowCommandService(
         WorkflowDefinitionRegistry definitionRegistry,
@@ -31,7 +30,8 @@ public class DefaultWorkflowCommandService implements WorkflowCommandService {
         WorkflowIdGenerator workflowIdGenerator,
         WorkflowContextSerializer serializer,
         Clock clock,
-        WorkflowRuntimeService workflowRuntimeService
+        WorkflowRuntimeService workflowRuntimeService,
+        String nodeIdentity
     ) {
         this.definitionRegistry = definitionRegistry;
         this.workflowRepository = workflowRepository;
@@ -39,6 +39,7 @@ public class DefaultWorkflowCommandService implements WorkflowCommandService {
         this.serializer = serializer;
         this.clock = clock;
         this.workflowRuntimeService = workflowRuntimeService;
+        this.nodeIdentity = nodeIdentity;
     }
 
     @Override
@@ -52,11 +53,12 @@ public class DefaultWorkflowCommandService implements WorkflowCommandService {
         WorkflowInstance workflowInstance = new WorkflowInstance(
             workflowId,
             effectiveBizId,
+            definition.getName(),
+            nodeIdentity,
             now,
             now,
             effectiveInput,
-            WorkflowStatus.RUNNING,
-            serializer.serialize(newMetadata(definitionName))
+            WorkflowStatus.RUNNING
         );
         try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflowInstance)) {
             workflowRepository.save(workflowInstance);
@@ -74,11 +76,6 @@ public class DefaultWorkflowCommandService implements WorkflowCommandService {
             WorkflowStatus previousStatus = workflowInstance.getStatus();
             workflowInstance.setStatus(status);
             workflowInstance.setGmtModified(clock.instant());
-            if (note != null && !note.trim().isEmpty()) {
-                Map<String, Object> ext = serializer.deserialize(workflowInstance.getExtCol());
-                ext.put("note", note);
-                workflowInstance.setExtCol(serializer.serialize(ext));
-            }
             workflowRepository.update(workflowInstance);
             log.info("Workflow status changed, fromStatus={}, toStatus={}", previousStatus, status);
         }
@@ -109,13 +106,6 @@ public class DefaultWorkflowCommandService implements WorkflowCommandService {
         try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflowInstance)) {
             log.info("Workflow skip latest activity requested");
         }
-    }
-
-    private Map<String, Object> newMetadata(String definitionName) {
-        Map<String, Object> metadata = new LinkedHashMap<String, Object>();
-        metadata.put("definitionName", definitionName);
-        metadata.put("retryCounts", new LinkedHashMap<String, Object>());
-        return metadata;
     }
 
     private String normalizeJson(String input) {
