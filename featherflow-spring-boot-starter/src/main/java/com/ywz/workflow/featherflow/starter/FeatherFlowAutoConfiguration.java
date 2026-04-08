@@ -39,6 +39,7 @@ import com.ywz.workflow.featherflow.service.DefaultWorkflowRuntimeService;
 import com.ywz.workflow.featherflow.service.WorkflowCommandService;
 import com.ywz.workflow.featherflow.service.WorkflowRuntimeService;
 import com.ywz.workflow.featherflow.support.JsonWorkflowContextSerializer;
+import com.ywz.workflow.featherflow.support.WorkflowNodeIdentity;
 import com.ywz.workflow.featherflow.support.WorkflowContextSerializer;
 import java.time.Duration;
 import java.time.Clock;
@@ -79,6 +80,12 @@ public class FeatherFlowAutoConfiguration {
     @ConditionalOnMissingBean
     public WorkflowContextSerializer workflowContextSerializer() {
         return new JsonWorkflowContextSerializer();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public WorkflowNodeIdentity workflowNodeIdentity(FeatherFlowProperties properties) {
+        return new WorkflowNodeIdentity(properties.getInstanceId());
     }
 
     @Bean
@@ -166,10 +173,10 @@ public class FeatherFlowAutoConfiguration {
     @ConditionalOnBean(JdbcTemplate.class)
     public WorkflowLockService jdbcWorkflowLockService(
         JdbcTemplate jdbcTemplate,
-        FeatherFlowProperties properties,
+        WorkflowNodeIdentity workflowNodeIdentity,
         PersistenceWriteRetrier persistenceWriteRetrier
     ) {
-        return new RetryingWorkflowLockService(new JdbcWorkflowLockService(jdbcTemplate, properties.getInstanceId()), persistenceWriteRetrier);
+        return new RetryingWorkflowLockService(new JdbcWorkflowLockService(jdbcTemplate, workflowNodeIdentity.getInstanceId()), persistenceWriteRetrier);
     }
 
     @Bean
@@ -226,7 +233,8 @@ public class FeatherFlowAutoConfiguration {
         WorkflowLockService workflowLockService,
         WorkflowContextSerializer workflowContextSerializer,
         Clock featherflowClock,
-        WorkflowRetryScheduler workflowRetryScheduler
+        WorkflowRetryScheduler workflowRetryScheduler,
+        WorkflowNodeIdentity workflowNodeIdentity
     ) {
         return new WorkflowEngine(
             workflowDefinitionRegistry,
@@ -236,7 +244,8 @@ public class FeatherFlowAutoConfiguration {
             workflowLockService,
             workflowContextSerializer,
             featherflowClock,
-            workflowRetryScheduler
+            workflowRetryScheduler,
+            workflowNodeIdentity.getInstanceId()
         );
     }
 
@@ -265,7 +274,8 @@ public class FeatherFlowAutoConfiguration {
         WorkflowRepository workflowRepository,
         WorkflowContextSerializer workflowContextSerializer,
         Clock featherflowClock,
-        WorkflowRuntimeService workflowRuntimeService
+        WorkflowRuntimeService workflowRuntimeService,
+        WorkflowNodeIdentity workflowNodeIdentity
     ) {
         return new DefaultWorkflowCommandService(
             workflowDefinitionRegistry,
@@ -273,7 +283,8 @@ public class FeatherFlowAutoConfiguration {
             new DefaultWorkflowIdGenerator(),
             workflowContextSerializer,
             featherflowClock,
-            workflowRuntimeService
+            workflowRuntimeService,
+            workflowNodeIdentity.getInstanceId()
         );
     }
 

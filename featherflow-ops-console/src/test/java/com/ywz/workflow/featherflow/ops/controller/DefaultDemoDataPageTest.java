@@ -39,14 +39,14 @@ class DefaultDemoDataPageTest {
         assertThat(runningRow).contains("status-badge");
         assertThat(runningRow).contains("status-running");
         assertThat(runningRow).contains(">RUNNING<");
-        assertThat(runningRow).contains("订单履约流程");
+        assertThat(runningRow).contains("demoOrderWorkflow");
         assertThat(runningRow).contains("<span>终止</span>");
 
         assertThat(successfulRow).contains("<td>demo-success-01</td>");
         assertThat(successfulRow).contains("status-badge");
         assertThat(successfulRow).contains("status-successful");
         assertThat(successfulRow).contains(">SUCCESSFUL<");
-        assertThat(successfulRow).contains("客户通知流程");
+        assertThat(successfulRow).contains("demoOrderWorkflow");
 
         assertThat(humanProcessingRow).contains("<td>demo-human-0001</td>");
         assertThat(humanProcessingRow).contains("status-badge");
@@ -63,8 +63,9 @@ class DefaultDemoDataPageTest {
 
         String page = result.getResponse().getContentAsString();
         assertThat(page).contains("demo-human-0001");
-        assertThat(page).contains("人工审核流程");
+        assertThat(page).contains("demoRiskWorkflow");
         assertThat(page).contains("HUMAN_PROCESSING");
+        assertThat(page).contains("10.9.8.9:ops-node-c:8421:demo");
         assertThat(page).contains("id=\"workflow-detail-timeline-container\"");
         assertThat(page).contains("class=\"page-shell\"");
         assertThat(page).contains("hx-sync=\"#workflow-detail-timeline-container:replace\"");
@@ -73,8 +74,9 @@ class DefaultDemoDataPageTest {
         assertThat(page).contains("activity-timeline-table");
         assertThat(page).contains("status-badge");
         assertThat(page).contains("status-human_processing");
-        assertThat(page).contains("timeline-row-demo-human-act-01");
-        assertThat(page).contains("timeline-row-demo-human-act-02");
+        assertThat(page).contains("timeline-row-demo-human-act-01-01");
+        assertThat(page).contains("timeline-row-demo-human-act-02-01");
+        assertThat(page).contains("timeline-row-demo-human-act-02-02");
         assertThat(page).contains("风控审核");
         assertThat(page).contains("发送审核结果");
         assertThat(page).contains("risk service timeout");

@@ -12,6 +12,7 @@ import com.ywz.workflow.featherflow.definition.WorkflowDefinition;
 import com.ywz.workflow.featherflow.handler.MapBackedWorkflowActivityHandlerRegistry;
 import com.ywz.workflow.featherflow.lock.LocalWorkflowLockService;
 import com.ywz.workflow.featherflow.model.ActivityExecutionStatus;
+import com.ywz.workflow.featherflow.model.ActivityInstance;
 import com.ywz.workflow.featherflow.model.WorkflowInstance;
 import com.ywz.workflow.featherflow.model.WorkflowStatus;
 import com.ywz.workflow.featherflow.repository.ActivityRepository;
@@ -66,7 +67,8 @@ class WorkflowEngineTest {
             new LocalWorkflowLockService(),
             serializer,
             clock,
-            new NoOpWorkflowRetryScheduler()
+            new NoOpWorkflowRetryScheduler(),
+            "test-node"
         );
     }
 
@@ -96,7 +98,8 @@ class WorkflowEngineTest {
             new DefaultWorkflowIdGenerator(),
             serializer,
             clock,
-            workflowRuntimeService
+            workflowRuntimeService,
+            "test-node"
         );
     }
 
@@ -128,6 +131,8 @@ class WorkflowEngineTest {
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
             .extracting(activity -> activity.getStatus())
             .containsExactly(ActivityExecutionStatus.SUCCESSFUL, ActivityExecutionStatus.SUCCESSFUL);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .allMatch(activity -> "test-node".equals(activity.getExecutedNode()));
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(1).getOutput()).contains("customerNotified");
     }
 
@@ -219,6 +224,27 @@ class WorkflowEngineTest {
     }
 
     @Test
+    void shouldPersistMultipleFailedAttemptsForTheSameActivity() {
+        handlerRegistry.register("createOrderHandler", context -> {
+            throw new IllegalStateException("boom");
+        });
+        handlerRegistry.register("notifyCustomerHandler", context -> context);
+
+        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-attempt-history", "{\"amount\":100}");
+        WorkflowEngine engine = newEngine();
+
+        engine.continueWorkflow(workflow.getWorkflowId());
+        engine.continueWorkflow(workflow.getWorkflowId());
+
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(ActivityInstance::getActivityId)
+            .containsExactly(workflow.getWorkflowId() + "-01-01", workflow.getWorkflowId() + "-01-02");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(ActivityInstance::getStatus)
+            .containsExactly(ActivityExecutionStatus.FAILED, ActivityExecutionStatus.FAILED);
+    }
+
+    @Test
     void shouldMoveWorkflowToHumanProcessingWhenActivityThrowsErrorAndRetryIsExhausted() {
         registry.register(new WorkflowDefinition(
             "errorWorkflow",
@@ -253,10 +279,11 @@ class WorkflowEngineTest {
         });
 
         WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-4", "{\"amount\":100}");
-        activityRepository.saveOrUpdateResult(
-            workflow.getWorkflowId() + "-01",
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-01-01",
             workflow.getWorkflowId(),
             "createOrder",
+            "seed-node",
             "{\"amount\":100}",
             serializer.merge("{\"amount\":100}", "{\"orderCreated\":true}"),
             ActivityExecutionStatus.SUCCESSFUL,
@@ -270,6 +297,54 @@ class WorkflowEngineTest {
         assertThat(notifyCounter.get()).isEqualTo(1);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).hasSize(2);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(1).getOutput()).contains("orderCreated");
+    }
+
+    @Test
+    void shouldAppendSuccessfulSkipAttemptInsteadOfMutatingFailedRow() {
+        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-skip-append", "{\"amount\":100}");
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-01-01",
+            workflow.getWorkflowId(),
+            "createOrder",
+            "seed-node",
+            "{\"amount\":100}",
+            serializer.merge("{\"amount\":100}", "{\"orderCreated\":true}"),
+            ActivityExecutionStatus.SUCCESSFUL,
+            clock.instant()
+        );
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-02-01",
+            workflow.getWorkflowId(),
+            "notifyCustomer",
+            "seed-node",
+            serializer.merge("{\"amount\":100}", "{\"orderCreated\":true}"),
+            "{\"error\":\"notify failed\"}",
+            ActivityExecutionStatus.FAILED,
+            clock.instant()
+        );
+        workflowRepository.updateStatus(workflow.getWorkflowId(), WorkflowStatus.TERMINATED, clock.instant());
+
+        WorkflowEngine engine = newEngine();
+        engine.skipActivity(workflow.getWorkflowId(), "{\"operator\":\"ops\"}");
+
+        List<ActivityInstance> attempts = activityRepository.findByWorkflowId(workflow.getWorkflowId());
+        assertThat(attempts).hasSize(3);
+        assertThat(attempts)
+            .filteredOn(activity -> activity.getActivityName().equals("notifyCustomer"))
+            .extracting(ActivityInstance::getActivityId)
+            .containsExactly(workflow.getWorkflowId() + "-02-01", workflow.getWorkflowId() + "-02-02");
+        assertThat(attempts)
+            .filteredOn(activity -> activity.getActivityName().equals("notifyCustomer"))
+            .extracting(ActivityInstance::getStatus)
+            .containsExactly(ActivityExecutionStatus.FAILED, ActivityExecutionStatus.SUCCESSFUL);
+        assertThat(attempts)
+            .filteredOn(activity -> activity.getActivityName().equals("notifyCustomer"))
+            .filteredOn(activity -> activity.getStatus() == ActivityExecutionStatus.SUCCESSFUL)
+            .singleElement()
+            .satisfies(activity -> {
+                assertThat(activity.getOutput()).contains("_featherflowSkip");
+                assertThat(activity.getExecutedNode()).isEqualTo("test-node");
+            });
     }
 
     @Test

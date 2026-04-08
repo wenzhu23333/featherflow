@@ -10,6 +10,8 @@ import com.ywz.workflow.featherflow.engine.WorkflowEngine;
 import com.ywz.workflow.featherflow.engine.WorkflowRetryScheduler;
 import com.ywz.workflow.featherflow.handler.MapBackedWorkflowActivityHandlerRegistry;
 import com.ywz.workflow.featherflow.lock.LocalWorkflowLockService;
+import com.ywz.workflow.featherflow.model.ActivityExecutionStatus;
+import com.ywz.workflow.featherflow.model.ActivityInstance;
 import com.ywz.workflow.featherflow.model.WorkflowInstance;
 import com.ywz.workflow.featherflow.model.WorkflowStatus;
 import com.ywz.workflow.featherflow.repository.ActivityRepository;
@@ -65,6 +67,10 @@ class WorkflowRuntimeFlowTest {
                 new ActivityDefinition("step1", "terminatedStep1Handler", Duration.ofSeconds(5), 0),
                 new ActivityDefinition("step2", "terminatedStep2Handler", Duration.ofSeconds(5), 0)
             )
+        ));
+        registry.register(new WorkflowDefinition(
+            "manualRetryHistoryWorkflow",
+            Arrays.asList(new ActivityDefinition("alwaysFail", "alwaysFailHandler", Duration.ofSeconds(5), 0))
         ));
         workflowExecutor = Executors.newSingleThreadExecutor(runnable -> new Thread(runnable, "workflow-test-thread"));
     }
@@ -122,7 +128,38 @@ class WorkflowRuntimeFlowTest {
 
         assertThat(retryCompleted.await(1, TimeUnit.SECONDS)).isTrue();
         awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
-        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(0).getOutput()).contains("\"base\":1");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(ActivityInstance::getStatus)
+            .containsExactly(ActivityExecutionStatus.FAILED, ActivityExecutionStatus.SUCCESSFUL);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(1).getOutput()).contains("\"base\":1");
+        assertThat(activityRepository.countByWorkflowIdAndActivityNameAndStatus(
+            workflow.getWorkflowId(),
+            "step1",
+            ActivityExecutionStatus.FAILED
+        )).isEqualTo(1L);
+    }
+
+    @Test
+    void manualRetryShouldNotResetFailedAttemptHistory() throws Exception {
+        handlerRegistry.register("alwaysFailHandler", context -> {
+            throw new IllegalStateException("still failing");
+        });
+
+        WorkflowCommandService service = createTriggeredService();
+        WorkflowInstance workflow = service.startWorkflow("manualRetryHistoryWorkflow", "biz-no-reset", "{\"base\":1}");
+
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.HUMAN_PROCESSING, 1000L);
+        service.retryWorkflow(workflow.getWorkflowId());
+
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.HUMAN_PROCESSING, 1000L);
+        assertThat(activityRepository.countByWorkflowIdAndActivityNameAndStatus(
+            workflow.getWorkflowId(),
+            "alwaysFail",
+            ActivityExecutionStatus.FAILED
+        )).isEqualTo(2L);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(ActivityInstance::getActivityId)
+            .containsExactly(workflow.getWorkflowId() + "-01-01", workflow.getWorkflowId() + "-01-02");
     }
 
     @Test
@@ -141,17 +178,19 @@ class WorkflowRuntimeFlowTest {
         WorkflowInstance workflow = new WorkflowInstance(
             "wf-terminated-retry-1",
             "biz-terminated-retry-1",
+            "retryAfterTerminateWorkflow",
+            "test-node",
             clock.instant(),
             clock.instant(),
             "{\"base\":1}",
-            WorkflowStatus.TERMINATED,
-            "{\"definitionName\":\"retryAfterTerminateWorkflow\",\"retryCounts\":{}}"
+            WorkflowStatus.TERMINATED
         );
         workflowRepository.save(workflow);
-        activityRepository.saveOrUpdateResult(
-            workflow.getWorkflowId() + "-01",
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-01-01",
             workflow.getWorkflowId(),
             "step1",
+            "seed-node",
             "{\"base\":1}",
             serializer.merge("{\"base\":1}", "{\"step1\":true}"),
             com.ywz.workflow.featherflow.model.ActivityExecutionStatus.SUCCESSFUL,
@@ -221,7 +260,8 @@ class WorkflowRuntimeFlowTest {
             new DefaultWorkflowIdGenerator(),
             serializer,
             clock,
-            workflowRuntimeService
+            workflowRuntimeService,
+            "test-node"
         );
     }
 

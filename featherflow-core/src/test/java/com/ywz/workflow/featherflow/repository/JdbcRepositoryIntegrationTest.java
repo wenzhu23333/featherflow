@@ -49,12 +49,22 @@ class JdbcRepositoryIntegrationTest {
     @Test
     void shouldPersistAndLoadWorkflowRecords() {
         Instant now = Instant.parse("2026-03-30T13:00:00Z");
-        WorkflowInstance workflow = new WorkflowInstance("abcd-1234-abcd-1234", "biz-1", now, now, "{\"amount\":100}", WorkflowStatus.RUNNING, "{\"definitionName\":\"order\"}");
+        String startNode = "10.9.8.7:host-a:1234:seed";
+        WorkflowInstance workflow = new WorkflowInstance(
+            "abcd-1234-abcd-1234",
+            "biz-1",
+            "orderWorkflow",
+            startNode,
+            now,
+            now,
+            "{\"amount\":100}",
+            WorkflowStatus.RUNNING
+        );
         workflowRepository.save(workflow);
 
         activityRepository.saveAll(Arrays.asList(
-            new ActivityInstance("abcd-1234-abcd-1234-01", workflow.getWorkflowId(), "createOrder", now, now, "{\"amount\":100}", "{\"ok\":true}", ActivityExecutionStatus.SUCCESSFUL),
-            new ActivityInstance("abcd-1234-abcd-1234-02", workflow.getWorkflowId(), "notifyCustomer", now, now, "{\"ok\":true}", "{\"done\":true}", ActivityExecutionStatus.SUCCESSFUL)
+            new ActivityInstance("abcd-1234-abcd-1234-01-01", workflow.getWorkflowId(), "createOrder", "test-node-a", now, now, "{\"amount\":100}", "{\"ok\":true}", ActivityExecutionStatus.SUCCESSFUL),
+            new ActivityInstance("abcd-1234-abcd-1234-02-01", workflow.getWorkflowId(), "notifyCustomer", "test-node-b", now, now, "{\"ok\":true}", "{\"done\":true}", ActivityExecutionStatus.SUCCESSFUL)
         ));
 
         WorkflowOperation operation = WorkflowOperation.pending(workflow.getWorkflowId(), OperationType.START, "{\"amount\":100}", now);
@@ -63,8 +73,14 @@ class JdbcRepositoryIntegrationTest {
         assertThat(operationRepository.claimPendingOperation(operation.getOperationId(), now)).isFalse();
         operationRepository.markSuccessful(operation.getOperationId(), now);
 
-        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getBizId()).isEqualTo("biz-1");
+        WorkflowInstance loadedWorkflow = workflowRepository.findRequired(workflow.getWorkflowId());
+        assertThat(loadedWorkflow.getBizId()).isEqualTo("biz-1");
+        assertThat(loadedWorkflow.getWorkflowName()).isEqualTo("orderWorkflow");
+        assertThat(loadedWorkflow.getStartNode()).isEqualTo(startNode);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).hasSize(2);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(ActivityInstance::getExecutedNode)
+            .containsExactly("test-node-a", "test-node-b");
         assertThat(operationRepository.findAll()).hasSize(1);
         assertThat(operationRepository.findAll()).singleElement().satisfies(savedOperation -> {
             assertThat(savedOperation.getStatus()).isEqualTo(OperationStatus.SUCCESSFUL);

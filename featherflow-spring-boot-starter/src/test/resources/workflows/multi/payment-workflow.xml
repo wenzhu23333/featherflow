@@ -1,0 +1,3 @@
+<workflow name="samplePaymentWorkflow">
+  <activity name="freezeBalance" handler="createOrderHandler" retryInterval="PT3S" maxRetryTimes="2"/>
+</workflow>

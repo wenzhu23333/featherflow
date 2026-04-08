@@ -1,0 +1,3 @@
+<workflow name="duplicateWorkflow">
+  <activity name="secondStep" handler="createOrderHandler" retryInterval="PT6S" maxRetryTimes="1"/>
+</workflow>

@@ -1,0 +1,7 @@
+workflow:
+  name: sampleOrderWorkflow
+  activities:
+    - name: createOrder
+      handler: createOrderHandler
+      retryInterval: PT5S
+      maxRetryTimes: 1

@@ -23,7 +23,9 @@ public class JdbcActivityRepository implements ActivityRepository {
     @Override
     public void saveAll(final List<ActivityInstance> activityInstances) {
         jdbcTemplate.batchUpdate(
-            "insert into activity_instance (activity_id, workflow_id, activity_name, gmt_created, gmt_modified, input, output, status) values (?, ?, ?, ?, ?, ?, ?, ?)",
+            "insert into activity_instance "
+                + "(activity_id, workflow_id, activity_name, executed_node, gmt_created, gmt_modified, input, output, status) "
+                + "values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             new BatchPreparedStatementSetter() {
                 @Override
                 public void setValues(java.sql.PreparedStatement ps, int index) throws SQLException {
@@ -31,11 +33,12 @@ public class JdbcActivityRepository implements ActivityRepository {
                     ps.setString(1, activityInstance.getActivityId());
                     ps.setString(2, activityInstance.getWorkflowId());
                     ps.setString(3, activityInstance.getActivityName());
-                    ps.setTimestamp(4, Timestamp.from(activityInstance.getGmtCreated()));
-                    ps.setTimestamp(5, Timestamp.from(activityInstance.getGmtModified()));
-                    ps.setString(6, activityInstance.getInput());
-                    ps.setString(7, activityInstance.getOutput());
-                    ps.setString(8, activityInstance.getStatus() == null ? null : activityInstance.getStatus().name());
+                    ps.setString(4, activityInstance.getExecutedNode());
+                    ps.setTimestamp(5, Timestamp.from(activityInstance.getGmtCreated()));
+                    ps.setTimestamp(6, Timestamp.from(activityInstance.getGmtModified()));
+                    ps.setString(7, activityInstance.getInput());
+                    ps.setString(8, activityInstance.getOutput());
+                    ps.setString(9, activityInstance.getStatus() == null ? null : activityInstance.getStatus().name());
                 }
 
                 @Override
@@ -47,46 +50,48 @@ public class JdbcActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public void saveOrUpdateResult(
+    public void saveAttempt(
         String activityId,
         String workflowId,
         String activityName,
+        String executedNode,
         String input,
         String output,
         ActivityExecutionStatus status,
         Instant modifiedAt
     ) {
-        ActivityInstance existing = findByActivityId(activityId);
-        if (existing == null) {
-            jdbcTemplate.update(
-                "insert into activity_instance (activity_id, workflow_id, activity_name, gmt_created, gmt_modified, input, output, status) values (?, ?, ?, ?, ?, ?, ?, ?)",
-                activityId,
-                workflowId,
-                activityName,
-                Timestamp.from(modifiedAt),
-                Timestamp.from(modifiedAt),
-                input,
-                output,
-                status == null ? null : status.name()
-            );
-            return;
-        }
-        updateResult(activityId, input, output, status, modifiedAt);
+        jdbcTemplate.update(
+            "insert into activity_instance "
+                + "(activity_id, workflow_id, activity_name, executed_node, gmt_created, gmt_modified, input, output, status) "
+                + "values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            activityId,
+            workflowId,
+            activityName,
+            executedNode,
+            Timestamp.from(modifiedAt),
+            Timestamp.from(modifiedAt),
+            input,
+            output,
+            status == null ? null : status.name()
+        );
     }
 
     @Override
     public List<ActivityInstance> findByWorkflowId(String workflowId) {
         return jdbcTemplate.query(
-            "select activity_id, workflow_id, activity_name, gmt_created, gmt_modified, input, output, status from activity_instance where workflow_id = ? order by activity_id",
+            "select activity_id, workflow_id, activity_name, executed_node, gmt_created, gmt_modified, input, output, status "
+                + "from activity_instance where workflow_id = ? order by gmt_created asc, activity_id asc",
             new ActivityInstanceRowMapper(),
             workflowId
         );
     }
 
     @Override
-    public ActivityInstance findByWorkflowIdAndActivityName(String workflowId, String activityName) {
+    public ActivityInstance findLatestByWorkflowIdAndActivityName(String workflowId, String activityName) {
         List<ActivityInstance> results = jdbcTemplate.query(
-            "select activity_id, workflow_id, activity_name, gmt_created, gmt_modified, input, output, status from activity_instance where workflow_id = ? and activity_name = ?",
+            "select activity_id, workflow_id, activity_name, executed_node, gmt_created, gmt_modified, input, output, status "
+                + "from activity_instance where workflow_id = ? and activity_name = ? "
+                + "order by gmt_created desc, activity_id desc",
             new ActivityInstanceRowMapper(),
             workflowId,
             activityName
@@ -97,7 +102,8 @@ public class JdbcActivityRepository implements ActivityRepository {
     @Override
     public ActivityInstance findByActivityId(String activityId) {
         List<ActivityInstance> results = jdbcTemplate.query(
-            "select activity_id, workflow_id, activity_name, gmt_created, gmt_modified, input, output, status from activity_instance where activity_id = ?",
+            "select activity_id, workflow_id, activity_name, executed_node, gmt_created, gmt_modified, input, output, status "
+                + "from activity_instance where activity_id = ?",
             new ActivityInstanceRowMapper(),
             activityId
         );
@@ -105,39 +111,15 @@ public class JdbcActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public void update(ActivityInstance activityInstance) {
-        jdbcTemplate.update(
-            "update activity_instance set gmt_modified = ?, input = ?, output = ?, status = ? where activity_id = ?",
-            Timestamp.from(activityInstance.getGmtModified()),
-            activityInstance.getInput(),
-            activityInstance.getOutput(),
-            activityInstance.getStatus() == null ? null : activityInstance.getStatus().name(),
-            activityInstance.getActivityId()
-        );
-    }
-
-    @Override
-    public void markSuccessful(String workflowId, String activityName, String output, Instant modifiedAt) {
-        jdbcTemplate.update(
-            "update activity_instance set output = ?, status = ?, gmt_modified = ? where workflow_id = ? and activity_name = ?",
-            output,
-            ActivityExecutionStatus.SUCCESSFUL.name(),
-            Timestamp.from(modifiedAt),
+    public long countByWorkflowIdAndActivityNameAndStatus(String workflowId, String activityName, ActivityExecutionStatus status) {
+        Long count = jdbcTemplate.queryForObject(
+            "select count(*) from activity_instance where workflow_id = ? and activity_name = ? and status = ?",
+            Long.class,
             workflowId,
-            activityName
+            activityName,
+            status.name()
         );
-    }
-
-    @Override
-    public void updateResult(String activityId, String input, String output, ActivityExecutionStatus status, Instant modifiedAt) {
-        jdbcTemplate.update(
-            "update activity_instance set input = ?, output = ?, status = ?, gmt_modified = ? where activity_id = ?",
-            input,
-            output,
-            status == null ? null : status.name(),
-            Timestamp.from(modifiedAt),
-            activityId
-        );
+        return count == null ? 0L : count.longValue();
     }
 
     private static final class ActivityInstanceRowMapper implements RowMapper<ActivityInstance> {
@@ -148,6 +130,7 @@ public class JdbcActivityRepository implements ActivityRepository {
                 rs.getString("activity_id"),
                 rs.getString("workflow_id"),
                 rs.getString("activity_name"),
+                rs.getString("executed_node"),
                 rs.getTimestamp("gmt_created").toInstant(),
                 rs.getTimestamp("gmt_modified").toInstant(),
                 rs.getString("input"),

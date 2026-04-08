@@ -101,11 +101,12 @@ class WorkflowOperationDaemonTest {
         WorkflowInstance workflowInstance = new WorkflowInstance(
             "wf-log-1",
             "biz-log-1",
+            "logWorkflow",
+            "test-node",
             clock.instant(),
             clock.instant(),
             "{\"a\":1}",
-            WorkflowStatus.RUNNING,
-            "{}"
+            WorkflowStatus.RUNNING
         );
         workflowRepository.save(workflowInstance);
         repository.savePendingOperation(WorkflowOperation.pending("wf-log-1", OperationType.START, "{\"a\":1}", clock.instant()));

@@ -57,6 +57,7 @@ class OperationHistoryPageTest {
         assertThat(page).contains("wf-detail-0002");
         assertThat(page).contains("biz-2001");
         assertThat(page).contains("biz-2002");
+        assertThat(countOccurrences(page, "id=\"operation-history-table\"")).isEqualTo(1);
 
         String row3 = extractRowById(page, "operation-history-row-3");
         String row2 = extractRowById(page, "operation-history-row-2");
@@ -145,5 +146,15 @@ class OperationHistoryPageTest {
         Matcher matcher = pattern.matcher(html);
         assertThat(matcher.find()).isTrue();
         return matcher.group();
+    }
+
+    private int countOccurrences(String html, String snippet) {
+        int count = 0;
+        int index = 0;
+        while ((index = html.indexOf(snippet, index)) >= 0) {
+            count++;
+            index += snippet.length();
+        }
+        return count;
     }
 }

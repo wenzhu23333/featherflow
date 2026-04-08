@@ -6,6 +6,8 @@ import com.ywz.workflow.featherflow.definition.WorkflowDefinitionParser;
 import com.ywz.workflow.featherflow.definition.WorkflowDefinitionRegistry;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.support.ResourcePatternResolver;
@@ -28,6 +30,7 @@ public class WorkflowDefinitionResourceLoader {
         for (String location : locations) {
             try {
                 Resource[] resources = resourcePatternResolver.getResources(location);
+                Arrays.sort(resources, Comparator.comparing(resource -> resource.getFilename() == null ? "" : resource.getFilename()));
                 for (Resource resource : resources) {
                     String content = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
                     WorkflowDefinition definition = workflowDefinitionParser.parse(resolveFormat(resource.getFilename()), content);

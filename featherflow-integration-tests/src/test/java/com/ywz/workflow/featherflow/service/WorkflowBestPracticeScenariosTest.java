@@ -162,8 +162,15 @@ class WorkflowBestPracticeScenariosTest {
         service.retryWorkflow(workflow.getWorkflowId());
 
         awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
-        ActivityInstance activityInstance = activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(0);
-        assertThat(activityInstance.getStatus()).isEqualTo(ActivityExecutionStatus.SUCCESSFUL);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(ActivityInstance::getStatus)
+            .containsExactly(ActivityExecutionStatus.FAILED, ActivityExecutionStatus.SUCCESSFUL);
+        assertThat(activityRepository.countByWorkflowIdAndActivityNameAndStatus(
+            workflow.getWorkflowId(),
+            "settlePayment",
+            ActivityExecutionStatus.FAILED
+        )).isEqualTo(1L);
+        ActivityInstance activityInstance = activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(1);
         assertThat(serializer.deserialize(activityInstance.getOutput()))
             .containsEntry("paymentId", "P-1")
             .containsEntry("settled", Boolean.TRUE);
@@ -194,17 +201,19 @@ class WorkflowBestPracticeScenariosTest {
         WorkflowInstance workflow = new WorkflowInstance(
             "wf-idempotent-1",
             "biz-idempotent-1",
+            "idempotentWorkflow",
+            "test-node",
             clock.instant(),
             clock.instant(),
             "{\"amount\":100}",
-            WorkflowStatus.RUNNING,
-            "{\"definitionName\":\"idempotentWorkflow\",\"retryCounts\":{}}"
+            WorkflowStatus.RUNNING
         );
         workflowRepository.save(workflow);
-        activityRepository.saveOrUpdateResult(
-            "wf-idempotent-1-01",
+        activityRepository.saveAttempt(
+            "wf-idempotent-1-01-01",
             workflow.getWorkflowId(),
             "createOrder",
+            "seed-node",
             "{\"amount\":100}",
             "{\"amount\":100,\"orderNo\":\"ORD-2001\"}",
             ActivityExecutionStatus.SUCCESSFUL,
@@ -306,7 +315,8 @@ class WorkflowBestPracticeScenariosTest {
             new DefaultWorkflowIdGenerator(),
             serializer,
             clock,
-            workflowRuntimeService
+            workflowRuntimeService,
+            "test-node"
         );
     }
 

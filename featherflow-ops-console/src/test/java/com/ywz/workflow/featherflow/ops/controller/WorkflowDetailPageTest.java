@@ -44,6 +44,7 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("TERMINATED");
         assertThat(page).contains("orderId");
         assertThat(page).contains("10001");
+        assertThat(page).contains("10.9.8.7:host-d:1234:seed");
         assertThat(page).contains("createOrder");
         assertThat(page).contains("notifyCustomer");
         assertThat(page).contains("manual-stop");
@@ -76,24 +77,27 @@ class WorkflowDetailPageTest {
         String activity3 = extractById(page, "timeline-row-act-500", "tr");
 
         assertThat(activity1).contains("createOrder");
+        assertThat(activity1).contains("10.9.8.7:host-d:1234:seed");
         assertThat(activity1).contains("status-badge");
-        assertThat(activity1).contains("status-success");
-        assertThat(activity1).contains("SUCCESS");
+        assertThat(activity1).contains("status-successful");
+        assertThat(activity1).contains("SUCCESSFUL");
         assertThat(activity1).contains("2026-04-01 10:00:00");
         assertThat(activity1).contains("{&quot;ok&quot;:true}");
         assertThat(activity1).contains("is-empty");
 
         assertThat(activity2).contains("reserveInventory");
+        assertThat(activity2).contains("10.9.8.8:host-e:1234:seed");
         assertThat(activity2).contains("status-badge");
-        assertThat(activity2).contains("status-failed");
-        assertThat(activity2).contains("FAILED");
-        assertThat(activity2).contains("stock low");
+        assertThat(activity2).contains("status-successful");
+        assertThat(activity2).contains("SUCCESSFUL");
+        assertThat(activity2).contains("reserved");
 
         assertThat(activity3).contains("notifyCustomer");
+        assertThat(activity3).contains("10.9.8.9:host-f:1234:seed");
         assertThat(activity3).contains("status-badge");
-        assertThat(activity3).contains("status-terminated");
-        assertThat(activity3).contains("TERMINATED");
-        assertThat(activity3).contains("is-empty");
+        assertThat(activity3).contains("status-failed");
+        assertThat(activity3).contains("FAILED");
+        assertThat(activity3).contains("mail gateway timeout");
 
         assertThat(page.indexOf("timeline-row-act-900")).isLessThan(page.indexOf("timeline-row-act-100"));
         assertThat(page.indexOf("timeline-row-act-100")).isLessThan(page.indexOf("timeline-row-act-500"));

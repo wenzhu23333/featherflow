@@ -85,7 +85,8 @@ public class WorkflowQueryService {
             new WorkflowDetailView(
                 detailRow.workflowId(),
                 detailRow.bizId(),
-                extractWorkflowName(detailRow.workflowId(), detailRow.extCol()),
+                blankToDash(detailRow.workflowName()),
+                blankToDash(detailRow.startNode()),
                 detailRow.workflowStatus(),
                 blankToDash(detailRow.workflowInput()),
                 formatTime(detailRow.gmtCreated()),
@@ -109,7 +110,8 @@ public class WorkflowQueryService {
             new WorkflowDetailView(
                 detailRow.workflowId(),
                 detailRow.bizId(),
-                extractWorkflowName(detailRow.workflowId(), detailRow.extCol()),
+                blankToDash(detailRow.workflowName()),
+                blankToDash(detailRow.startNode()),
                 detailRow.workflowStatus(),
                 blankToDash(detailRow.workflowInput()),
                 formatTime(detailRow.gmtCreated()),
@@ -156,7 +158,7 @@ public class WorkflowQueryService {
         return new WorkflowListItemView(
             row.workflowId(),
             row.bizId(),
-            extractWorkflowName(row.workflowId(), row.extCol()),
+            blankToDash(row.workflowName()),
             row.workflowStatus(),
             row.latestActivityId(),
             buildLatestActivitySummary(row.latestActivityName(), row.latestActivityStatus()),
@@ -171,6 +173,7 @@ public class WorkflowQueryService {
         return new ActivityTimelineItemView(
             row.activityId(),
             row.activityName(),
+            blankToDash(row.executedNode()),
             blankToDash(row.status()),
             formatTime(row.gmtCreated()),
             formatTime(row.gmtModified()),
@@ -210,25 +213,6 @@ public class WorkflowQueryService {
             formatTime(row.gmtCreated()),
             formatTime(row.gmtModified())
         );
-    }
-
-    private String extractWorkflowName(String workflowId, String extCol) {
-        if (isBlank(extCol)) {
-            return "-";
-        }
-        try {
-            Map<String, Object> metadata = objectMapper.readValue(extCol, MAP_TYPE);
-            Object definitionName = metadata.get("definitionName");
-            return definitionName == null ? "-" : String.valueOf(definitionName);
-        } catch (Exception ex) {
-            LOGGER.warn(
-                "Failed to parse workflow ext_col, workflowId={}, extColPreview={}",
-                workflowId,
-                abbreviate(extCol),
-                ex
-            );
-            return "-";
-        }
     }
 
     private String formatTime(LocalDateTime time) {

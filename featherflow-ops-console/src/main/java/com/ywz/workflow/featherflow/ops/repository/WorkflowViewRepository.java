@@ -36,7 +36,7 @@ public class WorkflowViewRepository {
             + " select"
             + "     w.workflow_id,"
             + "     w.biz_id,"
-            + "     w.ext_col,"
+            + "     w.workflow_name,"
             + "     w.status as workflow_status,"
             + "     w.gmt_created,"
             + "     w.gmt_modified,"
@@ -53,7 +53,8 @@ public class WorkflowViewRepository {
         "select"
             + " w.workflow_id,"
             + " w.biz_id,"
-            + " w.ext_col,"
+            + " w.workflow_name,"
+            + " w.start_node,"
             + " w.status as workflow_status,"
             + " w.input as workflow_input,"
             + " w.gmt_created,"
@@ -65,6 +66,7 @@ public class WorkflowViewRepository {
         "select"
             + " a.activity_id,"
             + " a.activity_name,"
+            + " a.executed_node,"
             + " a.status,"
             + " a.gmt_created,"
             + " a.gmt_modified,"
@@ -119,7 +121,7 @@ public class WorkflowViewRepository {
             (rs, rowNum) -> new WorkflowListRow(
                 rs.getString("workflow_id"),
                 rs.getString("biz_id"),
-                rs.getString("ext_col"),
+                rs.getString("workflow_name"),
                 rs.getString("workflow_status"),
                 rs.getObject("gmt_created", LocalDateTime.class),
                 rs.getObject("gmt_modified", LocalDateTime.class),
@@ -137,7 +139,8 @@ public class WorkflowViewRepository {
             (rs, rowNum) -> new WorkflowDetailRow(
                 rs.getString("workflow_id"),
                 rs.getString("biz_id"),
-                rs.getString("ext_col"),
+                rs.getString("workflow_name"),
+                rs.getString("start_node"),
                 rs.getString("workflow_status"),
                 rs.getString("workflow_input"),
                 rs.getObject("gmt_created", LocalDateTime.class),
@@ -157,6 +160,7 @@ public class WorkflowViewRepository {
             (rs, rowNum) -> new ActivityTimelineRow(
                 rs.getString("activity_id"),
                 rs.getString("activity_name"),
+                rs.getString("executed_node"),
                 rs.getString("status"),
                 rs.getString("input"),
                 rs.getString("output"),
@@ -214,7 +218,7 @@ public class WorkflowViewRepository {
 
         private final String workflowId;
         private final String bizId;
-        private final String extCol;
+        private final String workflowName;
         private final String workflowStatus;
         private final LocalDateTime gmtCreated;
         private final LocalDateTime gmtModified;
@@ -226,7 +230,7 @@ public class WorkflowViewRepository {
         public WorkflowListRow(
             String workflowId,
             String bizId,
-            String extCol,
+            String workflowName,
             String workflowStatus,
             LocalDateTime gmtCreated,
             LocalDateTime gmtModified,
@@ -237,7 +241,7 @@ public class WorkflowViewRepository {
         ) {
             this.workflowId = workflowId;
             this.bizId = bizId;
-            this.extCol = extCol;
+            this.workflowName = workflowName;
             this.workflowStatus = workflowStatus;
             this.gmtCreated = gmtCreated;
             this.gmtModified = gmtModified;
@@ -255,8 +259,8 @@ public class WorkflowViewRepository {
             return bizId;
         }
 
-        public String extCol() {
-            return extCol;
+        public String workflowName() {
+            return workflowName;
         }
 
         public String workflowStatus() {
@@ -292,7 +296,8 @@ public class WorkflowViewRepository {
 
         private final String workflowId;
         private final String bizId;
-        private final String extCol;
+        private final String workflowName;
+        private final String startNode;
         private final String workflowStatus;
         private final String workflowInput;
         private final LocalDateTime gmtCreated;
@@ -301,7 +306,8 @@ public class WorkflowViewRepository {
         public WorkflowDetailRow(
             String workflowId,
             String bizId,
-            String extCol,
+            String workflowName,
+            String startNode,
             String workflowStatus,
             String workflowInput,
             LocalDateTime gmtCreated,
@@ -309,7 +315,8 @@ public class WorkflowViewRepository {
         ) {
             this.workflowId = workflowId;
             this.bizId = bizId;
-            this.extCol = extCol;
+            this.workflowName = workflowName;
+            this.startNode = startNode;
             this.workflowStatus = workflowStatus;
             this.workflowInput = workflowInput;
             this.gmtCreated = gmtCreated;
@@ -324,8 +331,12 @@ public class WorkflowViewRepository {
             return bizId;
         }
 
-        public String extCol() {
-            return extCol;
+        public String startNode() {
+            return startNode;
+        }
+
+        public String workflowName() {
+            return workflowName;
         }
 
         public String workflowStatus() {
@@ -349,6 +360,7 @@ public class WorkflowViewRepository {
 
         private final String activityId;
         private final String activityName;
+        private final String executedNode;
         private final String status;
         private final String input;
         private final String output;
@@ -358,6 +370,7 @@ public class WorkflowViewRepository {
         public ActivityTimelineRow(
             String activityId,
             String activityName,
+            String executedNode,
             String status,
             String input,
             String output,
@@ -366,6 +379,7 @@ public class WorkflowViewRepository {
         ) {
             this.activityId = activityId;
             this.activityName = activityName;
+            this.executedNode = executedNode;
             this.status = status;
             this.input = input;
             this.output = output;
@@ -379,6 +393,10 @@ public class WorkflowViewRepository {
 
         public String activityName() {
             return activityName;
+        }
+
+        public String executedNode() {
+            return executedNode;
         }
 
         public String status() {

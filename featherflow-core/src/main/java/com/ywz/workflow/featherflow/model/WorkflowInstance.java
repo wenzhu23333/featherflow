@@ -6,20 +6,31 @@ public class WorkflowInstance {
 
     private final String workflowId;
     private final String bizId;
+    private final String workflowName;
+    private final String startNode;
     private final Instant gmtCreated;
     private Instant gmtModified;
     private String input;
     private WorkflowStatus status;
-    private String extCol;
 
-    public WorkflowInstance(String workflowId, String bizId, Instant gmtCreated, Instant gmtModified, String input, WorkflowStatus status, String extCol) {
+    public WorkflowInstance(
+        String workflowId,
+        String bizId,
+        String workflowName,
+        String startNode,
+        Instant gmtCreated,
+        Instant gmtModified,
+        String input,
+        WorkflowStatus status
+    ) {
         this.workflowId = workflowId;
         this.bizId = bizId;
+        this.workflowName = workflowName;
+        this.startNode = startNode;
         this.gmtCreated = gmtCreated;
         this.gmtModified = gmtModified;
         this.input = input;
         this.status = status;
-        this.extCol = extCol;
     }
 
     public String getWorkflowId() {
@@ -28,6 +39,14 @@ public class WorkflowInstance {
 
     public String getBizId() {
         return bizId;
+    }
+
+    public String getWorkflowName() {
+        return workflowName;
+    }
+
+    public String getStartNode() {
+        return startNode;
     }
 
     public Instant getGmtCreated() {
@@ -56,13 +75,5 @@ public class WorkflowInstance {
 
     public void setStatus(WorkflowStatus status) {
         this.status = status;
-    }
-
-    public String getExtCol() {
-        return extCol;
-    }
-
-    public void setExtCol(String extCol) {
-        this.extCol = extCol;
     }
 }

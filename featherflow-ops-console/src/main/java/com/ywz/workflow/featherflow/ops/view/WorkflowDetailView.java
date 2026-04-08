@@ -7,6 +7,7 @@ public class WorkflowDetailView {
     private final String workflowId;
     private final String bizId;
     private final String workflowName;
+    private final String startNode;
     private final String workflowStatus;
     private final String workflowInput;
     private final String gmtCreatedDisplay;
@@ -20,6 +21,7 @@ public class WorkflowDetailView {
         String workflowId,
         String bizId,
         String workflowName,
+        String startNode,
         String workflowStatus,
         String workflowInput,
         String gmtCreatedDisplay,
@@ -32,6 +34,7 @@ public class WorkflowDetailView {
         this.workflowId = workflowId;
         this.bizId = bizId;
         this.workflowName = workflowName;
+        this.startNode = startNode;
         this.workflowStatus = workflowStatus;
         this.workflowInput = workflowInput;
         this.gmtCreatedDisplay = gmtCreatedDisplay;
@@ -52,6 +55,10 @@ public class WorkflowDetailView {
 
     public String getWorkflowName() {
         return workflowName;
+    }
+
+    public String getStartNode() {
+        return startNode;
     }
 
     public String getWorkflowStatus() {

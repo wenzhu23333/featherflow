@@ -14,6 +14,7 @@ import com.ywz.workflow.featherflow.model.WorkflowStatus;
 import com.ywz.workflow.featherflow.repository.ActivityRepository;
 import com.ywz.workflow.featherflow.repository.WorkflowRepository;
 import com.ywz.workflow.featherflow.support.WorkflowContextSerializer;
+import com.ywz.workflow.featherflow.support.WorkflowNodeIdentity;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.LinkedHashMap;
@@ -42,6 +43,7 @@ public class WorkflowEngine {
     private final WorkflowContextSerializer serializer;
     private final Clock clock;
     private final WorkflowRetryScheduler workflowRetryScheduler;
+    private final String nodeIdentity;
 
     public WorkflowEngine(
         WorkflowDefinitionRegistry definitionRegistry,
@@ -51,7 +53,8 @@ public class WorkflowEngine {
         WorkflowLockService lockService,
         WorkflowContextSerializer serializer,
         Clock clock,
-        WorkflowRetryScheduler workflowRetryScheduler
+        WorkflowRetryScheduler workflowRetryScheduler,
+        String nodeIdentity
     ) {
         this.definitionRegistry = definitionRegistry;
         this.workflowRepository = workflowRepository;
@@ -61,6 +64,7 @@ public class WorkflowEngine {
         this.serializer = serializer;
         this.clock = clock;
         this.workflowRetryScheduler = workflowRetryScheduler;
+        this.nodeIdentity = nodeIdentity;
     }
 
     public WorkflowEngine(
@@ -81,7 +85,31 @@ public class WorkflowEngine {
             serializer,
             clock,
             (workflowId, delay) -> {
-            }
+            },
+            WorkflowNodeIdentity.currentInstanceId()
+        );
+    }
+
+    public WorkflowEngine(
+        WorkflowDefinitionRegistry definitionRegistry,
+        WorkflowRepository workflowRepository,
+        ActivityRepository activityRepository,
+        WorkflowActivityHandlerRegistry handlerRegistry,
+        WorkflowLockService lockService,
+        WorkflowContextSerializer serializer,
+        Clock clock,
+        WorkflowRetryScheduler workflowRetryScheduler
+    ) {
+        this(
+            definitionRegistry,
+            workflowRepository,
+            activityRepository,
+            handlerRegistry,
+            lockService,
+            serializer,
+            clock,
+            workflowRetryScheduler,
+            WorkflowNodeIdentity.currentInstanceId()
         );
     }
 
@@ -118,11 +146,24 @@ public class WorkflowEngine {
         WorkflowInstance workflowInstance = workflowRepository.findRequired(workflowId);
         try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflowInstance)) {
             ActivityInstance target = requireLatestSkippableActivity(workflowInstance);
+            WorkflowDefinition definition = loadDefinition(workflowInstance);
             String baseContext = resolveContextBefore(workflowId, target.getActivityName(), workflowInstance.getInput());
             String skipOutput = buildSkipOutput(baseContext, skipInput, target);
+            int activitySequence = resolveActivitySequence(definition, target.getActivityName());
+            long attempt = nextAttempt(findLatestActivityAttempt(workflowId, target.getActivityName()));
+            String activityId = buildActivityId(workflowId, activitySequence, attempt);
 
-            activityRepository.updateResult(target.getActivityId(), target.getInput(), skipOutput, ActivityExecutionStatus.SUCCESSFUL, clock.instant());
-            log.info("Skip activity by manual operation, activityId={}, activityName={}", target.getActivityId(), target.getActivityName());
+            activityRepository.saveAttempt(
+                activityId,
+                workflowId,
+                target.getActivityName(),
+                currentNode(),
+                target.getInput(),
+                skipOutput,
+                ActivityExecutionStatus.SUCCESSFUL,
+                clock.instant()
+            );
+            log.info("Skip activity by manual operation, activityId={}, activityName={}", activityId, target.getActivityName());
 
             workflowInstance.setStatus(WorkflowStatus.RUNNING);
             workflowInstance.setGmtModified(clock.instant());
@@ -137,20 +178,18 @@ public class WorkflowEngine {
     private String continueWithActivity(String workflowId, ActivityDefinition activityDefinition, String workflowContext, int activitySequence) {
         requireRunningWorkflow(workflowId, "before starting the next activity");
 
-        String activityId = buildActivityId(workflowId, activitySequence);
-        ActivityInstance persistedActivity = activityRepository.findByWorkflowIdAndActivityName(workflowId, activityDefinition.getName());
-        if (isSuccessful(persistedActivity)) {
-            return reuseSuccessfulActivityContext(workflowContext, persistedActivity, activityId, activityDefinition.getName(), "before lock acquisition");
+        ActivityInstance latestAttempt = findLatestActivityAttempt(workflowId, activityDefinition.getName());
+        if (isSuccessful(latestAttempt)) {
+            return reuseSuccessfulActivityContext(workflowContext, latestAttempt, activityDefinition.getName(), "before lock acquisition");
         }
 
-        return continueWithActivityLock(workflowId, activityDefinition, workflowContext, activityId, activitySequence);
+        return continueWithActivityLock(workflowId, activityDefinition, workflowContext, activitySequence);
     }
 
     private String continueWithActivityLock(
         String workflowId,
         ActivityDefinition activityDefinition,
         String workflowContext,
-        String activityId,
         int activitySequence
     ) {
         String lockKey = buildLockKey(workflowId, activityDefinition);
@@ -160,21 +199,27 @@ public class WorkflowEngine {
         }
 
         try {
+            WorkflowInstance workflowInstance = requireRunningWorkflow(workflowId, "after acquiring the activity lock");
+            ActivityInstance latestAttempt = findLatestActivityAttempt(workflowId, activityDefinition.getName());
+            if (isSuccessful(latestAttempt)) {
+                return reuseSuccessfulActivityContext(workflowContext, latestAttempt, activityDefinition.getName(), "after lock acquisition");
+            }
+            long attempt = nextAttempt(latestAttempt);
+            String activityId = buildActivityId(workflowId, activitySequence, attempt);
             log.info(
-                "Acquire activity lock, activityName={}, activityId={}, sequence={}",
+                "Acquire activity lock, activityName={}, activityId={}, sequence={}, attempt={}",
                 activityDefinition.getName(),
                 activityId,
-                Integer.valueOf(activitySequence)
+                Integer.valueOf(activitySequence),
+                Long.valueOf(attempt)
             );
-            WorkflowInstance workflowInstance = requireRunningWorkflow(workflowId, "after acquiring the activity lock");
-            ActivityInstance latestActivity = activityRepository.findByWorkflowIdAndActivityName(workflowId, activityDefinition.getName());
-            if (isSuccessful(latestActivity)) {
-                return reuseSuccessfulActivityContext(workflowContext, latestActivity, activityId, activityDefinition.getName(), "after lock acquisition");
-            }
             return executeActivity(workflowInstance, activityId, activityDefinition, workflowContext);
         } finally {
-            lockService.unlock(lockKey);
-            log.info("Release activity lock, activityName={}, activityId={}", activityDefinition.getName(), activityId);
+            try {
+                lockService.unlock(lockKey);
+            } finally {
+                log.info("Release activity lock, activityName={}", activityDefinition.getName());
+            }
         }
     }
 
@@ -194,14 +239,13 @@ public class WorkflowEngine {
     private String reuseSuccessfulActivityContext(
         String workflowContext,
         ActivityInstance activityInstance,
-        String activityId,
         String activityName,
         String phase
     ) {
         log.info(
             "Reuse successful activity result for idempotency, activityName={}, activityId={}, phase={}",
             activityName,
-            activityId,
+            activityInstance.getActivityId(),
             phase
         );
         return activityInstance.getOutput() == null ? workflowContext : activityInstance.getOutput();
@@ -270,10 +314,11 @@ public class WorkflowEngine {
         Instant executeTime
     ) {
         String output = serializer.serialize(outputContext);
-        activityRepository.saveOrUpdateResult(
+        activityRepository.saveAttempt(
             activityId,
             workflowInstance.getWorkflowId(),
             activityDefinition.getName(),
+            currentNode(),
             workflowContext,
             output,
             ActivityExecutionStatus.SUCCESSFUL,
@@ -292,10 +337,11 @@ public class WorkflowEngine {
         Instant executeTime
     ) {
         String failureOutput = serializer.failureOutput(throwable);
-        activityRepository.saveOrUpdateResult(
+        activityRepository.saveAttempt(
             activityId,
             workflowInstance.getWorkflowId(),
             activityDefinition.getName(),
+            currentNode(),
             workflowContext,
             failureOutput,
             ActivityExecutionStatus.FAILED,
@@ -312,22 +358,18 @@ public class WorkflowEngine {
 
     private void handleRetry(WorkflowInstance workflowInstance, ActivityDefinition activityDefinition) {
         Instant now = clock.instant();
-        Map<String, Object> ext = serializer.deserialize(workflowInstance.getExtCol());
-        Map<String, Object> retryCounts = readRetryCounts(ext);
-        int nextRetryCount = retryCounts.containsKey(activityDefinition.getName())
-            ? ((Number) retryCounts.get(activityDefinition.getName())).intValue() + 1
-            : 1;
-
-        retryCounts.put(activityDefinition.getName(), Integer.valueOf(nextRetryCount));
-        ext.put("retryCounts", retryCounts);
-        workflowInstance.setExtCol(serializer.serialize(ext));
+        long failedAttemptCount = activityRepository.countByWorkflowIdAndActivityNameAndStatus(
+            workflowInstance.getWorkflowId(),
+            activityDefinition.getName(),
+            ActivityExecutionStatus.FAILED
+        );
         workflowInstance.setGmtModified(now);
 
-        if (nextRetryCount <= activityDefinition.getMaxRetryTimes()) {
+        if (failedAttemptCount <= activityDefinition.getMaxRetryTimes()) {
             log.info(
-                "Schedule workflow retry, activityName={}, retryCount={}, maxRetryTimes={}, nextRetryAt={}",
+                "Schedule workflow retry, activityName={}, failedAttemptCount={}, maxRetryTimes={}, nextRetryAt={}",
                 activityDefinition.getName(),
-                Integer.valueOf(nextRetryCount),
+                Long.valueOf(failedAttemptCount),
                 Integer.valueOf(activityDefinition.getMaxRetryTimes()),
                 now.plus(activityDefinition.getRetryInterval())
             );
@@ -335,30 +377,20 @@ public class WorkflowEngine {
         } else {
             workflowInstance.setStatus(WorkflowStatus.HUMAN_PROCESSING);
             log.warn(
-                "Workflow moved to HUMAN_PROCESSING because retries are exhausted, activityName={}, retryCount={}, maxRetryTimes={}",
+                "Workflow moved to HUMAN_PROCESSING because retries are exhausted, activityName={}, failedAttemptCount={}, maxRetryTimes={}",
                 activityDefinition.getName(),
-                Integer.valueOf(nextRetryCount),
+                Long.valueOf(failedAttemptCount),
                 Integer.valueOf(activityDefinition.getMaxRetryTimes())
             );
         }
         workflowRepository.update(workflowInstance);
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> readRetryCounts(Map<String, Object> ext) {
-        Object retryCounts = ext.get("retryCounts");
-        if (retryCounts instanceof Map) {
-            return new LinkedHashMap<String, Object>((Map<String, Object>) retryCounts);
-        }
-        return new LinkedHashMap<String, Object>();
-    }
-
     private String getDefinitionName(WorkflowInstance workflowInstance) {
-        Object definitionName = serializer.deserialize(workflowInstance.getExtCol()).get("definitionName");
-        if (definitionName == null) {
-            throw new IllegalStateException("Workflow definition name missing from ext_col");
+        if (workflowInstance.getWorkflowName() == null || workflowInstance.getWorkflowName().trim().isEmpty()) {
+            throw new IllegalStateException("Workflow definition name missing from workflow_name");
         }
-        return definitionName.toString();
+        return workflowInstance.getWorkflowName();
     }
 
     private String buildSkipOutput(String baseContext, String skipInput, ActivityInstance target) {
@@ -389,12 +421,46 @@ public class WorkflowEngine {
         return activityInstances.isEmpty() ? null : activityInstances.get(activityInstances.size() - 1);
     }
 
+    private ActivityInstance findLatestActivityAttempt(String workflowId, String activityName) {
+        return activityRepository.findLatestByWorkflowIdAndActivityName(workflowId, activityName);
+    }
+
     private String buildLockKey(String workflowId, ActivityDefinition activityDefinition) {
         return workflowId + ":" + activityDefinition.getName();
     }
 
-    private String buildActivityId(String workflowId, int sequence) {
-        return workflowId + "-" + String.format("%02d", Integer.valueOf(sequence));
+    private int resolveActivitySequence(WorkflowDefinition definition, String activityName) {
+        int sequence = 1;
+        for (ActivityDefinition activityDefinition : definition.getActivities()) {
+            if (activityName.equals(activityDefinition.getName())) {
+                return sequence;
+            }
+            sequence++;
+        }
+        throw new IllegalStateException("Unknown activity in workflow definition: " + activityName);
+    }
+
+    private long nextAttempt(ActivityInstance latestAttempt) {
+        if (latestAttempt == null) {
+            return 1L;
+        }
+        return parseAttemptNumber(latestAttempt.getActivityId()) + 1L;
+    }
+
+    private long parseAttemptNumber(String activityId) {
+        int attemptSeparator = activityId.lastIndexOf('-');
+        if (attemptSeparator < 0 || attemptSeparator == activityId.length() - 1) {
+            throw new IllegalStateException("Unexpected activity id format: " + activityId);
+        }
+        return Long.parseLong(activityId.substring(attemptSeparator + 1));
+    }
+
+    private String currentNode() {
+        return nodeIdentity;
+    }
+
+    private String buildActivityId(String workflowId, int sequence, long attempt) {
+        return workflowId + "-" + String.format("%02d", Integer.valueOf(sequence)) + "-" + String.format("%02d", Long.valueOf(attempt));
     }
 
     private static final class StopWorkflowExecutionException extends RuntimeException {

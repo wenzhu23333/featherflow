@@ -9,7 +9,10 @@ public class InMemoryWorkflowDefinitionRegistry implements WorkflowDefinitionReg
 
     @Override
     public void register(WorkflowDefinition definition) {
-        definitions.put(definition.getName(), definition);
+        WorkflowDefinition previous = definitions.putIfAbsent(definition.getName(), definition);
+        if (previous != null) {
+            throw new IllegalArgumentException("Duplicate workflow definition name: " + definition.getName());
+        }
     }
 
     @Override

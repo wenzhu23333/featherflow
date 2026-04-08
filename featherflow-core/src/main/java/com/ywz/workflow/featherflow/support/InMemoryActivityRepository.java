@@ -23,33 +23,27 @@ public class InMemoryActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public void saveOrUpdateResult(
+    public void saveAttempt(
         String activityId,
         String workflowId,
         String activityName,
+        String executedNode,
         String input,
         String output,
         ActivityExecutionStatus status,
         Instant modifiedAt
     ) {
-        ActivityInstance activityInstance = findByActivityId(activityId);
-        if (activityInstance == null) {
-            activityInstance = new ActivityInstance(
-                activityId,
-                workflowId,
-                activityName,
-                modifiedAt,
-                modifiedAt,
-                input,
-                output,
-                status
-            );
-        } else {
-            activityInstance.setInput(input);
-            activityInstance.setOutput(output);
-            activityInstance.setStatus(status);
-            activityInstance.setGmtModified(modifiedAt);
-        }
+        ActivityInstance activityInstance = new ActivityInstance(
+            activityId,
+            workflowId,
+            activityName,
+            executedNode,
+            modifiedAt,
+            modifiedAt,
+            input,
+            output,
+            status
+        );
         byActivityId.put(activityId, activityInstance);
     }
 
@@ -61,18 +55,19 @@ public class InMemoryActivityRepository implements ActivityRepository {
                 result.add(activityInstance);
             }
         }
-        Collections.sort(result, Comparator.comparing(ActivityInstance::getActivityId));
+        Collections.sort(result, Comparator.comparing(ActivityInstance::getGmtCreated).thenComparing(ActivityInstance::getActivityId));
         return result;
     }
 
     @Override
-    public ActivityInstance findByWorkflowIdAndActivityName(String workflowId, String activityName) {
-        for (ActivityInstance activityInstance : byActivityId.values()) {
-            if (workflowId.equals(activityInstance.getWorkflowId()) && activityName.equals(activityInstance.getActivityName())) {
-                return activityInstance;
+    public ActivityInstance findLatestByWorkflowIdAndActivityName(String workflowId, String activityName) {
+        ActivityInstance latest = null;
+        for (ActivityInstance activityInstance : findByWorkflowId(workflowId)) {
+            if (activityName.equals(activityInstance.getActivityName())) {
+                latest = activityInstance;
             }
         }
-        return null;
+        return latest;
     }
 
     @Override
@@ -81,30 +76,17 @@ public class InMemoryActivityRepository implements ActivityRepository {
     }
 
     @Override
-    public void update(ActivityInstance activityInstance) {
-        byActivityId.put(activityInstance.getActivityId(), activityInstance);
-    }
-
-    @Override
-    public void markSuccessful(String workflowId, String activityName, String output, Instant modifiedAt) {
-        ActivityInstance activityInstance = findByWorkflowIdAndActivityName(workflowId, activityName);
-        if (activityInstance == null) {
-            throw new IllegalArgumentException("Activity not found for workflow " + workflowId + " and activity " + activityName);
+    public long countByWorkflowIdAndActivityNameAndStatus(String workflowId, String activityName, ActivityExecutionStatus status) {
+        long count = 0L;
+        for (ActivityInstance activityInstance : byActivityId.values()) {
+            if (
+                workflowId.equals(activityInstance.getWorkflowId())
+                    && activityName.equals(activityInstance.getActivityName())
+                    && status == activityInstance.getStatus()
+            ) {
+                count++;
+            }
         }
-        activityInstance.setOutput(output);
-        activityInstance.setStatus(ActivityExecutionStatus.SUCCESSFUL);
-        activityInstance.setGmtModified(modifiedAt);
-    }
-
-    @Override
-    public void updateResult(String activityId, String input, String output, ActivityExecutionStatus status, Instant modifiedAt) {
-        ActivityInstance activityInstance = findByActivityId(activityId);
-        if (activityInstance == null) {
-            throw new IllegalArgumentException("Activity not found: " + activityId);
-        }
-        activityInstance.setInput(input);
-        activityInstance.setOutput(output);
-        activityInstance.setStatus(status);
-        activityInstance.setGmtModified(modifiedAt);
+        return count;
     }
 }
