@@ -82,7 +82,7 @@
                         <p>展示 workflow 启动时持久化的原始输入快照。</p>
                     </div>
                 </div>
-                <pre class="json-block" th:text="${detail.workflowInput}">workflow-input</pre>
+                <div th:replace="~{fragments/json-preview :: viewer('Workflow 输入', ${detail.workflowInput})}"></div>
             </section>
         </div>
     </div>

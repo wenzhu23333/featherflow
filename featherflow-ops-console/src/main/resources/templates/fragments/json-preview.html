@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="viewer(title,rawValue)">
+    <div class="cell-block json-preview-block"
+         th:classappend="${rawValue == null or #strings.isEmpty(rawValue) ? ' is-empty' : ''}"
+         th:text="${rawValue == null or #strings.isEmpty(rawValue) ? '-' : rawValue}">json-value</div>
+</th:block>
+
+</body>
+</html>

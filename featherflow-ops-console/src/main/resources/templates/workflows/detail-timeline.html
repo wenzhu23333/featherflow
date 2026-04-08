@@ -11,7 +11,7 @@
         <div class="table-toolbar">
             <div>
                 <h2>活动时间线</h2>
-                <p>展示每一步 activity 的输入、输出和失败摘要，便于快速定位链路问题。</p>
+                <p>展示每一步 activity 的输入和输出，便于快速定位链路问题。</p>
             </div>
             <div class="action-group" th:if="${activityPagination != null}">
                 <div class="pager-summary">
@@ -63,7 +63,6 @@
                 <th>更新时间</th>
                 <th>输入</th>
                 <th>输出</th>
-                <th>失败摘要</th>
             </tr>
             </thead>
             <tbody>
@@ -79,14 +78,10 @@
                 <td th:text="${activity.gmtCreatedDisplay}">gmt-created</td>
                 <td th:text="${activity.gmtModifiedDisplay}">gmt-modified</td>
                 <td>
-                    <div class="cell-block" th:text="${activity.input}">input</div>
+                    <div th:replace="~{fragments/json-preview :: viewer(|${activity.activityName} 输入|, ${activity.input})}"></div>
                 </td>
                 <td>
-                    <div class="cell-block" th:text="${activity.output}">output</div>
-                </td>
-                <td>
-                    <div class="cell-block" th:classappend="${activity.failureSummary == '-' ? ' is-empty' : ''}"
-                         th:text="${activity.failureSummary}">failure-summary</div>
+                    <div th:replace="~{fragments/json-preview :: viewer(|${activity.activityName} 输出|, ${activity.output})}"></div>
                 </td>
             </tr>
             </tbody>

@@ -169,7 +169,6 @@ public class WorkflowQueryService {
     }
 
     private ActivityTimelineItemView toActivityTimelineItemView(ActivityTimelineRow row) {
-        String failureSummary = "FAILED".equals(row.status()) ? summarizeFailure(row.output()) : "-";
         return new ActivityTimelineItemView(
             row.activityId(),
             row.activityName(),
@@ -178,8 +177,7 @@ public class WorkflowQueryService {
             formatTime(row.gmtCreated()),
             formatTime(row.gmtModified()),
             blankToDash(row.input()),
-            blankToDash(row.output()),
-            failureSummary
+            blankToDash(row.output())
         );
     }
 

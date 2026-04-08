@@ -10,7 +10,6 @@ public class ActivityTimelineItemView {
     private final String gmtModifiedDisplay;
     private final String input;
     private final String output;
-    private final String failureSummary;
 
     public ActivityTimelineItemView(
         String activityId,
@@ -20,8 +19,7 @@ public class ActivityTimelineItemView {
         String gmtCreatedDisplay,
         String gmtModifiedDisplay,
         String input,
-        String output,
-        String failureSummary
+        String output
     ) {
         this.activityId = activityId;
         this.activityName = activityName;
@@ -31,7 +29,6 @@ public class ActivityTimelineItemView {
         this.gmtModifiedDisplay = gmtModifiedDisplay;
         this.input = input;
         this.output = output;
-        this.failureSummary = failureSummary;
     }
 
     public String getActivityId() {
@@ -64,9 +61,5 @@ public class ActivityTimelineItemView {
 
     public String getOutput() {
         return output;
-    }
-
-    public String getFailureSummary() {
-        return failureSummary;
     }
 }

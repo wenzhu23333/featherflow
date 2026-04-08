@@ -58,6 +58,17 @@ class OperationHistoryPageTest {
         assertThat(page).contains("biz-2001");
         assertThat(page).contains("biz-2002");
         assertThat(countOccurrences(page, "id=\"operation-history-table\"")).isEqualTo(1);
+        assertThat(page).contains("class=\"cell-block json-preview-block\"");
+        assertThat(page).doesNotContain("id=\"json-preview-drawer\"");
+        assertThat(page).doesNotContain("id=\"json-preview-drawer-body\"");
+        assertThat(page).doesNotContain("data-json-viewer");
+        assertThat(page).doesNotContain("data-json-open");
+        assertThat(page).doesNotContain("data-json-tab=");
+        assertThat(page).doesNotContain(">展开<");
+        assertThat(page).doesNotContain(">原始<");
+        assertThat(page).doesNotContain(">解析<");
+        assertThat(page).doesNotContain("解析预览");
+        assertThat(page).doesNotContain("查看原始");
 
         String row3 = extractRowById(page, "operation-history-row-3");
         String row2 = extractRowById(page, "operation-history-row-2");

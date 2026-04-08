@@ -72,6 +72,7 @@ class DefaultDemoDataPageTest {
         assertThat(page).contains("id=\"activity-page-size\"");
         assertThat(page).doesNotContain("activity-page-size=");
         assertThat(page).contains("activity-timeline-table");
+        assertThat(page).doesNotContain(">失败摘要<");
         assertThat(page).contains("status-badge");
         assertThat(page).contains("status-human_processing");
         assertThat(page).contains("timeline-row-demo-human-act-01-01");

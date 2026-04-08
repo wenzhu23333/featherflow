@@ -61,6 +61,7 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("class=\"panel timeline-section\"");
         assertThat(page).contains("class=\"data-table activity-timeline\"");
         assertThat(page).contains("<table id=\"activity-timeline-table\"");
+        assertThat(page).doesNotContain(">失败摘要<");
         assertThat(page).contains("<tr id=\"timeline-row-act-900\"");
         assertThat(page).contains("<tr id=\"timeline-row-act-100\"");
         assertThat(page).contains("<tr id=\"timeline-row-act-500\"");
@@ -70,6 +71,17 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=5\"");
         assertThat(page).contains("hx-trigger=\"every 3s\"");
         assertThat(page).contains("hx-sync=\"#workflow-detail-timeline-container:abort\"");
+        assertThat(page).contains("class=\"cell-block json-preview-block\"");
+        assertThat(page).doesNotContain("id=\"json-preview-drawer\"");
+        assertThat(page).doesNotContain("id=\"json-preview-drawer-body\"");
+        assertThat(page).doesNotContain("data-json-viewer");
+        assertThat(page).doesNotContain("data-json-open");
+        assertThat(page).doesNotContain("data-json-tab=");
+        assertThat(page).doesNotContain(">展开<");
+        assertThat(page).doesNotContain(">原始<");
+        assertThat(page).doesNotContain(">解析<");
+        assertThat(page).doesNotContain("解析预览");
+        assertThat(page).doesNotContain("查看原始");
         assertThat(page).doesNotContain("hx-get=\"/workflows/wf-detail-0001\"");
 
         String activity1 = extractById(page, "timeline-row-act-900", "tr");
@@ -83,7 +95,6 @@ class WorkflowDetailPageTest {
         assertThat(activity1).contains("SUCCESSFUL");
         assertThat(activity1).contains("2026-04-01 10:00:00");
         assertThat(activity1).contains("{&quot;ok&quot;:true}");
-        assertThat(activity1).contains("is-empty");
 
         assertThat(activity2).contains("reserveInventory");
         assertThat(activity2).contains("10.9.8.8:host-e:1234:seed");
@@ -149,6 +160,7 @@ class WorkflowDetailPageTest {
         assertThat(fragment).contains("class=\"panel timeline-section\"");
         assertThat(fragment).contains("activity-timeline-table");
         assertThat(fragment).contains("class=\"pager-summary\"");
+        assertThat(fragment).doesNotContain(">失败摘要<");
         assertThat(fragment).contains("timeline-row-act-900");
         assertThat(fragment).contains("timeline-row-act-500");
         assertThat(fragment).contains("共 3 步");

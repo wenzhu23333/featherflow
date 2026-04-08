@@ -45,7 +45,7 @@
             <td th:text="${operation.reason}">reason</td>
             <td th:text="${operation.activityId}">activity-id</td>
             <td>
-                <div class="cell-block" th:text="${operation.rawInput}">raw-input</div>
+                <div th:replace="~{fragments/json-preview :: viewer(|Operation ${operation.operationId} 原始输入|, ${operation.rawInput})}"></div>
             </td>
             <td th:text="${operation.gmtCreatedDisplay}">gmt-created</td>
             <td th:text="${operation.gmtModifiedDisplay}">gmt-modified</td>
