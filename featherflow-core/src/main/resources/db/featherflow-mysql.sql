@@ -3,11 +3,12 @@ create table workflow_instance (
     biz_id varchar(128) not null comment 'Business identifier',
     workflow_name varchar(128) not null comment 'Workflow definition name',
     start_node varchar(128) not null comment 'Node that started the workflow',
-    gmt_created datetime not null comment 'Creation time',
-    gmt_modified datetime not null comment 'Last modification time',
+    gmt_created datetime not null default current_timestamp comment 'Creation time',
+    gmt_modified datetime not null default current_timestamp on update current_timestamp comment 'Last modification time',
     input longtext comment 'Workflow input context snapshot',
     status varchar(32) not null comment 'Workflow execution status',
     key idx_workflow_instance_biz_id (biz_id),
+    key idx_workflow_instance_modified (gmt_modified),
     key idx_workflow_instance_name_modified (workflow_name, gmt_modified),
     key idx_workflow_instance_status (status)
 ) engine=InnoDB default charset=utf8mb4 comment='Workflow instance table';
@@ -17,12 +18,12 @@ create table activity_instance (
     workflow_id varchar(19) not null comment 'Workflow instance identifier',
     activity_name varchar(128) not null comment 'Activity definition name',
     executed_node varchar(128) not null comment 'Node that executed the activity',
-    gmt_created datetime not null comment 'Creation time',
-    gmt_modified datetime not null comment 'Last modification time',
+    gmt_created datetime not null default current_timestamp comment 'Creation time',
+    gmt_modified datetime not null default current_timestamp on update current_timestamp comment 'Last modification time',
     input longtext comment 'Activity input context snapshot',
     output longtext comment 'Activity output context snapshot or failure payload',
     status varchar(32) not null comment 'Activity execution status',
-    key idx_activity_instance_workflow_id (workflow_id),
+    key idx_activity_instance_workflow_created (workflow_id, gmt_created, activity_id),
     key idx_activity_instance_status (status),
     key idx_activity_instance_workflow_name (workflow_id, activity_name)
 ) engine=InnoDB default charset=utf8mb4 comment='Activity execution history table';
@@ -31,11 +32,12 @@ create table workflow_operation (
     operation_id bigint primary key auto_increment comment 'Workflow operation identifier',
     workflow_id varchar(19) not null comment 'Workflow instance identifier',
     operation_type varchar(32) not null comment 'Operation type',
-    input longtext comment 'Operation request payload',
+    input text comment 'Operation request payload',
     status varchar(32) not null comment 'Operation processing status',
-    gmt_created datetime not null comment 'Creation time',
-    gmt_modified datetime not null comment 'Last modification time',
+    gmt_created datetime not null default current_timestamp comment 'Creation time',
+    gmt_modified datetime not null default current_timestamp on update current_timestamp comment 'Last modification time',
     key idx_workflow_operation_workflow_id (workflow_id),
+    key idx_workflow_operation_modified (gmt_modified),
     key idx_workflow_operation_status_modified (status, gmt_modified)
 ) engine=InnoDB default charset=utf8mb4 comment='Workflow operation command table';
 
