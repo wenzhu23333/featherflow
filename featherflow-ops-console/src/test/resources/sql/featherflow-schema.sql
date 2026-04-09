@@ -9,7 +9,7 @@ create table workflow_instance (
     start_node varchar(128) not null,
     gmt_created timestamp not null,
     gmt_modified timestamp not null,
-    input clob not null,
+    input clob,
     status varchar(32) not null
 );
 
@@ -24,7 +24,7 @@ create table activity_instance (
     executed_node varchar(128) not null,
     gmt_created timestamp not null,
     gmt_modified timestamp not null,
-    input clob not null,
+    input clob,
     output clob,
     status varchar(32) not null
 );
