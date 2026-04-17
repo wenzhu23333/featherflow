@@ -147,7 +147,12 @@ public class WorkflowEngine {
         try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflowInstance)) {
             ActivityInstance target = requireLatestSkippableActivity(workflowInstance);
             WorkflowDefinition definition = loadDefinition(workflowInstance);
-            String baseContext = resolveContextBefore(workflowId, target.getActivityName(), workflowInstance.getInput());
+            String baseContext = resolveActivityRetryContext(
+                resolveContextBefore(workflowId, target.getActivityName(), workflowInstance.getInput()),
+                target,
+                target.getActivityName(),
+                "skip latest failed activity"
+            );
             String skipOutput = buildSkipOutput(baseContext, skipInput, target);
             int activitySequence = resolveActivitySequence(definition, target.getActivityName());
             long attempt = nextAttempt(findLatestActivityAttempt(workflowId, target.getActivityName()));
@@ -183,7 +188,13 @@ public class WorkflowEngine {
             return reuseSuccessfulActivityContext(workflowContext, latestAttempt, activityDefinition.getName(), "before lock acquisition");
         }
 
-        return continueWithActivityLock(workflowId, activityDefinition, workflowContext, activitySequence);
+        String executionContext = resolveActivityRetryContext(
+            workflowContext,
+            latestAttempt,
+            activityDefinition.getName(),
+            "before lock acquisition"
+        );
+        return continueWithActivityLock(workflowId, activityDefinition, executionContext, activitySequence);
     }
 
     private String continueWithActivityLock(
@@ -204,6 +215,12 @@ public class WorkflowEngine {
             if (isSuccessful(latestAttempt)) {
                 return reuseSuccessfulActivityContext(workflowContext, latestAttempt, activityDefinition.getName(), "after lock acquisition");
             }
+            String executionContext = resolveActivityRetryContext(
+                workflowContext,
+                latestAttempt,
+                activityDefinition.getName(),
+                "after lock acquisition"
+            );
             long attempt = nextAttempt(latestAttempt);
             String activityId = buildActivityId(workflowId, activitySequence, attempt);
             log.info(
@@ -213,7 +230,7 @@ public class WorkflowEngine {
                 Integer.valueOf(activitySequence),
                 Long.valueOf(attempt)
             );
-            return executeActivity(workflowInstance, activityId, activityDefinition, workflowContext);
+            return executeActivity(workflowInstance, activityId, activityDefinition, executionContext);
         } finally {
             try {
                 lockService.unlock(lockKey);
@@ -249,6 +266,24 @@ public class WorkflowEngine {
             phase
         );
         return activityInstance.getOutput() == null ? workflowContext : activityInstance.getOutput();
+    }
+
+    private String resolveActivityRetryContext(
+        String workflowContext,
+        ActivityInstance latestAttempt,
+        String activityName,
+        String phase
+    ) {
+        if (latestAttempt == null || latestAttempt.getStatus() != ActivityExecutionStatus.FAILED || latestAttempt.getInput() == null) {
+            return workflowContext;
+        }
+        log.info(
+            "Reuse failed activity input snapshot for retry, activityName={}, activityId={}, phase={}",
+            activityName,
+            latestAttempt.getActivityId(),
+            phase
+        );
+        return latestAttempt.getInput();
     }
 
     private void markWorkflowSuccessfulIfStillRunning(String workflowId) {

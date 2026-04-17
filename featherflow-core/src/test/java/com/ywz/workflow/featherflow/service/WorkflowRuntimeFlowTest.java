@@ -62,6 +62,13 @@ class WorkflowRuntimeFlowTest {
             Arrays.asList(new ActivityDefinition("step1", "retryStepHandler", Duration.ofSeconds(5), 0))
         ));
         registry.register(new WorkflowDefinition(
+            "manualRetryFailedSnapshotWorkflow",
+            Arrays.asList(
+                new ActivityDefinition("step1", "retrySeedStepHandler", Duration.ofSeconds(5), 0),
+                new ActivityDefinition("step2", "retryFromFailedInputHandler", Duration.ofSeconds(5), 0)
+            )
+        ));
+        registry.register(new WorkflowDefinition(
             "retryAfterTerminateWorkflow",
             Arrays.asList(
                 new ActivityDefinition("step1", "terminatedStep1Handler", Duration.ofSeconds(5), 0),
@@ -107,34 +114,66 @@ class WorkflowRuntimeFlowTest {
 
     @Test
     void shouldRetryFailedLatestActivityUsingPersistedInput() throws Exception {
-        AtomicInteger attempts = new AtomicInteger();
         CountDownLatch retryCompleted = new CountDownLatch(1);
-        handlerRegistry.register("retryStepHandler", context -> {
-            if (attempts.incrementAndGet() == 1) {
-                throw new IllegalStateException("boom");
-            }
+        handlerRegistry.register("retrySeedStepHandler", context -> {
+            throw new AssertionError("step1 should not run again");
+        });
+        handlerRegistry.register("retryFromFailedInputHandler", context -> {
             assertThat(context).containsEntry("base", Integer.valueOf(1));
-            assertThat(context).doesNotContainKey("operator");
+            assertThat(context).containsEntry("step1", Boolean.TRUE);
+            assertThat(context).containsEntry("failedSeed", "snapshot");
             context.put("retried", true);
             retryCompleted.countDown();
             return context;
         });
 
-        WorkflowCommandService service = createTriggeredService();
-        WorkflowInstance workflow = service.startWorkflow("manualRetryWorkflow", "biz-retry", "{\"base\":1}");
+        WorkflowInstance workflow = new WorkflowInstance(
+            "wf-manual-retry-snapshot-1",
+            "biz-retry",
+            "manualRetryFailedSnapshotWorkflow",
+            "test-node",
+            clock.instant(),
+            clock.instant(),
+            "{\"base\":1}",
+            WorkflowStatus.HUMAN_PROCESSING
+        );
+        workflowRepository.save(workflow);
+        String step1Output = serializer.merge("{\"base\":1}", "{\"step1\":true}");
+        String failedInput = serializer.merge(step1Output, "{\"failedSeed\":\"snapshot\"}");
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-01-01",
+            workflow.getWorkflowId(),
+            "step1",
+            "seed-node",
+            "{\"base\":1}",
+            step1Output,
+            ActivityExecutionStatus.SUCCESSFUL,
+            clock.instant()
+        );
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-02-01",
+            workflow.getWorkflowId(),
+            "step2",
+            "seed-node",
+            failedInput,
+            "{\"error\":\"boom\"}",
+            ActivityExecutionStatus.FAILED,
+            clock.instant()
+        );
 
-        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.HUMAN_PROCESSING, 1000L);
+        WorkflowCommandService service = createTriggeredService();
         service.retryWorkflow(workflow.getWorkflowId());
 
         assertThat(retryCompleted.await(1, TimeUnit.SECONDS)).isTrue();
         awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
             .extracting(ActivityInstance::getStatus)
-            .containsExactly(ActivityExecutionStatus.FAILED, ActivityExecutionStatus.SUCCESSFUL);
-        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(1).getOutput()).contains("\"base\":1");
+            .containsExactly(ActivityExecutionStatus.SUCCESSFUL, ActivityExecutionStatus.FAILED, ActivityExecutionStatus.SUCCESSFUL);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(2).getInput()).contains("\"failedSeed\":\"snapshot\"");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(2).getOutput()).contains("\"failedSeed\":\"snapshot\"");
         assertThat(activityRepository.countByWorkflowIdAndActivityNameAndStatus(
             workflow.getWorkflowId(),
-            "step1",
+            "step2",
             ActivityExecutionStatus.FAILED
         )).isEqualTo(1L);
     }

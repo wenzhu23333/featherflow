@@ -300,15 +300,27 @@ class WorkflowEngineTest {
     }
 
     @Test
-    void shouldAppendSuccessfulSkipAttemptInsteadOfMutatingFailedRow() {
-        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-skip-append", "{\"amount\":100}");
+    void shouldRetryFailedActivityUsingLatestFailedInputSnapshot() {
+        AtomicReference<Map<String, Object>> retryContext = new AtomicReference<Map<String, Object>>();
+        handlerRegistry.register("createOrderHandler", context -> {
+            throw new AssertionError("createOrderHandler should not be called again");
+        });
+        handlerRegistry.register("notifyCustomerHandler", context -> {
+            retryContext.set(new HashMap<String, Object>(context));
+            context.put("customerNotified", true);
+            return context;
+        });
+
+        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-failed-snapshot", "{\"amount\":100}");
+        String step1Output = serializer.merge("{\"amount\":100}", "{\"orderCreated\":true}");
+        String failedInput = serializer.merge(step1Output, "{\"snapshot\":\"failed-input\"}");
         activityRepository.saveAttempt(
             workflow.getWorkflowId() + "-01-01",
             workflow.getWorkflowId(),
             "createOrder",
             "seed-node",
             "{\"amount\":100}",
-            serializer.merge("{\"amount\":100}", "{\"orderCreated\":true}"),
+            step1Output,
             ActivityExecutionStatus.SUCCESSFUL,
             clock.instant()
         );
@@ -317,7 +329,42 @@ class WorkflowEngineTest {
             workflow.getWorkflowId(),
             "notifyCustomer",
             "seed-node",
-            serializer.merge("{\"amount\":100}", "{\"orderCreated\":true}"),
+            failedInput,
+            "{\"error\":\"notify failed\"}",
+            ActivityExecutionStatus.FAILED,
+            clock.instant()
+        );
+
+        WorkflowEngine engine = newEngine();
+
+        engine.continueWorkflow(workflow.getWorkflowId());
+
+        assertThat(retryContext.get()).containsEntry("snapshot", "failed-input");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(2).getInput()).contains("\"snapshot\":\"failed-input\"");
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(2).getOutput()).contains("\"snapshot\":\"failed-input\"");
+    }
+
+    @Test
+    void shouldAppendSuccessfulSkipAttemptInsteadOfMutatingFailedRow() {
+        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-skip-append", "{\"amount\":100}");
+        String step1Output = serializer.merge("{\"amount\":100}", "{\"orderCreated\":true}");
+        String failedInput = serializer.merge(step1Output, "{\"manualTag\":\"latest-failed\"}");
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-01-01",
+            workflow.getWorkflowId(),
+            "createOrder",
+            "seed-node",
+            "{\"amount\":100}",
+            step1Output,
+            ActivityExecutionStatus.SUCCESSFUL,
+            clock.instant()
+        );
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-02-01",
+            workflow.getWorkflowId(),
+            "notifyCustomer",
+            "seed-node",
+            failedInput,
             "{\"error\":\"notify failed\"}",
             ActivityExecutionStatus.FAILED,
             clock.instant()
@@ -343,6 +390,7 @@ class WorkflowEngineTest {
             .singleElement()
             .satisfies(activity -> {
                 assertThat(activity.getOutput()).contains("_featherflowSkip");
+                assertThat(activity.getOutput()).contains("\"manualTag\":\"latest-failed\"");
                 assertThat(activity.getExecutedNode()).isEqualTo("test-node");
             });
     }
