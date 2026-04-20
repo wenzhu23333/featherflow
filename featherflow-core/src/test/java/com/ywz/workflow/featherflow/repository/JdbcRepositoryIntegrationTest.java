@@ -1,6 +1,7 @@
 package com.ywz.workflow.featherflow.repository;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.ywz.workflow.featherflow.model.ActivityExecutionStatus;
 import com.ywz.workflow.featherflow.model.ActivityInstance;
@@ -88,7 +89,7 @@ class JdbcRepositoryIntegrationTest {
     }
 
     @Test
-    void shouldMapLegacySuccessfulWorkflowStatusToCompleted() {
+    void shouldRejectUnsupportedWorkflowStatusFromDatabase() {
         Instant now = Instant.parse("2026-03-30T13:00:00Z");
         jdbcTemplate.update(
             "insert into workflow_instance (workflow_id, biz_id, workflow_name, start_node, gmt_created, gmt_modified, input, status) values (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -102,9 +103,9 @@ class JdbcRepositoryIntegrationTest {
             "SUCCESSFUL"
         );
 
-        WorkflowInstance loadedWorkflow = workflowRepository.findRequired("legacy-success-01");
-
-        assertThat(loadedWorkflow.getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
+        assertThatThrownBy(() -> workflowRepository.findRequired("legacy-success-01"))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("SUCCESSFUL");
     }
 
     @Test

@@ -122,7 +122,7 @@ public class WorkflowViewRepository {
                 rs.getString("workflow_id"),
                 rs.getString("biz_id"),
                 rs.getString("workflow_name"),
-                normalizeWorkflowStatus(rs.getString("workflow_status")),
+                rs.getString("workflow_status"),
                 rs.getObject("gmt_created", LocalDateTime.class),
                 rs.getObject("gmt_modified", LocalDateTime.class),
                 rs.getString("latest_activity_id"),
@@ -141,7 +141,7 @@ public class WorkflowViewRepository {
                 rs.getString("biz_id"),
                 rs.getString("workflow_name"),
                 rs.getString("start_node"),
-                normalizeWorkflowStatus(rs.getString("workflow_status")),
+                rs.getString("workflow_status"),
                 rs.getString("workflow_input"),
                 rs.getObject("gmt_created", LocalDateTime.class),
                 rs.getObject("gmt_modified", LocalDateTime.class)
@@ -212,13 +212,6 @@ public class WorkflowViewRepository {
                 rs.getObject("gmt_modified", LocalDateTime.class)
             )
         );
-    }
-
-    private String normalizeWorkflowStatus(String workflowStatus) {
-        if ("SUCCESSFUL".equals(workflowStatus)) {
-            return "COMPLETED";
-        }
-        return workflowStatus;
     }
 
     public static final class WorkflowListRow {
