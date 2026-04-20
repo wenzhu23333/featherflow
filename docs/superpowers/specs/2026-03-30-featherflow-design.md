@@ -234,7 +234,7 @@ Business handlers are resolved by Spring bean name.
    - Update workflow to `HUMAN_PROCESSING`.
    - Stop execution.
 7. If all activities complete:
-   - Update workflow to `SUCCESSFUL`.
+   - Update workflow to `COMPLETED`.
 
 ### 7.3 Retry
 

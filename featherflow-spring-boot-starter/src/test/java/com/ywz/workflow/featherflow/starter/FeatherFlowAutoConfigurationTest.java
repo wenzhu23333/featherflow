@@ -123,6 +123,25 @@ class FeatherFlowAutoConfigurationTest {
     }
 
     @Test
+    void shouldLoadMultipleWorkflowDefinitionsFromSingleYamlAndXmlFiles() {
+        new ApplicationContextRunner()
+            .withUserConfiguration(TestConfiguration.class)
+            .withPropertyValues(
+                "featherflow.enabled=true",
+                "featherflow.auto-start-daemon=false",
+                "featherflow.definition-locations=classpath:/workflows/bundles/*.yml,classpath:/workflows/bundles/*.xml"
+            )
+            .withConfiguration(org.springframework.boot.autoconfigure.AutoConfigurations.of(FeatherFlowAutoConfiguration.class))
+            .run(context -> {
+                WorkflowDefinitionRegistry registry = context.getBean(WorkflowDefinitionRegistry.class);
+                assertThat(registry.find("bundleYamlOrderWorkflow")).isNotNull();
+                assertThat(registry.find("bundleYamlPaymentWorkflow")).isNotNull();
+                assertThat(registry.find("bundleXmlOrderWorkflow")).isNotNull();
+                assertThat(registry.find("bundleXmlPaymentWorkflow")).isNotNull();
+            });
+    }
+
+    @Test
     void shouldFailWhenMultipleDefinitionFilesShareTheSameWorkflowName() {
         new ApplicationContextRunner()
             .withUserConfiguration(TestConfiguration.class)

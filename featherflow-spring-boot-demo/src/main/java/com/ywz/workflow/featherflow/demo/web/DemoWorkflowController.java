@@ -22,6 +22,7 @@ public class DemoWorkflowController {
     @PostMapping("/start")
     public WorkflowViewResponse start(@RequestBody StartWorkflowRequest request) {
         WorkflowInstance workflowInstance = demoWorkflowFacade.start(
+            request.getWorkflowName(),
             request.getBizId(),
             request.getAmount(),
             request.getCustomerName(),

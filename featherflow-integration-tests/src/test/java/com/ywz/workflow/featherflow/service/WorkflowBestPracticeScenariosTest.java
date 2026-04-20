@@ -95,7 +95,7 @@ class WorkflowBestPracticeScenariosTest {
         WorkflowCommandService service = createTriggeredService();
         WorkflowInstance workflow = service.startWorkflow("orderSnapshotWorkflow", "biz-snapshot", "{\"amount\":100,\"customer\":\"alice\"}");
 
-        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).hasSize(2);
 
         ActivityInstance createOrder = activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(0);
@@ -161,7 +161,7 @@ class WorkflowBestPracticeScenariosTest {
         awaitStatus(workflow.getWorkflowId(), WorkflowStatus.HUMAN_PROCESSING, 1000L);
         service.retryWorkflow(workflow.getWorkflowId());
 
-        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
             .extracting(ActivityInstance::getStatus)
             .containsExactly(ActivityExecutionStatus.FAILED, ActivityExecutionStatus.SUCCESSFUL);
@@ -235,7 +235,7 @@ class WorkflowBestPracticeScenariosTest {
 
         assertThat(createOrderCalls.get()).isZero();
         assertThat(secondStepContext.get()).containsEntry("orderNo", "ORD-2001");
-        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.SUCCESSFUL);
+        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
     }
 
     @Test
@@ -260,7 +260,7 @@ class WorkflowBestPracticeScenariosTest {
             WorkflowCommandService service = createTriggeredService();
             WorkflowInstance workflow = service.startWorkflow("loggingWorkflow", "biz-log-bp", "{\"orderNo\":\"ORD-9\"}");
 
-            awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
+            awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
 
             assertThat(commandServiceAppender.list).anySatisfy(event -> {
                 assertThat(event.getMDCPropertyMap()).containsEntry("workflowId", workflow.getWorkflowId());

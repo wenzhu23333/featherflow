@@ -94,7 +94,7 @@ yyyy-MM-dd HH:mm:ss
 默认内存 H2 会自动加载一组演示数据，页面启动后即可直接看到：
 
 - 一个 `RUNNING` 的 workflow
-- 一个 `SUCCESSFUL` 的 workflow
+- 一个 `COMPLETED` 的 workflow
 - 一个 `HUMAN_PROCESSING` 的 workflow
 
 这样你可以立刻点进详情页查看 activity 时间线、`input/output` 和 operation 历史。

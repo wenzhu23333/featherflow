@@ -150,9 +150,9 @@ class DefaultWorkflowOperationHandlerTest {
         operationRepository.savePendingOperation(skipOperation);
         handler.process(skipOperation);
         assertThat(step3Completed.await(1, TimeUnit.SECONDS)).isTrue();
-        waitForWorkflowStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
+        waitForWorkflowStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
 
-        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.SUCCESSFUL);
+        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).hasSize(4);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
             .filteredOn(activity -> activity.getActivityName().equals("step2"))
@@ -274,7 +274,7 @@ class DefaultWorkflowOperationHandlerTest {
         ));
 
         assertThat(step2Completed.await(1, TimeUnit.SECONDS)).isTrue();
-        waitForWorkflowStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
+        waitForWorkflowStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
     }
 
     private WorkflowEngine newEngine() {

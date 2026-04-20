@@ -32,7 +32,7 @@ class FeatherFlowDemoApplicationTests {
 
         long deadline = System.currentTimeMillis() + 3000L;
         while (System.currentTimeMillis() < deadline) {
-            if (workflowRepository.findRequired(workflow.getWorkflowId()).getStatus() == WorkflowStatus.SUCCESSFUL) {
+            if (workflowRepository.findRequired(workflow.getWorkflowId()).getStatus() == WorkflowStatus.COMPLETED) {
                 break;
             }
             Thread.sleep(20L);
@@ -40,7 +40,7 @@ class FeatherFlowDemoApplicationTests {
 
         WorkflowInstance persistedWorkflow = workflowRepository.findRequired(workflow.getWorkflowId());
         assertThat(persistedWorkflow.getBizId()).isEqualTo("demo-biz-service");
-        assertThat(persistedWorkflow.getStatus()).isEqualTo(WorkflowStatus.SUCCESSFUL);
+        assertThat(persistedWorkflow.getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).hasSize(2);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(0).getOutput()).contains("\"orderCreated\":true");
     }

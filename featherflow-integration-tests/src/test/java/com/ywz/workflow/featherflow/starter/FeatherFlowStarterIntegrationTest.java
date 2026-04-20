@@ -47,13 +47,13 @@ class FeatherFlowStarterIntegrationTest {
 
             long deadline = System.currentTimeMillis() + 1000L;
             while (System.currentTimeMillis() < deadline) {
-                if (workflowRepository.findRequired(workflow.getWorkflowId()).getStatus() == WorkflowStatus.SUCCESSFUL) {
+                if (workflowRepository.findRequired(workflow.getWorkflowId()).getStatus() == WorkflowStatus.COMPLETED) {
                     break;
                 }
                 Thread.sleep(20L);
             }
 
-            assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.SUCCESSFUL);
+            assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
             assertThat(workflowOperationRepository.findAll()).isEmpty();
             assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).singleElement().satisfies(activity -> {
                 assertThat(activity.getActivityName()).isEqualTo("createOrder");

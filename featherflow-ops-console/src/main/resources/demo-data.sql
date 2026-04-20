@@ -35,7 +35,7 @@ insert into workflow_instance (
     timestamp '2026-04-02 08:20:00',
     timestamp '2026-04-02 08:26:00',
     '{"customerId":"C-1001","messageType":"ORDER_CREATED"}',
-    'SUCCESSFUL'
+    'COMPLETED'
 );
 
 insert into workflow_instance (

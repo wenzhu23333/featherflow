@@ -122,7 +122,7 @@ Verify:
 
 - application context starts
 - `WorkflowCommandService.startWorkflow()` runs successfully
-- workflow reaches `SUCCESSFUL`
+- workflow reaches `COMPLETED`
 - activity records are written
 
 ### REST integration test

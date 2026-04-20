@@ -32,7 +32,7 @@ class DefaultDemoDataPageTest {
         String page = result.getResponse().getContentAsString();
         assertThat(page).contains("class=\"page-shell\"");
         String runningRow = extractRowById(page, "workflow-row-demo-run-0001");
-        String successfulRow = extractRowById(page, "workflow-row-demo-success-01");
+        String completedRow = extractRowById(page, "workflow-row-demo-success-01");
         String humanProcessingRow = extractRowById(page, "workflow-row-demo-human-0001");
 
         assertThat(runningRow).contains("<td>demo-run-0001</td>");
@@ -42,11 +42,11 @@ class DefaultDemoDataPageTest {
         assertThat(runningRow).contains("demoOrderWorkflow");
         assertThat(runningRow).contains("<span>终止</span>");
 
-        assertThat(successfulRow).contains("<td>demo-success-01</td>");
-        assertThat(successfulRow).contains("status-badge");
-        assertThat(successfulRow).contains("status-successful");
-        assertThat(successfulRow).contains(">SUCCESSFUL<");
-        assertThat(successfulRow).contains("demoOrderWorkflow");
+        assertThat(completedRow).contains("<td>demo-success-01</td>");
+        assertThat(completedRow).contains("status-badge");
+        assertThat(completedRow).contains("status-completed");
+        assertThat(completedRow).contains(">COMPLETED<");
+        assertThat(completedRow).contains("demoOrderWorkflow");
 
         assertThat(humanProcessingRow).contains("<td>demo-human-0001</td>");
         assertThat(humanProcessingRow).contains("status-badge");

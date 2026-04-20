@@ -1,0 +1,8 @@
+<workflows>
+    <workflow name="bundleXmlOrderWorkflow">
+        <activity name="createOrder" handler="createOrderHandler" retryInterval="PT5S" maxRetryTimes="2"/>
+    </workflow>
+    <workflow name="bundleXmlPaymentWorkflow">
+        <activity name="freezeBalance" handler="createOrderHandler" retryInterval="PT3S" maxRetryTimes="1"/>
+    </workflow>
+</workflows>

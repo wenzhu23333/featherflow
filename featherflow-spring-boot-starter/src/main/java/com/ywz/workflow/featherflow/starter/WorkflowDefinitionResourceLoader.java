@@ -33,8 +33,10 @@ public class WorkflowDefinitionResourceLoader {
                 Arrays.sort(resources, Comparator.comparing(resource -> resource.getFilename() == null ? "" : resource.getFilename()));
                 for (Resource resource : resources) {
                     String content = StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
-                    WorkflowDefinition definition = workflowDefinitionParser.parse(resolveFormat(resource.getFilename()), content);
-                    registry.register(definition);
+                    List<WorkflowDefinition> definitions = workflowDefinitionParser.parseAll(resolveFormat(resource.getFilename()), content);
+                    for (WorkflowDefinition definition : definitions) {
+                        registry.register(definition);
+                    }
                 }
             } catch (IOException ex) {
                 throw new IllegalStateException("Failed to load workflow definitions from " + location, ex);

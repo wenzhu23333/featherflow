@@ -127,7 +127,7 @@ class WorkflowEngineTest {
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).isEmpty();
         engine.continueWorkflow(workflow.getWorkflowId());
 
-        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.SUCCESSFUL);
+        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
             .extracting(activity -> activity.getStatus())
             .containsExactly(ActivityExecutionStatus.SUCCESSFUL, ActivityExecutionStatus.SUCCESSFUL);

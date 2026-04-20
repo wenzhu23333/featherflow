@@ -1,11 +1,21 @@
-workflow:
-  name: demoOrderWorkflow
-  activities:
-    - name: createOrder
-      handler: createOrderHandler
-      retryInterval: PT1S
-      maxRetryTimes: 1
-    - name: notifyCustomer
-      handler: notifyCustomerHandler
-      retryInterval: PT1S
-      maxRetryTimes: 1
+workflows:
+  - name: demoOrderWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        retryInterval: PT1S
+        maxRetryTimes: 1
+      - name: notifyCustomer
+        handler: notifyCustomerHandler
+        retryInterval: PT1S
+        maxRetryTimes: 1
+  - name: demoFastTrackWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        retryInterval: PT1S
+        maxRetryTimes: 0
+      - name: notifyCustomer
+        handler: notifyCustomerHandler
+        retryInterval: PT1S
+        maxRetryTimes: 0

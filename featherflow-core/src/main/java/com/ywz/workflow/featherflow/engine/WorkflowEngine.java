@@ -289,7 +289,7 @@ public class WorkflowEngine {
     private void markWorkflowSuccessfulIfStillRunning(String workflowId) {
         WorkflowInstance completedWorkflow = workflowRepository.findRequired(workflowId);
         if (completedWorkflow.getStatus() == WorkflowStatus.RUNNING) {
-            completedWorkflow.setStatus(WorkflowStatus.SUCCESSFUL);
+            completedWorkflow.setStatus(WorkflowStatus.COMPLETED);
             completedWorkflow.setGmtModified(clock.instant());
             workflowRepository.update(completedWorkflow);
             log.info("Workflow completed successfully");

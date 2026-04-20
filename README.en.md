@@ -19,7 +19,7 @@ FeatherFlow is a self-developed lightweight Java workflow framework with persist
 
 - Supports sequential workflow orchestration.
 - Supports both YAML and XML workflow definitions.
-- Supports loading different workflows from multiple YAML/XML definition files.
+- Supports single-workflow files, multi-workflow files, and mixed loading across multiple files.
 - Persists the three core tables: `workflow_instance`, `activity_instance`, and `workflow_operation`.
 - Stores the workflow definition name in `workflow_instance.workflow_name` and the workflow start node in `workflow_instance.start_node`.
 - Stores the execution node for each activity attempt in `activity_instance.executed_node`.
@@ -51,7 +51,7 @@ The demo shows:
 
 - how to integrate FeatherFlow through the starter
 - how to implement `WorkflowActivityHandler`
-- how to place YAML workflow definitions
+- how to define multiple workflows in one YAML file
 - how to call `start / terminate / retry / skip` through HTTP
 - how to correlate logs with `workflowId` and `bizId`
 
@@ -67,6 +67,14 @@ Start a workflow:
 curl -X POST http://localhost:8080/demo/workflows/start \
   -H 'Content-Type: application/json' \
   -d '{"bizId":"demo-biz-001","amount":100,"customerName":"Alice"}'
+```
+
+Start another workflow that lives in the same demo definition file:
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoFastTrackWorkflow","bizId":"demo-biz-002","amount":88,"customerName":"Bob"}'
 ```
 
 Query the current workflow view:
@@ -93,6 +101,7 @@ Notes:
 - `skip` is only allowed when the workflow is already `TERMINATED`.
 - To observe retry behavior, include `"forceNotifyFailure": true` in the start payload.
 - The demo uses an in-memory H2 database and the built-in schema SQL. No manual database setup is required.
+- The demo intentionally keeps `demoOrderWorkflow` and `demoFastTrackWorkflow` in the same YAML file to demonstrate multi-workflow definitions in a single file.
 - The sample source entry point lives in `featherflow-spring-boot-demo/src/main/java/com/ywz/workflow/featherflow/demo`.
 
 ## Ops Console
@@ -131,7 +140,7 @@ Key `workflow_instance` and `activity_instance` field semantics:
 
 - `workflow_id`: workflow runtime instance ID
 - `biz_id`: business identifier supplied by the caller or defaulted from the workflow ID
-- `workflow_name`: workflow definition name, matching `workflow.name` in YAML/XML
+- `workflow_name`: workflow definition name, matching the workflow `name` declared in YAML/XML
 - `start_node`: the node that created and initially dispatched the workflow instance
 - `executed_node`: the node that actually executed a given activity attempt
 - `activity_instance`: one row is written after each completed activity attempt, regardless of success or failure
@@ -162,6 +171,7 @@ Configuration notes:
 - `auto-start-daemon`: whether to automatically start the daemon that scans `workflow_operation` for externally submitted commands.
 - `definition-locations`: resource locations used to load workflow definition files.
 - `definition-locations` supports multiple entries. Each entry can point to a single file or to wildcard patterns such as `*.yml`, `*.yaml`, and `*.xml`.
+- Each matched file may contain either one workflow definition or multiple workflow definitions.
 - Workflow `name` values must be unique across files. FeatherFlow fails fast at startup when duplicate workflow names are detected.
 - `instance-id`: optional instance identifier. A readable value such as `IP:node-name` or `IP:service-name` is recommended; if omitted, FeatherFlow generates `IP:hostname:PID:random-suffix`.
 - `persistence-write-retry-max-attempts`: maximum retry attempts for framework-owned persistence writes.
@@ -174,7 +184,7 @@ Configuration notes:
 
 ## Workflow Definition
 
-YAML example:
+Single-workflow YAML example:
 
 ```yaml
 workflow:
@@ -190,7 +200,7 @@ workflow:
       maxRetryTimes: 1
 ```
 
-XML example:
+Single-workflow XML example:
 
 ```xml
 <workflow name="sampleOrderWorkflow">
@@ -199,7 +209,48 @@ XML example:
 </workflow>
 ```
 
-Multiple files example:
+Multi-workflow YAML example:
+
+```yaml
+workflows:
+  - name: sampleOrderWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        retryInterval: PT5S
+        maxRetryTimes: 2
+      - name: notifyCustomer
+        handler: notifyCustomerHandler
+        retryInterval: PT10S
+        maxRetryTimes: 1
+  - name: sampleFastTrackWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        retryInterval: PT1S
+        maxRetryTimes: 0
+      - name: notifyCustomer
+        handler: notifyCustomerHandler
+        retryInterval: PT1S
+        maxRetryTimes: 0
+```
+
+Multi-workflow XML example:
+
+```xml
+<workflows>
+  <workflow name="sampleOrderWorkflow">
+    <activity name="createOrder" handler="createOrderHandler" retryInterval="PT5S" maxRetryTimes="2"/>
+    <activity name="notifyCustomer" handler="notifyCustomerHandler" retryInterval="PT10S" maxRetryTimes="1"/>
+  </workflow>
+  <workflow name="sampleFastTrackWorkflow">
+    <activity name="createOrder" handler="createOrderHandler" retryInterval="PT1S" maxRetryTimes="0"/>
+    <activity name="notifyCustomer" handler="notifyCustomerHandler" retryInterval="PT1S" maxRetryTimes="0"/>
+  </workflow>
+</workflows>
+```
+
+Multiple-file mixed loading example:
 
 ```yaml
 featherflow:
@@ -215,6 +266,7 @@ Field notes:
 - `handler`: the Activity Handler bean name in the Spring container.
 - `retryInterval`: retry interval after failure, using `Duration` format.
 - `maxRetryTimes`: maximum retry count before entering manual processing.
+- Both `workflow:` and `workflows:` are supported at the top level. When `workflows:` is used, every workflow `name` inside the file must still be unique.
 
 ## Activity Handler
 

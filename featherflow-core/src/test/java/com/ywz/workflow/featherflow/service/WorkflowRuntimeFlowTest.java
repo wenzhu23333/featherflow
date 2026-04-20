@@ -109,7 +109,7 @@ class WorkflowRuntimeFlowTest {
         assertThat(workflow.getBizId()).isEqualTo("biz-async");
         assertThat(step1Started.await(1, TimeUnit.SECONDS)).isTrue();
         assertThat(step2Completed.await(1, TimeUnit.SECONDS)).isTrue();
-        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
     }
 
     @Test
@@ -165,7 +165,7 @@ class WorkflowRuntimeFlowTest {
         service.retryWorkflow(workflow.getWorkflowId());
 
         assertThat(retryCompleted.await(1, TimeUnit.SECONDS)).isTrue();
-        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
             .extracting(ActivityInstance::getStatus)
             .containsExactly(ActivityExecutionStatus.SUCCESSFUL, ActivityExecutionStatus.FAILED, ActivityExecutionStatus.SUCCESSFUL);
@@ -240,7 +240,7 @@ class WorkflowRuntimeFlowTest {
         service.retryWorkflow(workflow.getWorkflowId());
 
         assertThat(step2Completed.await(1, TimeUnit.SECONDS)).isTrue();
-        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(1).getOutput()).contains("\"step1\":true");
     }
 
@@ -263,7 +263,7 @@ class WorkflowRuntimeFlowTest {
         WorkflowInstance workflow = service.startWorkflow("asyncWorkflow", "biz-thread", "{\"amount\":100}");
 
         assertThat(workflowCompleted.await(1, TimeUnit.SECONDS)).isTrue();
-        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.SUCCESSFUL, 1000L);
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
         assertThat(activityThreadName.get()).isEqualTo("workflow-test-thread");
     }
 

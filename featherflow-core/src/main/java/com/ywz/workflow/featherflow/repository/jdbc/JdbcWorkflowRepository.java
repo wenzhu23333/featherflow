@@ -88,7 +88,7 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
                 rs.getTimestamp("gmt_created").toInstant(),
                 rs.getTimestamp("gmt_modified").toInstant(),
                 rs.getString("input"),
-                WorkflowStatus.valueOf(rs.getString("status"))
+                WorkflowStatus.fromDatabaseValue(rs.getString("status"))
             );
         }
     }

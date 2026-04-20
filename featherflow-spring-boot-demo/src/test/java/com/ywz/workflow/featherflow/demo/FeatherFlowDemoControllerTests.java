@@ -49,14 +49,14 @@ class FeatherFlowDemoControllerTests {
                 WorkflowViewResponse.class
             );
             latest = getResponse.getBody();
-            if (latest != null && "SUCCESSFUL".equals(latest.getStatus())) {
+            if (latest != null && "COMPLETED".equals(latest.getStatus())) {
                 break;
             }
             Thread.sleep(20L);
         }
 
         assertThat(latest).isNotNull();
-        assertThat(latest.getStatus()).isEqualTo("SUCCESSFUL");
+        assertThat(latest.getStatus()).isEqualTo("COMPLETED");
 
         ResponseEntity<Void> terminateResponse = restTemplate.exchange(
             "/demo/workflows/" + workflowId + "/terminate",

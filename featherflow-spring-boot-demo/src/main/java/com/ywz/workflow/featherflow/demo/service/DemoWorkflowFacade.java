@@ -37,12 +37,26 @@ public class DemoWorkflowFacade {
         this.objectMapper = objectMapper;
     }
 
+    public WorkflowInstance start(String workflowName, String bizId, String input) {
+        return workflowCommandService.startWorkflow(resolveWorkflowName(workflowName), bizId, input);
+    }
+
     public WorkflowInstance start(String bizId, String input) {
-        return workflowCommandService.startWorkflow(DEMO_WORKFLOW_NAME, bizId, input);
+        return start(null, bizId, input);
+    }
+
+    public WorkflowInstance start(
+        String workflowName,
+        String bizId,
+        Integer amount,
+        String customerName,
+        Boolean forceNotifyFailure
+    ) {
+        return start(workflowName, bizId, buildInputJson(amount, customerName, forceNotifyFailure));
     }
 
     public WorkflowInstance start(String bizId, Integer amount, String customerName, Boolean forceNotifyFailure) {
-        return start(bizId, buildInputJson(amount, customerName, forceNotifyFailure));
+        return start(null, bizId, amount, customerName, forceNotifyFailure);
     }
 
     public void terminate(String workflowId) {
@@ -86,5 +100,12 @@ public class DemoWorkflowFacade {
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Failed to serialize demo workflow input", e);
         }
+    }
+
+    private String resolveWorkflowName(String workflowName) {
+        if (workflowName == null || workflowName.trim().isEmpty()) {
+            return DEMO_WORKFLOW_NAME;
+        }
+        return workflowName.trim();
     }
 }

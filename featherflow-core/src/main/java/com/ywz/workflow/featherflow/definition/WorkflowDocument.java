@@ -15,6 +15,9 @@ class WorkflowDocument {
     @JsonProperty("workflow")
     private WorkflowBody workflow;
 
+    @JsonProperty("workflows")
+    private List<WorkflowBody> workflows = new ArrayList<WorkflowBody>();
+
     @JacksonXmlProperty(isAttribute = true, localName = "name")
     private String name;
 
@@ -28,6 +31,14 @@ class WorkflowDocument {
 
     public void setWorkflow(WorkflowBody workflow) {
         this.workflow = workflow;
+    }
+
+    public List<WorkflowBody> getWorkflows() {
+        return workflows;
+    }
+
+    public void setWorkflows(List<WorkflowBody> workflows) {
+        this.workflows = workflows;
     }
 
     public String getName() {
@@ -114,6 +125,23 @@ class WorkflowDocument {
 
         public void setMaxRetryTimes(Integer maxRetryTimes) {
             this.maxRetryTimes = maxRetryTimes;
+        }
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @JacksonXmlRootElement(localName = "workflows")
+    static class WorkflowListDocument {
+
+        @JacksonXmlElementWrapper(useWrapping = false)
+        @JacksonXmlProperty(localName = "workflow")
+        private List<WorkflowDocument> workflows = new ArrayList<WorkflowDocument>();
+
+        public List<WorkflowDocument> getWorkflows() {
+            return workflows;
+        }
+
+        public void setWorkflows(List<WorkflowDocument> workflows) {
+            this.workflows = workflows;
         }
     }
 }

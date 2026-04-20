@@ -321,7 +321,8 @@ select:focus {
 }
 
 .status-success,
-.status-successful {
+.status-successful,
+.status-completed {
     color: var(--success);
     background: var(--success-soft);
 }

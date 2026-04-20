@@ -2,10 +2,19 @@ package com.ywz.workflow.featherflow.demo.web;
 
 public class StartWorkflowRequest {
 
+    private String workflowName;
     private String bizId;
     private Integer amount;
     private String customerName;
     private Boolean forceNotifyFailure;
+
+    public String getWorkflowName() {
+        return workflowName;
+    }
+
+    public void setWorkflowName(String workflowName) {
+        this.workflowName = workflowName;
+    }
 
     public String getBizId() {
         return bizId;

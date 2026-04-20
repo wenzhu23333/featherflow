@@ -1,0 +1,13 @@
+workflows:
+  - name: bundleYamlOrderWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        retryInterval: PT5S
+        maxRetryTimes: 2
+  - name: bundleYamlPaymentWorkflow
+    activities:
+      - name: freezeBalance
+        handler: createOrderHandler
+        retryInterval: PT3S
+        maxRetryTimes: 1

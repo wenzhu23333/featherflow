@@ -1,5 +1,7 @@
 package com.ywz.workflow.featherflow.definition;
 
+import java.util.List;
+
 public class CompositeWorkflowDefinitionParser implements WorkflowDefinitionParser {
 
     private final WorkflowDefinitionParser yamlParser;
@@ -11,12 +13,12 @@ public class CompositeWorkflowDefinitionParser implements WorkflowDefinitionPars
     }
 
     @Override
-    public WorkflowDefinition parse(DefinitionFormat format, String content) {
+    public List<WorkflowDefinition> parseAll(DefinitionFormat format, String content) {
         if (format == DefinitionFormat.YAML) {
-            return yamlParser.parse(format, content);
+            return yamlParser.parseAll(format, content);
         }
         if (format == DefinitionFormat.XML) {
-            return xmlParser.parse(format, content);
+            return xmlParser.parseAll(format, content);
         }
         throw new IllegalArgumentException("Unsupported definition format: " + format);
     }

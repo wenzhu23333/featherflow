@@ -88,6 +88,26 @@ class JdbcRepositoryIntegrationTest {
     }
 
     @Test
+    void shouldMapLegacySuccessfulWorkflowStatusToCompleted() {
+        Instant now = Instant.parse("2026-03-30T13:00:00Z");
+        jdbcTemplate.update(
+            "insert into workflow_instance (workflow_id, biz_id, workflow_name, start_node, gmt_created, gmt_modified, input, status) values (?, ?, ?, ?, ?, ?, ?, ?)",
+            "legacy-success-01",
+            "biz-legacy-01",
+            "legacyWorkflow",
+            "10.9.8.7:host-a:1234:seed",
+            java.sql.Timestamp.from(now),
+            java.sql.Timestamp.from(now),
+            "{\"legacy\":true}",
+            "SUCCESSFUL"
+        );
+
+        WorkflowInstance loadedWorkflow = workflowRepository.findRequired("legacy-success-01");
+
+        assertThat(loadedWorkflow.getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
+    }
+
+    @Test
     void shouldUseJdbcWorkflowLockToPreventConcurrentExecutionAcrossInstances() {
         JdbcWorkflowLockService firstLockService = new JdbcWorkflowLockService(jdbcTemplate);
         JdbcWorkflowLockService secondLockService = new JdbcWorkflowLockService(jdbcTemplate);
