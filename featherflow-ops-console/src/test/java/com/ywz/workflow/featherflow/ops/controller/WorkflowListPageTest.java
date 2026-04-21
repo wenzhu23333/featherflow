@@ -49,6 +49,7 @@ class WorkflowListPageTest {
         assertThat(page).contains("name=\"modifiedTo\"");
         assertThat(page).contains("id=\"workflow-list-container\"");
         assertThat(page).contains("class=\"panel table-panel\"");
+        assertThat(page).contains("class=\"table-scroll workflow-table-scroll\"");
         assertThat(page).contains("hx-get=\"/workflows/table\"");
         assertThat(page).contains("hx-trigger=\"every 5s\"");
         String runningRow = extractRowById(page, "workflow-row-wf-running-0001");

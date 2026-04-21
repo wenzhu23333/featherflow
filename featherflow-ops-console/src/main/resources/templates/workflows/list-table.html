@@ -59,55 +59,57 @@
             </div>
         </div>
     </div>
-    <table class="data-table workflow-table">
-        <thead>
-        <tr>
-            <th>Workflow ID</th>
-            <th>Biz ID</th>
-            <th>Workflow 名称</th>
-            <th>状态</th>
-            <th>最新活动</th>
-            <th>最新失败</th>
-            <th>更新时间</th>
-            <th>详情</th>
-            <th>可用操作</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="workflow : ${workflows}" th:id="'workflow-row-' + ${workflow.workflowId}">
-            <td th:text="${workflow.workflowId}">workflow-id</td>
-            <td th:text="${workflow.bizId}">biz-id</td>
-            <td th:text="${workflow.workflowName}">workflow-name</td>
-            <td>
-                <span class="status-badge"
-                      th:classappend="${' status-' + #strings.toLowerCase(workflow.workflowStatus)}"
-                      th:text="${workflow.workflowStatus}">workflow-status</span>
-            </td>
-            <td th:text="${workflow.latestActivitySummary}">latest-activity</td>
-            <td th:text="${workflow.latestFailureSummary}">latest-failure</td>
-            <td th:text="${workflow.gmtModifiedDisplay}">gmt-modified</td>
-            <td>
-                <a th:href="@{/workflows/{workflowId}(workflowId=${workflow.workflowId})}" class="action-link">查看详情</a>
-            </td>
-            <td>
-                <div class="action-group">
-                    <th:block th:if="${workflow.allowedActions.canTerminate}">
-                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/terminate|, buttonLabel='终止', workflowId=${workflow.workflowId}, redirectTo=${listRedirectTo}, operationKey='terminate')}">
-                        </div>
-                    </th:block>
-                    <th:block th:if="${workflow.allowedActions.canRetry}">
-                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/retry|, buttonLabel='重试', workflowId=${workflow.workflowId}, redirectTo=${listRedirectTo}, operationKey='retry')}">
-                        </div>
-                    </th:block>
-                    <th:block th:if="${workflow.allowedActions.canSkipLatest}">
-                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/skip|, buttonLabel='跳过最新活动', workflowId=${workflow.workflowId}, redirectTo=${listRedirectTo}, operationKey='skip')}">
-                        </div>
-                    </th:block>
-                </div>
-            </td>
-        </tr>
-        </tbody>
-    </table>
+    <div class="table-scroll workflow-table-scroll">
+        <table class="data-table workflow-table">
+            <thead>
+            <tr>
+                <th>Workflow ID</th>
+                <th>Biz ID</th>
+                <th>Workflow 名称</th>
+                <th>状态</th>
+                <th>最新活动</th>
+                <th>最新失败</th>
+                <th>更新时间</th>
+                <th>详情</th>
+                <th>可用操作</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="workflow : ${workflows}" th:id="'workflow-row-' + ${workflow.workflowId}">
+                <td th:text="${workflow.workflowId}">workflow-id</td>
+                <td th:text="${workflow.bizId}">biz-id</td>
+                <td th:text="${workflow.workflowName}">workflow-name</td>
+                <td>
+                    <span class="status-badge"
+                          th:classappend="${' status-' + #strings.toLowerCase(workflow.workflowStatus)}"
+                          th:text="${workflow.workflowStatus}">workflow-status</span>
+                </td>
+                <td th:text="${workflow.latestActivitySummary}">latest-activity</td>
+                <td th:text="${workflow.latestFailureSummary}">latest-failure</td>
+                <td th:text="${workflow.gmtModifiedDisplay}">gmt-modified</td>
+                <td>
+                    <a th:href="@{/workflows/{workflowId}(workflowId=${workflow.workflowId})}" class="action-link">查看详情</a>
+                </td>
+                <td>
+                    <div class="action-group">
+                        <th:block th:if="${workflow.allowedActions.canTerminate}">
+                            <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/terminate|, buttonLabel='终止', workflowId=${workflow.workflowId}, redirectTo=${listRedirectTo}, operationKey='terminate')}">
+                            </div>
+                        </th:block>
+                        <th:block th:if="${workflow.allowedActions.canRetry}">
+                            <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/retry|, buttonLabel='重试', workflowId=${workflow.workflowId}, redirectTo=${listRedirectTo}, operationKey='retry')}">
+                            </div>
+                        </th:block>
+                        <th:block th:if="${workflow.allowedActions.canSkipLatest}">
+                            <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${workflow.workflowId}/skip|, buttonLabel='跳过最新活动', workflowId=${workflow.workflowId}, redirectTo=${listRedirectTo}, operationKey='skip')}">
+                            </div>
+                        </th:block>
+                    </div>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
 </th:block>
 </body>
 </html>
