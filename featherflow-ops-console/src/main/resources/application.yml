@@ -1,13 +1,5 @@
 spring:
   application:
     name: featherflow-ops-console
-  datasource:
-    url: jdbc:h2:mem:featherflow_ops_console;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    driver-class-name: org.h2.Driver
-    username: sa
-    password:
-  sql:
-    init:
-      mode: embedded
-      schema-locations: classpath:schema.sql
-      data-locations: classpath:demo-data.sql
+  profiles:
+    default: mysql

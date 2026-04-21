@@ -78,12 +78,62 @@ yyyy-MM-dd HH:mm:ss
 
 如果输入无效，页面不会静默忽略，而是会保留原始输入并展示错误提示。
 
-## 本地启动
+## 配置 Profiles
 
-默认配置使用内存 H2，项目内置了三张核心表的建表脚本，适合本地开发或页面预览：
+Ops Console 现在内置三套清晰分离的配置：
+
+- `mysql`
+  默认运行 profile，用于正式连接 FeatherFlow MySQL 数据库，不自动初始化表结构和演示数据
+- `h2`
+  本地页面预览 profile，使用内存 H2，并自动加载 `schema.sql` 和 `demo-data.sql`
+- `test`
+  单元测试 profile，使用隔离的内存 H2，测试数据由测试用例自己准备
+
+## 启动命令
+
+本地快速预览页面，使用内置 H2 和演示数据：
 
 ```bash
+cd /Users/yangwenzhuo/Code/Codex/featherflow/featherflow-ops-console
+/tmp/apache-maven-3.9.9/bin/mvn spring-boot:run -Dspring-boot.run.profiles=h2
+```
+
+连接真实 MySQL 数据库，使用默认 `mysql` profile：
+
+```bash
+cd /Users/yangwenzhuo/Code/Codex/featherflow/featherflow-ops-console
+export FEATHERFLOW_OPS_DATASOURCE_URL='jdbc:mysql://127.0.0.1:3306/featherflow?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai'
+export FEATHERFLOW_OPS_DATASOURCE_USERNAME='your_user'
+export FEATHERFLOW_OPS_DATASOURCE_PASSWORD='your_password'
 /tmp/apache-maven-3.9.9/bin/mvn spring-boot:run
+```
+
+如果需要打包后以 Jar 方式启动：
+
+```bash
+cd /Users/yangwenzhuo/Code/Codex/featherflow
+/tmp/apache-maven-3.9.9/bin/mvn -pl featherflow-ops-console -am package -DskipTests
+java -jar featherflow-ops-console/target/featherflow-ops-console-0.0.1-SNAPSHOT.jar
+```
+
+如果需要修改端口：
+
+```bash
+java -jar featherflow-ops-console/target/featherflow-ops-console-0.0.1-SNAPSHOT.jar --server.port=8081
+```
+
+Maven 启动时也可以这样指定端口：
+
+```bash
+/tmp/apache-maven-3.9.9/bin/mvn spring-boot:run -Dspring-boot.run.arguments='--server.port=8081'
+```
+
+## 本地 H2 预览
+
+本地只想快速看页面时，显式启用 `h2` profile：
+
+```bash
+/tmp/apache-maven-3.9.9/bin/mvn spring-boot:run -Dspring-boot.run.profiles=h2
 ```
 
 启动后可访问：
@@ -91,7 +141,7 @@ yyyy-MM-dd HH:mm:ss
 - [http://localhost:8080/workflows](http://localhost:8080/workflows)
 - [http://localhost:8080/operations](http://localhost:8080/operations)
 
-默认内存 H2 会自动加载一组演示数据，页面启动后即可直接看到：
+`h2` profile 会自动加载一组演示数据，页面启动后即可直接看到：
 
 - 一个 `RUNNING` 的 workflow
 - 一个 `COMPLETED` 的 workflow
@@ -103,29 +153,26 @@ yyyy-MM-dd HH:mm:ss
 
 - [schema.sql](/Users/yangwenzhuo/Code/Codex/featherflow/featherflow-ops-console/src/main/resources/schema.sql) 只负责建表
 - [demo-data.sql](/Users/yangwenzhuo/Code/Codex/featherflow/featherflow-ops-console/src/main/resources/demo-data.sql) 只负责默认演示数据
-- [application.yml](/Users/yangwenzhuo/Code/Codex/featherflow/featherflow-ops-console/src/main/resources/application.yml) 显式指定这两份脚本
+- [application-h2.yml](/Users/yangwenzhuo/Code/Codex/featherflow/featherflow-ops-console/src/main/resources/application-h2.yml) 显式指定这两份脚本
 
 ## 连接真实 FeatherFlow 数据库
 
-正式使用时，请覆盖默认数据源配置，让运维台连接到 FeatherFlow 实际使用的数据库。
+正式使用时使用默认 `mysql` profile，让运维台连接到 FeatherFlow 实际使用的数据库。
 
-演示数据只会在默认嵌入式 H2 场景下自动加载；切换到 MySQL 等真实 FeatherFlow 数据库后，不会自动写入这组样例数据。
+演示数据只会在 `h2` profile 下自动加载；切换到 MySQL 后，`spring.sql.init.mode=never`，不会自动建表或写入样例数据。
 
-例如可以在本地新增 `src/main/resources/application-local.yml`，或通过环境变量覆盖：
+默认 MySQL 配置在 [application-mysql.yml](/Users/yangwenzhuo/Code/Codex/featherflow/featherflow-ops-console/src/main/resources/application-mysql.yml)，正式环境推荐通过环境变量覆盖：
 
-```yaml
-spring:
-  datasource:
-    url: jdbc:mysql://127.0.0.1:3306/featherflow
-    username: your_user
-    password: your_password
-    driver-class-name: com.mysql.cj.jdbc.Driver
+```bash
+export FEATHERFLOW_OPS_DATASOURCE_URL='jdbc:mysql://127.0.0.1:3306/featherflow?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai'
+export FEATHERFLOW_OPS_DATASOURCE_USERNAME='your_user'
+export FEATHERFLOW_OPS_DATASOURCE_PASSWORD='your_password'
 ```
 
 然后使用：
 
 ```bash
-/tmp/apache-maven-3.9.9/bin/mvn spring-boot:run -Dspring-boot.run.profiles=local
+/tmp/apache-maven-3.9.9/bin/mvn spring-boot:run
 ```
 
 ## 测试

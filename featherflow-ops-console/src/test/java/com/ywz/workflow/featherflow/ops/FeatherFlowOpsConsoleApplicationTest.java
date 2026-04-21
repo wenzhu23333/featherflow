@@ -19,9 +19,7 @@ class FeatherFlowOpsConsoleApplicationTest {
     void shouldLoadApplicationContext() {
         assertThat(environment.getActiveProfiles()).contains("test");
         assertThat(environment.getProperty("featherflow.ops.test-profile-active", Boolean.class)).isTrue();
-        assertThat(environment.getProperty("spring.sql.init.schema-locations"))
-            .isEqualTo("classpath:schema.sql");
-        assertThat(environment.getProperty("spring.sql.init.data-locations"))
-            .isEqualTo("classpath:demo-data.sql");
+        assertThat(environment.getProperty("spring.datasource.driver-class-name")).isEqualTo("org.h2.Driver");
+        assertThat(environment.getProperty("spring.sql.init.mode")).isEqualTo("never");
     }
 }
