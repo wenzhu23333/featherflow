@@ -244,7 +244,7 @@ select:focus {
     width: 100%;
     max-width: 100%;
     margin-top: 10px;
-    overflow-x: auto;
+    overflow-x: hidden;
     overflow-y: hidden;
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -320,57 +320,60 @@ select:focus {
 }
 
 .workflow-table {
-    min-width: 1320px;
+    width: 100%;
     table-layout: fixed;
 }
 
 .workflow-table th:nth-child(1),
 .workflow-table td:nth-child(1) {
-    width: 8rem;
+    width: 8%;
 }
 
 .workflow-table th:nth-child(2),
 .workflow-table td:nth-child(2) {
-    width: 13rem;
+    width: 12%;
 }
 
 .workflow-table th:nth-child(3),
 .workflow-table td:nth-child(3) {
-    width: 15rem;
+    width: 13%;
 }
 
 .workflow-table th:nth-child(4),
 .workflow-table td:nth-child(4) {
-    width: 9rem;
+    width: 8%;
 }
 
 .workflow-table th:nth-child(5),
 .workflow-table td:nth-child(5) {
-    width: 15rem;
+    width: 14%;
 }
 
 .workflow-table th:nth-child(6),
 .workflow-table td:nth-child(6) {
-    width: 24rem;
+    width: 22%;
 }
 
 .workflow-table th:nth-child(7),
 .workflow-table td:nth-child(7) {
-    width: 9rem;
+    width: 8%;
 }
 
 .workflow-table th:nth-child(8),
 .workflow-table td:nth-child(8) {
-    width: 7rem;
+    width: 5%;
 }
 
 .workflow-table th:nth-child(9),
 .workflow-table td:nth-child(9) {
-    width: 12rem;
+    width: 10%;
 }
 
+.workflow-table th,
 .workflow-table td {
+    min-width: 0;
     overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .workflow-table td:nth-child(1),
@@ -379,9 +382,16 @@ select:focus {
     font-size: 13px;
 }
 
-.workflow-table td:nth-child(8),
-.workflow-table td:nth-child(9) {
-    white-space: nowrap;
+.workflow-table .action-group {
+    gap: 6px;
+}
+
+.workflow-table .action-link,
+.workflow-table .secondary-button,
+.workflow-table .danger-button {
+    min-height: 30px;
+    padding: 0 8px;
+    font-size: 12px;
 }
 
 .status-badge {
