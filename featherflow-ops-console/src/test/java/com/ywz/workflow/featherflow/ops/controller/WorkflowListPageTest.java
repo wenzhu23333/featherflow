@@ -207,6 +207,29 @@ class WorkflowListPageTest {
     }
 
     @Test
+    void shouldRenderWorkflowDateFiltersAsCalendarInputs() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/workflows")
+                    .param("createdFrom", "2026-04-01 09:00:00")
+                    .param("createdTo", "2026-04-01T09:10:00")
+                    .param("modifiedFrom", "2026-04-01 09:00")
+                    .param("modifiedTo", "2026-04-01T09:10")
+            )
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String page = result.getResponse().getContentAsString();
+        assertThat(page).contains("id=\"created-from-filter\" type=\"datetime-local\" step=\"1\" name=\"createdFrom\"");
+        assertThat(page).contains("id=\"created-to-filter\" type=\"datetime-local\" step=\"1\" name=\"createdTo\"");
+        assertThat(page).contains("id=\"modified-from-filter\" type=\"datetime-local\" step=\"1\" name=\"modifiedFrom\"");
+        assertThat(page).contains("id=\"modified-to-filter\" type=\"datetime-local\" step=\"1\" name=\"modifiedTo\"");
+        assertThat(page).contains("value=\"2026-04-01T09:00:00\"");
+        assertThat(page).contains("value=\"2026-04-01T09:10:00\"");
+        assertThat(page).contains("value=\"2026-04-01T09:00\"");
+        assertThat(page).contains("value=\"2026-04-01T09:10\"");
+    }
+
+    @Test
     void shouldResetToFirstPageWhenSubmittingFilterForm() throws Exception {
         MvcResult result = mockMvc.perform(
                 get("/workflows")

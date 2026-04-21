@@ -50,19 +50,19 @@
             </div>
             <div class="field-group">
                 <label for="created-from-filter">创建时间起</label>
-                <input id="created-from-filter" type="text" name="createdFrom" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${createdFrom}">
+                <input id="created-from-filter" type="datetime-local" step="1" name="createdFrom" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${createdFrom == null ? '' : #strings.replace(createdFrom, ' ', 'T')}">
             </div>
             <div class="field-group">
                 <label for="created-to-filter">创建时间止</label>
-                <input id="created-to-filter" type="text" name="createdTo" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${createdTo}">
+                <input id="created-to-filter" type="datetime-local" step="1" name="createdTo" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${createdTo == null ? '' : #strings.replace(createdTo, ' ', 'T')}">
             </div>
             <div class="field-group">
                 <label for="modified-from-filter">更新时间起</label>
-                <input id="modified-from-filter" type="text" name="modifiedFrom" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${modifiedFrom}">
+                <input id="modified-from-filter" type="datetime-local" step="1" name="modifiedFrom" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${modifiedFrom == null ? '' : #strings.replace(modifiedFrom, ' ', 'T')}">
             </div>
             <div class="field-group">
                 <label for="modified-to-filter">更新时间止</label>
-                <input id="modified-to-filter" type="text" name="modifiedTo" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${modifiedTo}">
+                <input id="modified-to-filter" type="datetime-local" step="1" name="modifiedTo" placeholder="yyyy-MM-dd HH:mm:ss" th:value="${modifiedTo == null ? '' : #strings.replace(modifiedTo, ' ', 'T')}">
             </div>
             <div class="filter-actions">
                 <button type="submit" class="primary-button">筛选</button>
