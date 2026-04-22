@@ -5,7 +5,7 @@
 
     <groupId>com.ywz.workflow</groupId>
     <artifactId>featherflow</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>featherflow</name>
@@ -60,11 +60,6 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.dataformat</groupId>
                 <artifactId>jackson-dataformat-yaml</artifactId>
-                <version>${jackson.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.fasterxml.jackson.dataformat</groupId>
-                <artifactId>jackson-dataformat-xml</artifactId>
                 <version>${jackson.version}</version>
             </dependency>
             <dependency>

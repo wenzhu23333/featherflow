@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.ywz.workflow</groupId>
         <artifactId>featherflow</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>0.0.2-SNAPSHOT</version>
     </parent>
 
     <artifactId>featherflow-core</artifactId>
@@ -20,10 +20,6 @@
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.dataformat</groupId>
-            <artifactId>jackson-dataformat-xml</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework</groupId>

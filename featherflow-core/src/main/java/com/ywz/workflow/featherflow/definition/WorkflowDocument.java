@@ -2,14 +2,10 @@ package com.ywz.workflow.featherflow.definition;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlElementWrapper;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
-import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 import java.util.ArrayList;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JacksonXmlRootElement(localName = "workflow")
 class WorkflowDocument {
 
     @JsonProperty("workflow")
@@ -18,11 +14,8 @@ class WorkflowDocument {
     @JsonProperty("workflows")
     private List<WorkflowBody> workflows = new ArrayList<WorkflowBody>();
 
-    @JacksonXmlProperty(isAttribute = true, localName = "name")
     private String name;
 
-    @JacksonXmlElementWrapper(useWrapping = false)
-    @JacksonXmlProperty(localName = "activity")
     private List<ActivityDocument> activity = new ArrayList<ActivityDocument>();
 
     public WorkflowBody getWorkflow() {
@@ -83,16 +76,9 @@ class WorkflowDocument {
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class ActivityDocument {
 
-        @JacksonXmlProperty(isAttribute = true, localName = "name")
         private String name;
-
-        @JacksonXmlProperty(isAttribute = true, localName = "handler")
         private String handler;
-
-        @JacksonXmlProperty(isAttribute = true, localName = "retryInterval")
         private String retryInterval;
-
-        @JacksonXmlProperty(isAttribute = true, localName = "maxRetryTimes")
         private Integer maxRetryTimes;
 
         public String getName() {
@@ -129,11 +115,8 @@ class WorkflowDocument {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    @JacksonXmlRootElement(localName = "workflows")
     static class WorkflowListDocument {
 
-        @JacksonXmlElementWrapper(useWrapping = false)
-        @JacksonXmlProperty(localName = "workflow")
         private List<WorkflowDocument> workflows = new ArrayList<WorkflowDocument>();
 
         public List<WorkflowDocument> getWorkflows() {

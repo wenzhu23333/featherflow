@@ -1,6 +1,7 @@
 package com.ywz.workflow.featherflow.definition;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.List;
@@ -95,5 +96,11 @@ class WorkflowDefinitionParserTest {
         assertThat(definitions).hasSize(2);
         assertThat(definitions).extracting(WorkflowDefinition::getName)
             .containsExactly("orderWorkflow", "paymentWorkflow");
+    }
+
+    @Test
+    void shouldNotRequireJacksonXmlAtRuntime() {
+        assertThatThrownBy(() -> Class.forName("com.fasterxml.jackson.dataformat.xml.XmlMapper"))
+            .isInstanceOf(ClassNotFoundException.class);
     }
 }
