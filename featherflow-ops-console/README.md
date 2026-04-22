@@ -140,13 +140,13 @@ export FEATHERFLOW_OPS_DATASOURCE_PASSWORD='your_password'
 ```bash
 cd /Users/yangwenzhuo/Code/Codex/featherflow
 /tmp/apache-maven-3.9.9/bin/mvn -pl featherflow-ops-console -am package -DskipTests
-java -jar featherflow-ops-console/target/featherflow-ops-console-0.0.1-SNAPSHOT.jar
+java -jar featherflow-ops-console/target/featherflow-ops-console-0.0.2-SNAPSHOT.jar
 ```
 
 如果需要修改端口：
 
 ```bash
-java -jar featherflow-ops-console/target/featherflow-ops-console-0.0.1-SNAPSHOT.jar --server.port=8081
+java -jar featherflow-ops-console/target/featherflow-ops-console-0.0.2-SNAPSHOT.jar --server.port=8081
 ```
 
 Maven 启动时也可以这样指定端口：

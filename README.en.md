@@ -37,7 +37,7 @@ FeatherFlow is a self-developed lightweight Java workflow framework with persist
 <dependency>
     <groupId>com.ywz.workflow</groupId>
     <artifactId>featherflow-spring-boot-starter</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>0.0.2-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -172,6 +172,7 @@ Configuration notes:
 - `definition-locations`: resource locations used to load workflow definition files.
 - `definition-locations` supports multiple entries. Each entry can point to a single file or to wildcard patterns such as `*.yml`, `*.yaml`, and `*.xml`.
 - Each matched file may contain either one workflow definition or multiple workflow definitions.
+- XML workflow definitions are parsed with the JDK built-in DOM parser, so no extra `jackson-dataformat-xml` dependency is required.
 - Workflow `name` values must be unique across files. FeatherFlow fails fast at startup when duplicate workflow names are detected.
 - `instance-id`: optional instance identifier. A readable value such as `IP:node-name` or `IP:service-name` is recommended; if omitted, FeatherFlow generates `IP:hostname:PID:random-suffix`.
 - `persistence-write-retry-max-attempts`: maximum retry attempts for framework-owned persistence writes.
