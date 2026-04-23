@@ -58,15 +58,15 @@
                 </div>
                 <div class="operation-actions">
                     <th:block th:if="${detail.allowedActions.canTerminate}">
-                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${detail.workflowId}/terminate|, buttonLabel='终止', workflowId=${detail.workflowId}, redirectTo=|/workflows/${detail.workflowId}|, operationKey='terminate')}">
+                        <div th:replace="~{fragments/operation-dialog :: directForm(actionPath=@{/workflows/{workflowId}/terminate(workflowId=${detail.workflowId})}, buttonLabel='终止', redirectTo=@{/workflows/{workflowId}(workflowId=${detail.workflowId})}, operationKey='terminate')}">
                         </div>
                     </th:block>
                     <th:block th:if="${detail.allowedActions.canRetry}">
-                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${detail.workflowId}/retry|, buttonLabel='重试', workflowId=${detail.workflowId}, redirectTo=|/workflows/${detail.workflowId}|, operationKey='retry')}">
+                        <div th:replace="~{fragments/operation-dialog :: directForm(actionPath=@{/workflows/{workflowId}/retry(workflowId=${detail.workflowId})}, buttonLabel='重试', redirectTo=@{/workflows/{workflowId}(workflowId=${detail.workflowId})}, operationKey='retry')}">
                         </div>
                     </th:block>
                     <th:block th:if="${detail.allowedActions.canSkipLatest}">
-                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=|/workflows/${detail.workflowId}/skip|, buttonLabel='跳过最新活动', workflowId=${detail.workflowId}, redirectTo=|/workflows/${detail.workflowId}|, operationKey='skip')}">
+                        <div th:replace="~{fragments/operation-dialog :: operationForm(actionPath=@{/workflows/{workflowId}/skip(workflowId=${detail.workflowId})}, buttonLabel='跳过最新活动', workflowId=${detail.workflowId}, redirectTo=@{/workflows/{workflowId}(workflowId=${detail.workflowId})}, operationKey='skip')}">
                         </div>
                     </th:block>
                     <span class="muted-text" th:if="${!detail.allowedActions.canTerminate and !detail.allowedActions.canRetry and !detail.allowedActions.canSkipLatest}">

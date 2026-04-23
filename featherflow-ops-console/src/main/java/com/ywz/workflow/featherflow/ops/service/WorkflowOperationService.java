@@ -15,6 +15,8 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 public class WorkflowOperationService {
 
+    private static final String OPS_CONSOLE_SOURCE = "FEATHERFLOW_OPS_CONSOLE";
+
     private final JdbcTemplate jdbcTemplate;
     private final ObjectMapper objectMapper;
     private final WorkflowQueryService workflowQueryService;
@@ -29,25 +31,21 @@ public class WorkflowOperationService {
         this.workflowQueryService = workflowQueryService;
     }
 
-    public void submitTerminate(String workflowId, OperationForm form) {
-        String operator = required(form.getOperator(), "operator");
-        String reason = required(form.getReason(), "reason");
+    public void submitTerminate(String workflowId) {
         WorkflowDetailView detail = loadWorkflow(workflowId);
         if (!canTerminate(detail.getWorkflowStatus())) {
             throw badRequest("Terminate only allowed when workflow is RUNNING or HUMAN_PROCESSING");
         }
-        insertOperation(workflowId, "TERMINATE", buildInput(operator, reason, null));
+        insertOperation(workflowId, "TERMINATE", buildInput(null, null, null));
     }
 
-    public void submitRetry(String workflowId, OperationForm form) {
-        String operator = required(form.getOperator(), "operator");
-        String reason = required(form.getReason(), "reason");
+    public void submitRetry(String workflowId) {
         WorkflowDetailView detail = loadWorkflow(workflowId);
         String status = detail.getWorkflowStatus();
         if (!"HUMAN_PROCESSING".equals(status) && !"TERMINATED".equals(status)) {
             throw badRequest("Retry only allowed when workflow is HUMAN_PROCESSING or TERMINATED");
         }
-        insertOperation(workflowId, "RETRY", buildInput(operator, reason, null));
+        insertOperation(workflowId, "RETRY", buildInput(null, null, null));
     }
 
     public void submitSkip(String workflowId, OperationForm form) {
@@ -77,8 +75,13 @@ public class WorkflowOperationService {
 
     private String buildInput(String operator, String reason, String activityId) {
         Map<String, Object> payload = new LinkedHashMap<>();
-        payload.put("operator", operator);
-        payload.put("reason", reason);
+        payload.put("source", OPS_CONSOLE_SOURCE);
+        if (!isBlank(operator)) {
+            payload.put("operator", operator);
+        }
+        if (!isBlank(reason)) {
+            payload.put("reason", reason);
+        }
         if (!isBlank(activityId)) {
             payload.put("activityId", activityId);
         }

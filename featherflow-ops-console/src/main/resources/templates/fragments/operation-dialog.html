@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <body>
+<th:block th:fragment="directForm(actionPath, buttonLabel, redirectTo, operationKey)">
+    <form class="inline-operation-form" method="post" th:action="${actionPath}">
+        <input type="hidden" name="redirectTo" th:value="${redirectTo}">
+        <button type="submit"
+                th:classappend="${operationKey == 'terminate'} ? ' danger-button' : ' secondary-button'">
+            <span th:text="${buttonLabel}">提交</span>
+        </button>
+    </form>
+</th:block>
+
 <th:block th:fragment="operationForm(actionPath, buttonLabel, workflowId, redirectTo, operationKey)"
           th:with="dialogId=${'operation-dialog-' + workflowId + '-' + operationKey}">
     <button type="button"

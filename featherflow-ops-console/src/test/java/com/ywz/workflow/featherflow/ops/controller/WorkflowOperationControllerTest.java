@@ -3,6 +3,7 @@ package com.ywz.workflow.featherflow.ops.controller;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.flash;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -25,6 +26,8 @@ import org.springframework.test.web.servlet.MvcResult;
 @Sql(scripts = {"/sql/featherflow-schema.sql", "/sql/workflow-operation-data.sql"})
 class WorkflowOperationControllerTest {
 
+    private static final String OPS_CONSOLE_SOURCE = "\"source\":\"FEATHERFLOW_OPS_CONSOLE\"";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -42,6 +45,10 @@ class WorkflowOperationControllerTest {
         assertThat(listPage).contains("/workflows/wf-op-human-0001/terminate");
         assertThat(listPage).contains("/workflows/wf-op-terminated/retry");
         assertThat(listPage).contains("/workflows/wf-op-terminated/skip");
+        assertThat(listPage).doesNotContain("operation-dialog-wf-op-running-001-terminate");
+        assertThat(listPage).doesNotContain("operation-dialog-wf-op-human-0001-retry");
+        assertThat(listPage).doesNotContain("operation-dialog-wf-op-terminated-retry");
+        assertThat(listPage).contains("operation-dialog-wf-op-terminated-skip");
         assertThat(listPage).doesNotContain("name=\"activityId\"");
 
         MvcResult detailResult = mockMvc.perform(get("/workflows/wf-op-terminated"))
@@ -51,6 +58,8 @@ class WorkflowOperationControllerTest {
         assertThat(detailPage).contains("<dialog");
         assertThat(detailPage).contains("/workflows/wf-op-terminated/retry");
         assertThat(detailPage).contains("/workflows/wf-op-terminated/skip");
+        assertThat(detailPage).doesNotContain("operation-dialog-wf-op-terminated-retry");
+        assertThat(detailPage).contains("operation-dialog-wf-op-terminated-skip");
         assertThat(detailPage).doesNotContain("name=\"activityId\"");
     }
 
@@ -60,38 +69,30 @@ class WorkflowOperationControllerTest {
         int beforeHumanProcessing = countOperations("wf-op-human-0001", "TERMINATE");
 
         mockMvc.perform(post("/workflows/wf-op-running-001/terminate")
-                .param("operator", "alice")
-                .param("reason", "manual-stop")
                 .param("redirectTo", "/workflows"))
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/workflows"));
+            .andExpect(redirectedUrl("/workflows"))
+            .andExpect(flash().attribute("operationFeedback", "终止命令已提交成功"));
 
         assertThat(countOperations("wf-op-running-001", "TERMINATE")).isEqualTo(beforeCount + 1);
         assertThat(operationStatus("wf-op-running-001", "TERMINATE")).isEqualTo("PENDING");
-        assertThat(operationInput("wf-op-running-001", "TERMINATE"))
-            .contains("\"operator\":\"alice\"")
-            .contains("\"reason\":\"manual-stop\"");
+        assertThat(operationInput("wf-op-running-001", "TERMINATE")).contains(OPS_CONSOLE_SOURCE);
 
-        mockMvc.perform(post("/workflows/wf-op-human-0001/terminate")
-                .param("operator", "alice")
-                .param("reason", "manual-abort-human-processing"))
+        mockMvc.perform(post("/workflows/wf-op-human-0001/terminate"))
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/workflows/wf-op-human-0001"));
+            .andExpect(redirectedUrl("/workflows/wf-op-human-0001"))
+            .andExpect(flash().attribute("operationFeedback", "终止命令已提交成功"));
 
         assertThat(countOperations("wf-op-human-0001", "TERMINATE")).isEqualTo(beforeHumanProcessing + 1);
         assertThat(operationStatus("wf-op-human-0001", "TERMINATE")).isEqualTo("PENDING");
-        assertThat(operationInput("wf-op-human-0001", "TERMINATE"))
-            .contains("\"operator\":\"alice\"")
-            .contains("\"reason\":\"manual-abort-human-processing\"");
+        assertThat(operationInput("wf-op-human-0001", "TERMINATE")).contains(OPS_CONSOLE_SOURCE);
     }
 
     @Test
     void shouldRejectTerminateWhenWorkflowIsNotRunningOrHumanProcessing() throws Exception {
         int beforeCount = countOperations("wf-op-terminated", "TERMINATE");
 
-        mockMvc.perform(post("/workflows/wf-op-terminated/terminate")
-                .param("operator", "bob")
-                .param("reason", "nope"))
+        mockMvc.perform(post("/workflows/wf-op-terminated/terminate"))
             .andExpect(status().isBadRequest());
 
         assertThat(countOperations("wf-op-terminated", "TERMINATE")).isEqualTo(beforeCount);
@@ -102,21 +103,21 @@ class WorkflowOperationControllerTest {
         int beforeTerminated = countOperations("wf-op-terminated", "RETRY");
         int beforeHumanProcessing = countOperations("wf-op-human-0001", "RETRY");
 
-        mockMvc.perform(post("/workflows/wf-op-terminated/retry")
-                .param("operator", "alice")
-                .param("reason", "retry-after-check"))
+        mockMvc.perform(post("/workflows/wf-op-terminated/retry"))
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/workflows/wf-op-terminated"));
+            .andExpect(redirectedUrl("/workflows/wf-op-terminated"))
+            .andExpect(flash().attribute("operationFeedback", "重试命令已提交成功"));
 
-        mockMvc.perform(post("/workflows/wf-op-human-0001/retry")
-                .param("operator", "alice")
-                .param("reason", "resume"))
+        mockMvc.perform(post("/workflows/wf-op-human-0001/retry"))
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/workflows/wf-op-human-0001"));
+            .andExpect(redirectedUrl("/workflows/wf-op-human-0001"))
+            .andExpect(flash().attribute("operationFeedback", "重试命令已提交成功"));
 
         assertThat(countOperations("wf-op-terminated", "RETRY")).isEqualTo(beforeTerminated + 1);
         assertThat(countOperations("wf-op-human-0001", "RETRY")).isEqualTo(beforeHumanProcessing + 1);
         assertThat(operationStatus("wf-op-terminated", "RETRY")).isEqualTo("PENDING");
+        assertThat(operationInput("wf-op-terminated", "RETRY")).contains(OPS_CONSOLE_SOURCE);
+        assertThat(operationInput("wf-op-human-0001", "RETRY")).contains(OPS_CONSOLE_SOURCE);
     }
 
     @Test
@@ -127,12 +128,33 @@ class WorkflowOperationControllerTest {
                 .param("operator", "alice")
                 .param("reason", "manual-skip"))
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/workflows/wf-op-terminated"));
+            .andExpect(redirectedUrl("/workflows/wf-op-terminated"))
+            .andExpect(flash().attribute("operationFeedback", "跳过命令已提交成功"));
 
         assertThat(countOperations("wf-op-terminated", "SKIP_ACTIVITY")).isEqualTo(beforeCount + 1);
         assertThat(operationInput("wf-op-terminated", "SKIP_ACTIVITY"))
+            .contains(OPS_CONSOLE_SOURCE)
             .contains("\"operator\":\"alice\"")
             .contains("\"reason\":\"manual-skip\"");
+    }
+
+    @Test
+    void shouldRenderOperationFeedbackToastOnWorkflowPages() throws Exception {
+        MvcResult listResult = mockMvc.perform(get("/workflows")
+                .flashAttr("operationFeedback", "终止命令已提交成功"))
+            .andExpect(status().isOk())
+            .andReturn();
+        assertThat(listResult.getResponse().getContentAsString())
+            .contains("operation-toast")
+            .contains("终止命令已提交成功");
+
+        MvcResult detailResult = mockMvc.perform(get("/workflows/wf-op-terminated")
+                .flashAttr("operationFeedback", "重试命令已提交成功"))
+            .andExpect(status().isOk())
+            .andReturn();
+        assertThat(detailResult.getResponse().getContentAsString())
+            .contains("operation-toast")
+            .contains("重试命令已提交成功");
     }
 
     @Test
@@ -149,20 +171,20 @@ class WorkflowOperationControllerTest {
     }
 
     @Test
-    void shouldRejectWhenOperatorOrReasonMissing() throws Exception {
-        int beforeCount = countOperations("wf-op-running-001", "TERMINATE");
+    void shouldRejectSkipWhenOperatorOrReasonMissing() throws Exception {
+        int beforeCount = countOperations("wf-op-terminated", "SKIP_ACTIVITY");
 
-        mockMvc.perform(post("/workflows/wf-op-running-001/terminate")
+        mockMvc.perform(post("/workflows/wf-op-terminated/skip")
                 .param("operator", "")
-                .param("reason", "manual-stop"))
+                .param("reason", "manual-skip"))
             .andExpect(status().isBadRequest());
 
-        mockMvc.perform(post("/workflows/wf-op-running-001/terminate")
+        mockMvc.perform(post("/workflows/wf-op-terminated/skip")
                 .param("operator", "alice")
                 .param("reason", ""))
             .andExpect(status().isBadRequest());
 
-        assertThat(countOperations("wf-op-running-001", "TERMINATE")).isEqualTo(beforeCount);
+        assertThat(countOperations("wf-op-terminated", "SKIP_ACTIVITY")).isEqualTo(beforeCount);
     }
 
     private int countOperations(String workflowId, String operationType) {

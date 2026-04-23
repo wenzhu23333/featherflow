@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+<th:block th:fragment="toast(message)">
+    <div class="operation-toast" role="status" aria-live="polite" th:if="${message != null and !#strings.isEmpty(message)}">
+        <span class="operation-toast-dot"></span>
+        <span th:text="${message}">操作命令已提交成功</span>
+    </div>
+</th:block>
+</body>
+</html>

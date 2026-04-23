@@ -8,6 +8,7 @@
 </head>
 <body>
 <div class="page-shell">
+    <div th:replace="~{fragments/operation-feedback :: toast(${operationFeedback})}"></div>
     <header class="page-header">
         <div>
             <p class="page-kicker">FeatherFlow Ops Console</p>
