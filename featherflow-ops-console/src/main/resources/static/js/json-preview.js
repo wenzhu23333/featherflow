@@ -16,11 +16,26 @@
         if (!dialog) {
             return;
         }
+        formatModalBody(dialog.querySelector(".json-modal-body"));
         if (typeof dialog.showModal === "function") {
             dialog.showModal();
             return;
         }
         dialog.setAttribute("open", "open");
+    }
+
+    function formatModalBody(body) {
+        if (!body || body.getAttribute("data-json-formatted") === "true") {
+            return;
+        }
+        try {
+            var parsed = JSON.parse(body.textContent || "");
+            var formatted = JSON.stringify(parsed, null, 2);
+            body.textContent = formatted;
+        } catch (ignore) {
+            // Keep non-JSON content exactly as it came from the database.
+        }
+        body.setAttribute("data-json-formatted", "true");
     }
 
     function closeDialog(closeButton) {
