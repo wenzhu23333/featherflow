@@ -624,7 +624,8 @@ select:focus {
 }
 
 .json-modal-card {
-    overflow: auto;
+    max-width: 100%;
+    overflow: hidden;
     max-height: inherit;
     border: 1px solid rgba(198, 212, 222, 0.9);
     border-radius: 22px;
@@ -675,10 +676,14 @@ select:focus {
 }
 
 .json-modal-body {
+    display: block;
+    width: 100%;
+    max-width: 100%;
     max-height: calc(100vh - 180px);
     margin: 0;
     padding: 16px;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     color: #122033;
     background: #fbfdfe;
     font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
@@ -686,7 +691,7 @@ select:focus {
     line-height: 1.65;
     white-space: pre-wrap;
     overflow-wrap: anywhere;
-    word-break: break-word;
+    word-break: break-all;
 }
 
 .cell-block.is-empty {
