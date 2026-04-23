@@ -77,6 +77,9 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("class=\"json-preview-dialog\"");
         assertThat(page).contains("class=\"json-modal-close\"");
         assertThat(page).contains("class=\"json-modal-body\"");
+        assertThat(page).contains("style=\"width: min(920px, calc(100vw - 48px)); max-width: calc(100vw - 48px); max-height: min(720px, calc(100vh - 48px)); padding: 0; overflow: hidden;\"");
+        assertThat(page).contains("style=\"width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden;\"");
+        assertThat(page).contains("style=\"display: block; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-all; word-wrap: break-word; max-width: 100%; min-width: 0; width: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto;\"");
         assertThat(page).contains("json-preview.js");
         assertThat(page).doesNotContain("json-expand-details");
         assertThat(page).doesNotContain("json-formatted-output");

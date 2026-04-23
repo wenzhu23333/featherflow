@@ -610,8 +610,10 @@ select:focus {
 
 .json-preview-dialog {
     width: min(920px, calc(100vw - 48px));
+    max-width: calc(100vw - 48px);
     max-height: min(720px, calc(100vh - 48px));
     padding: 0;
+    overflow: hidden;
     border: 0;
     border-radius: 22px;
     background: transparent;
@@ -624,7 +626,10 @@ select:focus {
 }
 
 .json-modal-card {
+    width: 100%;
     max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     overflow: hidden;
     max-height: inherit;
     border: 1px solid rgba(198, 212, 222, 0.9);
@@ -679,6 +684,8 @@ select:focus {
     display: block;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
     max-height: calc(100vh - 180px);
     margin: 0;
     padding: 16px;
@@ -692,6 +699,7 @@ select:focus {
     white-space: pre-wrap;
     overflow-wrap: anywhere;
     word-break: break-all;
+    word-wrap: break-word;
 }
 
 .cell-block.is-empty {
