@@ -6,12 +6,17 @@
         <pre class="cell-block json-preview-block"
              th:classappend="${emptyValue ? ' is-empty' : ''}"
              th:text="${emptyValue ? '-' : rawValue}">json-value</pre>
-        <details class="json-expand-details" th:if="${!emptyValue}">
-            <summary class="json-expand-trigger" title="展开格式化 JSON" aria-label="展开格式化 JSON">
-                <span class="json-expand-symbol">+</span>
-            </summary>
-            <pre class="json-formatted-output" th:attr="data-raw-json=${rawValue}"></pre>
-        </details>
+        <button class="json-preview-open" type="button" th:if="${!emptyValue}"
+                title="查看完整内容" aria-label="查看完整内容">+</button>
+        <dialog class="json-preview-dialog" th:if="${!emptyValue}">
+            <section class="json-modal-card">
+                <header class="json-modal-header">
+                    <h3 th:text="${title}">JSON 内容</h3>
+                    <button class="json-modal-close" type="button" aria-label="关闭">×</button>
+                </header>
+                <pre class="json-modal-body" th:text="${rawValue}">json-value</pre>
+            </section>
+        </dialog>
     </div>
 </th:block>
 

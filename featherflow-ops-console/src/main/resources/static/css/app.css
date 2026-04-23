@@ -581,11 +581,7 @@ select:focus {
     padding-right: 38px;
 }
 
-.json-expand-details {
-    margin-top: 6px;
-}
-
-.json-expand-trigger {
+.json-preview-open {
     position: absolute;
     right: 8px;
     bottom: 8px;
@@ -606,38 +602,91 @@ select:focus {
     transition: transform 0.18s ease, background-color 0.18s ease, border-color 0.18s ease;
 }
 
-.json-expand-trigger::-webkit-details-marker {
-    display: none;
-}
-
-.json-expand-trigger::marker {
-    content: "";
-}
-
-.json-expand-trigger:hover {
+.json-preview-open:hover {
     background: var(--accent-soft);
     border-color: rgba(15, 118, 110, 0.5);
     transform: translateY(-1px);
 }
 
-.json-formatted-output {
-    display: none;
-    max-height: 360px;
-    margin: 8px 0 0;
-    padding: 12px;
-    overflow: auto;
-    border: 1px solid rgba(15, 118, 110, 0.18);
-    border-radius: 14px;
-    background: #0f172a;
-    color: #dffcf7;
-    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
-    font-size: 12px;
-    line-height: 1.6;
-    white-space: pre;
+.json-preview-dialog {
+    width: min(920px, calc(100vw - 48px));
+    max-height: min(720px, calc(100vh - 48px));
+    padding: 0;
+    border: 0;
+    border-radius: 22px;
+    background: transparent;
+    box-shadow: none;
 }
 
-.json-expand-details[open] .json-formatted-output {
-    display: block;
+.json-preview-dialog::backdrop {
+    background: rgba(15, 23, 42, 0.38);
+    backdrop-filter: blur(4px);
+}
+
+.json-modal-card {
+    overflow: auto;
+    max-height: inherit;
+    border: 1px solid rgba(198, 212, 222, 0.9);
+    border-radius: 22px;
+    background: var(--surface-strong);
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+}
+
+.json-modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #f8fbfb, #eef6f5);
+}
+
+.json-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    letter-spacing: -0.02em;
+}
+
+.json-modal-close {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 30px;
+    height: 30px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--muted);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+}
+
+.json-modal-close:hover {
+    color: var(--danger);
+    background: var(--danger-soft);
+    border-color: #f4c5c2;
+}
+
+.json-modal-body {
+    max-height: calc(100vh - 180px);
+    margin: 0;
+    padding: 16px;
+    overflow: auto;
+    color: #122033;
+    background: #fbfdfe;
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+    line-height: 1.65;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .cell-block.is-empty {

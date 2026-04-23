@@ -19,8 +19,13 @@ class WorkflowListStyleTest {
         assertThat(css).contains("overflow-x: hidden;");
         assertThat(css).contains("--surface-glass");
         assertThat(css).contains("backdrop-filter: blur(18px);");
-        assertThat(css).contains(".json-expand-trigger");
-        assertThat(css).contains(".json-formatted-output");
+        assertThat(css).contains(".json-preview-open");
+        assertThat(css).contains(".json-preview-dialog");
+        assertThat(css).contains(".json-modal-close");
+        assertThat(css).contains(".json-modal-body");
+        assertThat(css).contains("overflow-wrap: anywhere;");
+        assertThat(css).contains("white-space: pre-wrap;");
+        assertThat(css).doesNotContain(".json-formatted-output");
     }
 
     private String readCss() throws IOException {

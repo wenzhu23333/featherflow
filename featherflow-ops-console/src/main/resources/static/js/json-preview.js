@@ -1,24 +1,51 @@
 (function () {
-    function formatJson(output) {
-        if (!output || output.getAttribute("data-formatted") === "true") {
-            return;
+    function findParent(element, className) {
+        var current = element;
+        while (current && current !== document) {
+            if (current.classList && current.classList.contains(className)) {
+                return current;
+            }
+            current = current.parentNode;
         }
-        var raw = output.getAttribute("data-raw-json") || "";
-        var formatted = raw;
-        try {
-            formatted = JSON.stringify(JSON.parse(raw), null, 2);
-        } catch (ignore) {
-            formatted = raw || "-";
-        }
-        output.textContent = formatted;
-        output.setAttribute("data-formatted", "true");
+        return null;
     }
 
-    document.addEventListener("toggle", function (event) {
-        var details = event.target;
-        if (!details || !details.classList || !details.classList.contains("json-expand-details") || !details.open) {
+    function openDialog(button) {
+        var widget = findParent(button, "json-preview-widget");
+        var dialog = widget ? widget.querySelector(".json-preview-dialog") : null;
+        if (!dialog) {
             return;
         }
-        formatJson(details.querySelector(".json-formatted-output"));
-    }, true);
+        if (typeof dialog.showModal === "function") {
+            dialog.showModal();
+            return;
+        }
+        dialog.setAttribute("open", "open");
+    }
+
+    function closeDialog(closeButton) {
+        var dialog = findParent(closeButton, "json-preview-dialog");
+        if (!dialog) {
+            return;
+        }
+        if (typeof dialog.close === "function") {
+            dialog.close();
+            return;
+        }
+        dialog.removeAttribute("open");
+    }
+
+    document.addEventListener("click", function (event) {
+        var target = event.target;
+        if (!target || !target.classList) {
+            return;
+        }
+        if (target.classList.contains("json-preview-open")) {
+            openDialog(target);
+            return;
+        }
+        if (target.classList.contains("json-modal-close")) {
+            closeDialog(target);
+        }
+    });
 }());
