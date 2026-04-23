@@ -242,7 +242,7 @@ public class WorkflowQueryService {
     }
 
     private AllowedActionsView buildAllowedActions(String workflowStatus, String latestActivityId) {
-        boolean canTerminate = "RUNNING".equals(workflowStatus);
+        boolean canTerminate = "RUNNING".equals(workflowStatus) || "HUMAN_PROCESSING".equals(workflowStatus);
         boolean canRetry = "HUMAN_PROCESSING".equals(workflowStatus) || "TERMINATED".equals(workflowStatus);
         boolean canSkipLatest = "TERMINATED".equals(workflowStatus) && !isBlank(latestActivityId);
         return new AllowedActionsView(canTerminate, canRetry, canSkipLatest);

@@ -33,8 +33,8 @@ public class WorkflowOperationService {
         String operator = required(form.getOperator(), "operator");
         String reason = required(form.getReason(), "reason");
         WorkflowDetailView detail = loadWorkflow(workflowId);
-        if (!"RUNNING".equals(detail.getWorkflowStatus())) {
-            throw badRequest("Terminate only allowed when workflow is RUNNING");
+        if (!canTerminate(detail.getWorkflowStatus())) {
+            throw badRequest("Terminate only allowed when workflow is RUNNING or HUMAN_PROCESSING");
         }
         insertOperation(workflowId, "TERMINATE", buildInput(operator, reason, null));
     }
@@ -69,6 +69,10 @@ public class WorkflowOperationService {
     private WorkflowDetailView loadWorkflow(String workflowId) {
         return workflowQueryService.getWorkflowDetail(workflowId)
             .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Workflow not found: " + workflowId));
+    }
+
+    private boolean canTerminate(String workflowStatus) {
+        return "RUNNING".equals(workflowStatus) || "HUMAN_PROCESSING".equals(workflowStatus);
     }
 
     private String buildInput(String operator, String reason, String activityId) {

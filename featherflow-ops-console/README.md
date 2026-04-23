@@ -73,7 +73,7 @@ curl -i http://127.0.0.1:8080/operations
 其中：
 
 - `Terminate`
-  只允许当前 workflow 为 `RUNNING`
+  只允许当前 workflow 为 `RUNNING` 或 `HUMAN_PROCESSING`
 - `Retry`
   只允许当前 workflow 为 `HUMAN_PROCESSING` 或 `TERMINATED`
 - `Skip Latest Activity`

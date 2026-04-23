@@ -39,6 +39,7 @@ class WorkflowOperationControllerTest {
         String listPage = listResult.getResponse().getContentAsString();
         assertThat(listPage).contains("<dialog");
         assertThat(listPage).contains("/workflows/wf-op-running-001/terminate");
+        assertThat(listPage).contains("/workflows/wf-op-human-0001/terminate");
         assertThat(listPage).contains("/workflows/wf-op-terminated/retry");
         assertThat(listPage).contains("/workflows/wf-op-terminated/skip");
         assertThat(listPage).doesNotContain("name=\"activityId\"");
@@ -54,8 +55,9 @@ class WorkflowOperationControllerTest {
     }
 
     @Test
-    void shouldSubmitTerminateAndPersistPendingOperation() throws Exception {
+    void shouldSubmitTerminateForRunningAndHumanProcessingWorkflows() throws Exception {
         int beforeCount = countOperations("wf-op-running-001", "TERMINATE");
+        int beforeHumanProcessing = countOperations("wf-op-human-0001", "TERMINATE");
 
         mockMvc.perform(post("/workflows/wf-op-running-001/terminate")
                 .param("operator", "alice")
@@ -69,10 +71,22 @@ class WorkflowOperationControllerTest {
         assertThat(operationInput("wf-op-running-001", "TERMINATE"))
             .contains("\"operator\":\"alice\"")
             .contains("\"reason\":\"manual-stop\"");
+
+        mockMvc.perform(post("/workflows/wf-op-human-0001/terminate")
+                .param("operator", "alice")
+                .param("reason", "manual-abort-human-processing"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/workflows/wf-op-human-0001"));
+
+        assertThat(countOperations("wf-op-human-0001", "TERMINATE")).isEqualTo(beforeHumanProcessing + 1);
+        assertThat(operationStatus("wf-op-human-0001", "TERMINATE")).isEqualTo("PENDING");
+        assertThat(operationInput("wf-op-human-0001", "TERMINATE"))
+            .contains("\"operator\":\"alice\"")
+            .contains("\"reason\":\"manual-abort-human-processing\"");
     }
 
     @Test
-    void shouldRejectTerminateWhenWorkflowIsNotRunning() throws Exception {
+    void shouldRejectTerminateWhenWorkflowIsNotRunningOrHumanProcessing() throws Exception {
         int beforeCount = countOperations("wf-op-terminated", "TERMINATE");
 
         mockMvc.perform(post("/workflows/wf-op-terminated/terminate")
