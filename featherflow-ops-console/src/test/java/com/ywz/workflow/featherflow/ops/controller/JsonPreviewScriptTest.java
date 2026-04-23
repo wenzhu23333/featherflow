@@ -23,6 +23,18 @@ class JsonPreviewScriptTest {
         assertThat(script).doesNotContain("data-raw-json");
     }
 
+    @Test
+    void shouldPauseAutomaticHtmxRefreshWhileJsonDialogIsOpen() throws IOException {
+        String script = readScript();
+
+        assertThat(script).contains("hasOpenJsonDialog");
+        assertThat(script).contains(".json-preview-dialog[open]");
+        assertThat(script).contains("isAutomaticHtmxRefresh");
+        assertThat(script).contains("htmx:beforeRequest");
+        assertThat(script).contains("trigger.indexOf(\"every \") !== -1");
+        assertThat(script).contains("event.preventDefault()");
+    }
+
     private String readScript() throws IOException {
         ClassPathResource resource = new ClassPathResource("static/js/json-preview.js");
         return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);

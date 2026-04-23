@@ -50,6 +50,25 @@
         dialog.removeAttribute("open");
     }
 
+    function hasOpenJsonDialog() {
+        return !!document.querySelector(".json-preview-dialog[open]");
+    }
+
+    function isAutomaticHtmxRefresh(element) {
+        if (!element || !element.getAttribute) {
+            return false;
+        }
+        var trigger = element.getAttribute("hx-trigger") || "";
+        return trigger.indexOf("every ") !== -1;
+    }
+
+    document.addEventListener("htmx:beforeRequest", function (event) {
+        var triggerElement = event.detail ? event.detail.elt : null;
+        if (hasOpenJsonDialog() && isAutomaticHtmxRefresh(triggerElement)) {
+            event.preventDefault();
+        }
+    });
+
     document.addEventListener("click", function (event) {
         var target = event.target;
         if (!target || !target.classList) {
