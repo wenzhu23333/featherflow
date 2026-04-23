@@ -17,6 +17,10 @@ class WorkflowListStyleTest {
         assertThat(css).contains(".workflow-table {\n    width: 100%;\n    table-layout: fixed;");
         assertThat(css).doesNotContain("min-width: 1320px;");
         assertThat(css).contains("overflow-x: hidden;");
+        assertThat(css).contains("--surface-glass");
+        assertThat(css).contains("backdrop-filter: blur(18px);");
+        assertThat(css).contains(".json-expand-trigger");
+        assertThat(css).contains(".json-formatted-output");
     }
 
     private String readCss() throws IOException {

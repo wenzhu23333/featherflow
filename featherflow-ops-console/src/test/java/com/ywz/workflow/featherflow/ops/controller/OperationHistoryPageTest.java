@@ -59,6 +59,12 @@ class OperationHistoryPageTest {
         assertThat(page).contains("biz-2002");
         assertThat(countOccurrences(page, "id=\"operation-history-table\"")).isEqualTo(1);
         assertThat(page).contains("class=\"cell-block json-preview-block\"");
+        assertThat(page).contains("class=\"json-preview-widget\"");
+        assertThat(page).contains("class=\"json-expand-details\"");
+        assertThat(page).contains("class=\"json-expand-trigger\"");
+        assertThat(page).contains("class=\"json-formatted-output\"");
+        assertThat(page).contains("data-raw-json=");
+        assertThat(page).contains("json-preview.js");
         assertThat(page).doesNotContain("id=\"json-preview-drawer\"");
         assertThat(page).doesNotContain("id=\"json-preview-drawer-body\"");
         assertThat(page).doesNotContain("data-json-viewer");

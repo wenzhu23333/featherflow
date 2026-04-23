@@ -1,10 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <body>
-<th:block th:fragment="viewer(title,rawValue)">
-    <div class="cell-block json-preview-block"
-         th:classappend="${rawValue == null or #strings.isEmpty(rawValue) ? ' is-empty' : ''}"
-         th:text="${rawValue == null or #strings.isEmpty(rawValue) ? '-' : rawValue}">json-value</div>
+<th:block th:fragment="viewer(title,rawValue)" th:with="emptyValue=${rawValue == null or #strings.isEmpty(rawValue)}">
+    <div class="json-preview-widget" th:classappend="${emptyValue ? ' is-empty' : ''}">
+        <pre class="cell-block json-preview-block"
+             th:classappend="${emptyValue ? ' is-empty' : ''}"
+             th:text="${emptyValue ? '-' : rawValue}">json-value</pre>
+        <details class="json-expand-details" th:if="${!emptyValue}">
+            <summary class="json-expand-trigger" title="展开格式化 JSON" aria-label="展开格式化 JSON">
+                <span class="json-expand-symbol">+</span>
+            </summary>
+            <pre class="json-formatted-output" th:attr="data-raw-json=${rawValue}"></pre>
+        </details>
+    </div>
 </th:block>
 
 </body>
