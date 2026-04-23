@@ -38,8 +38,10 @@
         body.setAttribute("data-json-formatted", "true");
     }
 
-    function closeDialog(closeButton) {
-        var dialog = findParent(closeButton, "json-preview-dialog");
+    function closeDialog(dialogOrChild) {
+        var dialog = dialogOrChild.classList && dialogOrChild.classList.contains("json-preview-dialog")
+            ? dialogOrChild
+            : findParent(dialogOrChild, "json-preview-dialog");
         if (!dialog) {
             return;
         }
@@ -79,6 +81,10 @@
             return;
         }
         if (target.classList.contains("json-modal-close")) {
+            closeDialog(target);
+            return;
+        }
+        if (target.classList.contains("json-preview-dialog")) {
             closeDialog(target);
         }
     });

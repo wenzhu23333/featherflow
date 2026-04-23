@@ -35,6 +35,15 @@ class JsonPreviewScriptTest {
         assertThat(script).contains("event.preventDefault()");
     }
 
+    @Test
+    void shouldCloseDialogWhenBackdropIsClicked() throws IOException {
+        String script = readScript();
+
+        assertThat(script).contains("function closeDialog(dialogOrChild)");
+        assertThat(script).contains("target.classList.contains(\"json-preview-dialog\")");
+        assertThat(script).contains("closeDialog(target)");
+    }
+
     private String readScript() throws IOException {
         ClassPathResource resource = new ClassPathResource("static/js/json-preview.js");
         return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);

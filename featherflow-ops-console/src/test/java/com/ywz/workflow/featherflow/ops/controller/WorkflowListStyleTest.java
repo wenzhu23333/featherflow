@@ -23,7 +23,8 @@ class WorkflowListStyleTest {
         assertThat(css).contains(".json-preview-dialog");
         assertThat(css).contains(".json-modal-close");
         assertThat(css).contains(".json-modal-body");
-        assertThat(css).contains(".json-modal-card {\n    width: 100%;\n    max-width: 100%;\n    min-width: 0;\n    box-sizing: border-box;\n    overflow: hidden;");
+        assertThat(css).contains(".json-modal-card {\n    position: relative;\n    width: 100%;\n    max-width: 100%;\n    min-width: 0;\n    box-sizing: border-box;\n    overflow: hidden;");
+        assertThat(css).contains(".json-modal-close {\n    position: absolute;\n    top: 12px;\n    right: 12px;");
         assertThat(css).contains(".json-modal-body {\n    display: block;\n    width: 100%;\n    max-width: 100%;");
         assertThat(css).contains("overflow-x: hidden;\n    overflow-y: auto;");
         assertThat(css).contains("overflow-wrap: anywhere;");

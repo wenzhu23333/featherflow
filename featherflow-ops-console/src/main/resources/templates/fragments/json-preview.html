@@ -12,10 +12,10 @@
                 style="width: min(920px, calc(100vw - 48px)); max-width: calc(100vw - 48px); max-height: min(720px, calc(100vh - 48px)); padding: 0; overflow: hidden;"
                 th:if="${!emptyValue}">
             <section class="json-modal-card"
-                     style="width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden;">
+                     style="position: relative; width: 100%; max-width: 100%; min-width: 0; box-sizing: border-box; overflow: hidden;">
                 <header class="json-modal-header">
                     <h3 th:text="${title}">JSON 内容</h3>
-                    <button class="json-modal-close" type="button" aria-label="关闭">×</button>
+                    <button class="json-modal-close" style="position: absolute; top: 12px; right: 12px;" type="button" aria-label="关闭">×</button>
                 </header>
                 <pre class="json-modal-body"
                      style="display: block; white-space: pre-wrap; overflow-wrap: anywhere; word-break: break-all; word-wrap: break-word; max-width: 100%; min-width: 0; width: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto;"
