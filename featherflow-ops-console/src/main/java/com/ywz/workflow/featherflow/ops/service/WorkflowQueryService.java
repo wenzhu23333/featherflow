@@ -61,7 +61,7 @@ public class WorkflowQueryService {
         return workflowViewRepository.findWorkflowListRows().stream()
             .filter(row -> containsIgnoreCase(row.workflowId(), filter.workflowId()))
             .filter(row -> containsIgnoreCase(row.bizId(), filter.bizId()))
-            .filter(row -> containsIgnoreCase(row.workflowStatus(), filter.status()))
+            .filter(row -> matchesAnyStatus(row.workflowStatus(), filter.status()))
             .filter(row -> isWithinRange(row.gmtCreated(), filter.createdFrom(), filter.createdTo()))
             .filter(row -> isWithinRange(row.gmtModified(), filter.modifiedFrom(), filter.modifiedTo()))
             .sorted(workflowListComparator(order))
@@ -326,6 +326,22 @@ public class WorkflowQueryService {
             return false;
         }
         return value.toLowerCase().contains(keyword.trim().toLowerCase());
+    }
+
+    private boolean matchesAnyStatus(String value, String keyword) {
+        if (isBlank(keyword)) {
+            return true;
+        }
+        if (value == null) {
+            return false;
+        }
+        for (String expectedStatus : keyword.split(",")) {
+            String normalizedStatus = expectedStatus.trim();
+            if (!normalizedStatus.isEmpty() && value.equalsIgnoreCase(normalizedStatus)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isWithinRange(LocalDateTime value, LocalDateTime from, LocalDateTime to) {

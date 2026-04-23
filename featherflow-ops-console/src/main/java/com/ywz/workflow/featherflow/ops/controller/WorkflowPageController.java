@@ -5,7 +5,11 @@ import com.ywz.workflow.featherflow.ops.service.FilterDateTimeParser;
 import com.ywz.workflow.featherflow.ops.service.WorkflowListFilter;
 import com.ywz.workflow.featherflow.ops.view.PageView;
 import com.ywz.workflow.featherflow.ops.view.WorkflowListItemView;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,6 +25,12 @@ public class WorkflowPageController {
 
     private static final String ORDER_ASC = "asc";
     private static final String ORDER_DESC = "desc";
+    private static final List<String> WORKFLOW_STATUS_OPTIONS = Collections.unmodifiableList(Arrays.asList(
+        "RUNNING",
+        "HUMAN_PROCESSING",
+        "TERMINATED",
+        "COMPLETED"
+    ));
 
     private final WorkflowQueryService workflowQueryService;
 
@@ -43,21 +53,38 @@ public class WorkflowPageController {
         @RequestParam(required = false) String order,
         Model model
     ) {
-        int parsedPage = parsePositiveIntOrDefault(page, 1);
-        int parsedSize = parsePositiveIntOrDefault(size, 10);
-        String normalizedOrder = normalizeOrder(order, ORDER_DESC);
+        String normalizedWorkflowId = normalizeRequestValue(workflowId);
+        String normalizedBizId = normalizeRequestValue(bizId);
+        String normalizedStatus = normalizeRequestValue(status);
+        String normalizedWorkflowName = normalizeRequestValue(workflowName);
+        String normalizedCreatedFrom = normalizeRequestValue(createdFrom);
+        String normalizedCreatedTo = normalizeRequestValue(createdTo);
+        String normalizedModifiedFrom = normalizeRequestValue(modifiedFrom);
+        String normalizedModifiedTo = normalizeRequestValue(modifiedTo);
+        int parsedPage = parsePositiveIntOrDefault(normalizeRequestValue(page), 1);
+        int parsedSize = parsePositiveIntOrDefault(normalizeRequestValue(size), 10);
+        String normalizedOrder = normalizeOrder(normalizeRequestValue(order), ORDER_DESC);
         Map<String, String> dateFilterErrors = new LinkedHashMap<>();
         WorkflowListFilter filter = new WorkflowListFilter(
-            workflowId,
-            bizId,
-            status,
-            workflowName,
-            FilterDateTimeParser.parseNullable("createdFrom", createdFrom, dateFilterErrors),
-            FilterDateTimeParser.parseNullable("createdTo", createdTo, dateFilterErrors),
-            FilterDateTimeParser.parseNullable("modifiedFrom", modifiedFrom, dateFilterErrors),
-            FilterDateTimeParser.parseNullable("modifiedTo", modifiedTo, dateFilterErrors)
+            normalizedWorkflowId,
+            normalizedBizId,
+            normalizedStatus,
+            normalizedWorkflowName,
+            FilterDateTimeParser.parseNullable("createdFrom", normalizedCreatedFrom, dateFilterErrors),
+            FilterDateTimeParser.parseNullable("createdTo", normalizedCreatedTo, dateFilterErrors),
+            FilterDateTimeParser.parseNullable("modifiedFrom", normalizedModifiedFrom, dateFilterErrors),
+            FilterDateTimeParser.parseNullable("modifiedTo", normalizedModifiedTo, dateFilterErrors)
         );
-        addFilterAttributes(model, filter, createdFrom, createdTo, modifiedFrom, modifiedTo, normalizedOrder, dateFilterErrors);
+        addFilterAttributes(
+            model,
+            filter,
+            normalizedCreatedFrom,
+            normalizedCreatedTo,
+            normalizedModifiedFrom,
+            normalizedModifiedTo,
+            normalizedOrder,
+            dateFilterErrors
+        );
         PageView<WorkflowListItemView> workflowPage =
             workflowQueryService.listWorkflowPage(filter, parsedPage, parsedSize, normalizedOrder);
         model.addAttribute("workflows", workflowPage.getItems());
@@ -82,21 +109,38 @@ public class WorkflowPageController {
         @RequestParam(required = false) String order,
         Model model
     ) {
-        int parsedPage = parsePositiveIntOrDefault(page, 1);
-        int parsedSize = parsePositiveIntOrDefault(size, 10);
-        String normalizedOrder = normalizeOrder(order, ORDER_DESC);
+        String normalizedWorkflowId = normalizeRequestValue(workflowId);
+        String normalizedBizId = normalizeRequestValue(bizId);
+        String normalizedStatus = normalizeRequestValue(status);
+        String normalizedWorkflowName = normalizeRequestValue(workflowName);
+        String normalizedCreatedFrom = normalizeRequestValue(createdFrom);
+        String normalizedCreatedTo = normalizeRequestValue(createdTo);
+        String normalizedModifiedFrom = normalizeRequestValue(modifiedFrom);
+        String normalizedModifiedTo = normalizeRequestValue(modifiedTo);
+        int parsedPage = parsePositiveIntOrDefault(normalizeRequestValue(page), 1);
+        int parsedSize = parsePositiveIntOrDefault(normalizeRequestValue(size), 10);
+        String normalizedOrder = normalizeOrder(normalizeRequestValue(order), ORDER_DESC);
         Map<String, String> dateFilterErrors = new LinkedHashMap<>();
         WorkflowListFilter filter = new WorkflowListFilter(
-            workflowId,
-            bizId,
-            status,
-            workflowName,
-            FilterDateTimeParser.parseNullable("createdFrom", createdFrom, dateFilterErrors),
-            FilterDateTimeParser.parseNullable("createdTo", createdTo, dateFilterErrors),
-            FilterDateTimeParser.parseNullable("modifiedFrom", modifiedFrom, dateFilterErrors),
-            FilterDateTimeParser.parseNullable("modifiedTo", modifiedTo, dateFilterErrors)
+            normalizedWorkflowId,
+            normalizedBizId,
+            normalizedStatus,
+            normalizedWorkflowName,
+            FilterDateTimeParser.parseNullable("createdFrom", normalizedCreatedFrom, dateFilterErrors),
+            FilterDateTimeParser.parseNullable("createdTo", normalizedCreatedTo, dateFilterErrors),
+            FilterDateTimeParser.parseNullable("modifiedFrom", normalizedModifiedFrom, dateFilterErrors),
+            FilterDateTimeParser.parseNullable("modifiedTo", normalizedModifiedTo, dateFilterErrors)
         );
-        addFilterAttributes(model, filter, createdFrom, createdTo, modifiedFrom, modifiedTo, normalizedOrder, dateFilterErrors);
+        addFilterAttributes(
+            model,
+            filter,
+            normalizedCreatedFrom,
+            normalizedCreatedTo,
+            normalizedModifiedFrom,
+            normalizedModifiedTo,
+            normalizedOrder,
+            dateFilterErrors
+        );
         PageView<WorkflowListItemView> workflowPage =
             workflowQueryService.listWorkflowPage(filter, parsedPage, parsedSize, normalizedOrder);
         model.addAttribute("workflows", workflowPage.getItems());
@@ -179,6 +223,8 @@ public class WorkflowPageController {
         model.addAttribute("modifiedFrom", modifiedFrom);
         model.addAttribute("modifiedTo", modifiedTo);
         model.addAttribute("order", order);
+        model.addAttribute("workflowStatuses", WORKFLOW_STATUS_OPTIONS);
+        model.addAttribute("selectedStatuses", splitRequestValues(filter.status()));
         model.addAttribute("dateFilterErrors", dateFilterErrors);
     }
 
@@ -200,5 +246,43 @@ public class WorkflowPageController {
         }
         String normalized = rawOrder.trim().toLowerCase();
         return ORDER_ASC.equals(normalized) || ORDER_DESC.equals(normalized) ? normalized : defaultOrder;
+    }
+
+    private String normalizeRequestValue(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        String firstNonBlankPart = null;
+        for (String part : trimmed.split(",")) {
+            String normalizedPart = part.trim();
+            if (normalizedPart.isEmpty()) {
+                continue;
+            }
+            if (firstNonBlankPart == null) {
+                firstNonBlankPart = normalizedPart;
+            } else if (!firstNonBlankPart.equals(normalizedPart)) {
+                return trimmed;
+            }
+        }
+        return firstNonBlankPart;
+    }
+
+    private List<String> splitRequestValues(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<String> values = new ArrayList<>();
+        for (String part : value.split(",")) {
+            String normalizedPart = part.trim();
+            if (!normalizedPart.isEmpty() && !values.contains(normalizedPart)) {
+                values.add(normalizedPart);
+            }
+        }
+        return values;
     }
 }

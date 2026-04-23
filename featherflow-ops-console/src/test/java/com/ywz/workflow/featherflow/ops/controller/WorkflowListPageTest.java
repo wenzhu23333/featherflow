@@ -94,6 +94,20 @@ class WorkflowListPageTest {
     }
 
     @Test
+    void shouldFilterWorkflowTableByMultipleStatuses() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/workflows/table")
+                    .param("status", "RUNNING", "TERMINATED")
+            )
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String fragment = result.getResponse().getContentAsString();
+        assertThat(fragment).contains("workflow-row-wf-running-0001");
+        assertThat(fragment).contains("workflow-row-wf-terminated-01");
+    }
+
+    @Test
     void shouldRenderWorkflowListTableFragment() throws Exception {
         MvcResult result = mockMvc.perform(get("/workflows/table"))
             .andExpect(status().isOk())
@@ -167,6 +181,7 @@ class WorkflowListPageTest {
         assertThat(fragment).contains("createdFrom=2026-04-01%2009:00:00");
         assertThat(fragment).contains("modifiedTo=2026-04-01%2009:10:00");
         assertThat(fragment).contains("order=asc");
+        assertThat(fragment).contains("hx-disinherit=\"hx-include\"");
     }
 
     @Test
@@ -206,6 +221,27 @@ class WorkflowListPageTest {
         assertThat(fragment).contains("<option value=\"asc\" selected=\"selected\">最早优先</option>");
         assertThat(fragment).contains("order=asc");
         assertThat(fragment).contains("id=\"workflow-order-input\" name=\"order\" value=\"asc\"");
+    }
+
+    @Test
+    void shouldIgnoreDuplicatedBlankDateParametersFromInheritedHtmxInclude() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/workflows/table")
+                    .param("createdFrom", "", "")
+                    .param("createdTo", "", "")
+                    .param("modifiedFrom", "", "")
+                    .param("modifiedTo", "", "")
+                    .param("page", "2")
+                    .param("size", "1")
+            )
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String fragment = result.getResponse().getContentAsString();
+        assertThat(fragment).doesNotContain("workflow-filter-errors");
+        assertThat(fragment).doesNotContain("Invalid date-time");
+        assertThat(fragment).contains("第 2 / 2 页");
+        assertThat(fragment).contains("workflow-row-wf-running-0001");
     }
 
     @Test
@@ -249,6 +285,27 @@ class WorkflowListPageTest {
         assertThat(page).contains("value=\"2026-04-01T09:10:00\"");
         assertThat(page).contains("value=\"2026-04-01T09:00\"");
         assertThat(page).contains("value=\"2026-04-01T09:10\"");
+    }
+
+    @Test
+    void shouldRenderWorkflowStatusFilterAsMultiSelect() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/workflows")
+                    .param("status", "RUNNING", "TERMINATED")
+            )
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String page = result.getResponse().getContentAsString();
+        assertThat(page).contains("id=\"workflow-status-filter\"");
+        assertThat(page).contains("name=\"status\"");
+        assertThat(page).contains("multiple=\"multiple\"");
+        assertThat(page).contains("value=\"RUNNING\"");
+        assertThat(page).contains("selected=\"selected\">RUNNING</option>");
+        assertThat(page).contains("value=\"TERMINATED\"");
+        assertThat(page).contains("selected=\"selected\">TERMINATED</option>");
+        assertThat(page).contains("<option value=\"HUMAN_PROCESSING\">HUMAN_PROCESSING</option>");
+        assertThat(page).contains("<option value=\"COMPLETED\">COMPLETED</option>");
     }
 
     @Test

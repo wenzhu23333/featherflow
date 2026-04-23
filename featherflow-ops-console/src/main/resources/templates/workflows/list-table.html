@@ -26,7 +26,8 @@
                   class="page-size-form"
                   hx-get="/workflows/table"
                   hx-target="#workflow-list-container"
-                  hx-swap="innerHTML">
+                  hx-swap="innerHTML"
+                  hx-disinherit="hx-include">
                 <input type="hidden" name="workflowId" th:value="${workflowId}">
                 <input type="hidden" name="bizId" th:value="${bizId}">
                 <input type="hidden" name="status" th:value="${status}">
@@ -51,19 +52,22 @@
                    th:href="@{/workflows(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
                    th:attr="hx-get=@{/workflows/table(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
                    hx-target="#workflow-list-container"
-                   hx-swap="innerHTML">上一页</a>
+                   hx-swap="innerHTML"
+                   hx-disinherit="hx-include">上一页</a>
                 <a th:if="${workflowPage.pagination.hasNext}"
                    class="pager-link"
                    th:href="@{/workflows(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
                    th:attr="hx-get=@{/workflows/table(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
                    hx-target="#workflow-list-container"
-                   hx-swap="innerHTML">下一页</a>
+                   hx-swap="innerHTML"
+                   hx-disinherit="hx-include">下一页</a>
             </div>
             <form id="workflow-order-form"
                   class="page-size-form"
                   hx-get="/workflows/table"
                   hx-target="#workflow-list-container"
-                  hx-swap="innerHTML">
+                  hx-swap="innerHTML"
+                  hx-disinherit="hx-include">
                 <input type="hidden" name="workflowId" th:value="${workflowId}">
                 <input type="hidden" name="bizId" th:value="${bizId}">
                 <input type="hidden" name="status" th:value="${status}">

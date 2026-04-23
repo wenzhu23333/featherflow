@@ -267,6 +267,11 @@ select:focus {
     border-color: rgba(15, 118, 110, 0.42);
 }
 
+.field-group select[multiple] {
+    min-height: 92px;
+    padding: 6px 10px;
+}
+
 .filter-actions,
 .action-group,
 .operation-actions,
