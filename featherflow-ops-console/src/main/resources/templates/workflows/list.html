@@ -33,6 +33,7 @@
               hx-target="#workflow-list-container"
               hx-swap="innerHTML">
             <input type="hidden" id="workflow-size-input" name="size" th:value="${size}">
+            <input type="hidden" id="workflow-order-input" name="order" th:value="${order}">
             <div class="field-group">
                 <label for="workflow-id-filter">Workflow ID</label>
                 <input id="workflow-id-filter" type="text" name="workflowId" placeholder="workflowId" th:value="${workflowId}">

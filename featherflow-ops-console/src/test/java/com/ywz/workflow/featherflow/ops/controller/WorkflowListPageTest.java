@@ -151,6 +151,7 @@ class WorkflowListPageTest {
                     .param("createdTo", "2026-04-01 09:10:00")
                     .param("modifiedFrom", "2026-04-01 09:00:00")
                     .param("modifiedTo", "2026-04-01 09:10:00")
+                    .param("order", "asc")
                     .param("page", "1")
                     .param("size", "1")
             )
@@ -165,6 +166,7 @@ class WorkflowListPageTest {
         assertThat(fragment).contains("bizId=biz-10");
         assertThat(fragment).contains("createdFrom=2026-04-01%2009:00:00");
         assertThat(fragment).contains("modifiedTo=2026-04-01%2009:10:00");
+        assertThat(fragment).contains("order=asc");
     }
 
     @Test
@@ -184,6 +186,26 @@ class WorkflowListPageTest {
         assertThat(page).contains("page=2");
         assertThat(page).contains("id=\"workflow-page-size\"");
         assertThat(page).contains("class=\"pager-summary\"");
+    }
+
+    @Test
+    void shouldRenderWorkflowListInAscendingOrderWhenRequested() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/workflows/table")
+                    .param("order", "asc")
+                    .param("page", "1")
+                    .param("size", "1")
+            )
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String fragment = result.getResponse().getContentAsString();
+        assertThat(fragment).contains("workflow-row-wf-running-0001");
+        assertThat(fragment).doesNotContain("workflow-row-wf-terminated-01");
+        assertThat(fragment).contains("id=\"workflow-sort-order\"");
+        assertThat(fragment).contains("<option value=\"asc\" selected=\"selected\">最早优先</option>");
+        assertThat(fragment).contains("order=asc");
+        assertThat(fragment).contains("id=\"workflow-order-input\" name=\"order\" value=\"asc\"");
     }
 
     @Test
@@ -254,6 +276,7 @@ class WorkflowListPageTest {
                 get("/workflows")
                     .param("workflowId", "wf-")
                     .param("bizId", "biz-10")
+                    .param("order", "asc")
                     .param("page", "2")
                     .param("size", "1")
             )
@@ -265,6 +288,7 @@ class WorkflowListPageTest {
         assertThat(page).contains("/workflows?page=2&amp;size=1");
         assertThat(page).contains("workflowId=wf-");
         assertThat(page).contains("bizId=biz-10");
+        assertThat(page).contains("order=asc");
     }
 
     @Test

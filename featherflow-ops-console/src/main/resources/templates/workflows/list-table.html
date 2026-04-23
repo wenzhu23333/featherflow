@@ -2,9 +2,10 @@
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="table(workflows,workflowPage,dateFilterErrors)"
-          th:with="listRedirectTo=@{/workflows(page=${workflowPage.pagination.page},size=${workflowPage.pagination.size},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">
+          th:with="listRedirectTo=@{/workflows(page=${workflowPage.pagination.page},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">
     <input type="hidden" id="workflow-page-input" name="page" th:value="${workflowPage.pagination.page}" hx-swap-oob="true">
     <input type="hidden" id="workflow-size-input" name="size" th:value="${workflowPage.pagination.size}" hx-swap-oob="true">
+    <input type="hidden" id="workflow-order-input" name="order" th:value="${order}" hx-swap-oob="true">
     <div id="workflow-filter-errors" class="alert" th:if="${dateFilterErrors != null and !dateFilterErrors.isEmpty()}">
         <p>日期筛选输入无效:</p>
         <ul>
@@ -34,6 +35,7 @@
                 <input type="hidden" name="createdTo" th:value="${createdTo}">
                 <input type="hidden" name="modifiedFrom" th:value="${modifiedFrom}">
                 <input type="hidden" name="modifiedTo" th:value="${modifiedTo}">
+                <input type="hidden" name="order" th:value="${order}">
                 <input type="hidden" name="page" value="1">
                 <label for="workflow-page-size">每页</label>
                 <select id="workflow-page-size" name="size" onchange="this.form.requestSubmit()">
@@ -46,17 +48,38 @@
             <div class="pager-links">
                 <a th:if="${workflowPage.pagination.hasPrevious}"
                    class="pager-link"
-                   th:href="@{/workflows(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
-                   th:attr="hx-get=@{/workflows/table(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
+                   th:href="@{/workflows(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
+                   th:attr="hx-get=@{/workflows/table(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
                    hx-target="#workflow-list-container"
                    hx-swap="innerHTML">上一页</a>
                 <a th:if="${workflowPage.pagination.hasNext}"
                    class="pager-link"
-                   th:href="@{/workflows(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
-                   th:attr="hx-get=@{/workflows/table(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
+                   th:href="@{/workflows(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
+                   th:attr="hx-get=@{/workflows/table(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
                    hx-target="#workflow-list-container"
                    hx-swap="innerHTML">下一页</a>
             </div>
+            <form id="workflow-order-form"
+                  class="page-size-form"
+                  hx-get="/workflows/table"
+                  hx-target="#workflow-list-container"
+                  hx-swap="innerHTML">
+                <input type="hidden" name="workflowId" th:value="${workflowId}">
+                <input type="hidden" name="bizId" th:value="${bizId}">
+                <input type="hidden" name="status" th:value="${status}">
+                <input type="hidden" name="workflowName" th:value="${workflowName}">
+                <input type="hidden" name="createdFrom" th:value="${createdFrom}">
+                <input type="hidden" name="createdTo" th:value="${createdTo}">
+                <input type="hidden" name="modifiedFrom" th:value="${modifiedFrom}">
+                <input type="hidden" name="modifiedTo" th:value="${modifiedTo}">
+                <input type="hidden" name="page" value="1">
+                <input type="hidden" name="size" th:value="${workflowPage.pagination.size}">
+                <label for="workflow-sort-order">顺序</label>
+                <select id="workflow-sort-order" name="order" onchange="this.form.requestSubmit()">
+                    <option value="desc" th:selected="${order == 'desc'}">最新优先</option>
+                    <option value="asc" th:selected="${order == 'asc'}">最早优先</option>
+                </select>
+            </form>
         </div>
     </div>
     <div class="table-scroll workflow-table-scroll">

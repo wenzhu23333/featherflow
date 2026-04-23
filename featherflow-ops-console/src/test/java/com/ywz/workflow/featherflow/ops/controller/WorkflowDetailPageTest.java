@@ -68,7 +68,7 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("id=\"workflow-detail-summary-container\"");
         assertThat(page).contains("hx-get=\"/workflows/wf-detail-0001/summary\"");
         assertThat(page).contains("id=\"workflow-detail-timeline-container\"");
-        assertThat(page).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=5\"");
+        assertThat(page).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=5&amp;activityOrder=asc\"");
         assertThat(page).contains("hx-trigger=\"every 3s\"");
         assertThat(page).contains("hx-sync=\"#workflow-detail-timeline-container:abort\"");
         assertThat(page).contains("class=\"cell-block json-preview-block\"");
@@ -168,7 +168,7 @@ class WorkflowDetailPageTest {
 
         String fragment = result.getResponse().getContentAsString();
         assertThat(fragment).contains("id=\"workflow-detail-timeline-container\"");
-        assertThat(fragment).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=5\"");
+        assertThat(fragment).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=5&amp;activityOrder=asc\"");
         assertThat(fragment).contains("hx-sync=\"#workflow-detail-timeline-container:abort\"");
         assertThat(fragment).contains("class=\"panel timeline-section\"");
         assertThat(fragment).contains("activity-timeline-table");
@@ -182,7 +182,7 @@ class WorkflowDetailPageTest {
         assertThat(fragment).doesNotContain("operation-row-");
         assertThat(fragment).doesNotContain("<html");
 
-        Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getWorkflowTimeline("wf-detail-0001", 1, 5);
+        Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getWorkflowTimeline("wf-detail-0001", 1, 5, "asc");
         Mockito.verify(workflowQueryService, Mockito.never()).getWorkflowDetail("wf-detail-0001");
     }
 
@@ -219,7 +219,7 @@ class WorkflowDetailPageTest {
 
         String page = result.getResponse().getContentAsString();
         assertThat(page).contains("id=\"workflow-detail-timeline-container\"");
-        assertThat(page).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=2&amp;activitySize=2\"");
+        assertThat(page).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=2&amp;activitySize=2&amp;activityOrder=asc\"");
     }
 
     @Test
@@ -237,7 +237,7 @@ class WorkflowDetailPageTest {
         assertThat(fragment).doesNotContain("activity-page-size=2");
         assertThat(fragment).contains("活动第 2 / 2 页");
         assertThat(fragment).contains("共 3 步");
-        assertThat(fragment).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=2\"");
+        assertThat(fragment).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=2&amp;activityOrder=asc\"");
         assertThat(fragment).doesNotContain("activityPage=1&amp;activitySize=5");
         assertThat(fragment).contains("timeline-row-act-500");
         assertThat(fragment).doesNotContain("timeline-row-act-900");
@@ -257,9 +257,31 @@ class WorkflowDetailPageTest {
         String fragment = result.getResponse().getContentAsString();
         assertThat(fragment).contains("id=\"activity-page-size\"");
         assertThat(fragment).contains("name=\"activitySize\"");
-        assertThat(fragment).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=2&amp;activitySize=2\"");
+        assertThat(fragment).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=2&amp;activitySize=2&amp;activityOrder=asc\"");
         assertThat(fragment).contains("hx-sync=\"#workflow-detail-timeline-container:replace\"");
         assertThat(fragment).contains("id=\"activity-page-size-form\"");
+    }
+
+    @Test
+    void shouldRenderActivityTimelineInDescendingOrderWhenRequested() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/workflows/wf-detail-0001/timeline")
+                    .param("activityOrder", "desc")
+                    .param("activityPage", "1")
+                    .param("activitySize", "2")
+            )
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String fragment = result.getResponse().getContentAsString();
+        assertThat(fragment).contains("timeline-row-act-500");
+        assertThat(fragment).contains("timeline-row-act-100");
+        assertThat(fragment).doesNotContain("timeline-row-act-900");
+        assertThat(fragment.indexOf("timeline-row-act-500")).isLessThan(fragment.indexOf("timeline-row-act-100"));
+        assertThat(fragment).contains("id=\"activity-sort-order\"");
+        assertThat(fragment).contains("<option value=\"desc\" selected=\"selected\">倒序</option>");
+        assertThat(fragment).contains("activityOrder=desc");
+        assertThat(fragment).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=2&amp;activitySize=2&amp;activityOrder=desc\"");
     }
 
     @Test

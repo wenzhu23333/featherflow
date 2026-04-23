@@ -4,7 +4,7 @@
 <th:block th:fragment="timelineContainer(workflowId,activities,activityPagination)">
     <div id="workflow-detail-timeline-container"
          class="panel timeline-section"
-         th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.page},activitySize=${activityPagination.size})}"
+         th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.page},activitySize=${activityPagination.size},activityOrder=${activityOrder})}"
          hx-trigger="every 3s"
          hx-sync="#workflow-detail-timeline-container:abort"
          hx-swap="outerHTML">
@@ -25,6 +25,7 @@
                       hx-sync="#workflow-detail-timeline-container:replace"
                       hx-swap="outerHTML">
                     <input type="hidden" name="activityPage" value="1">
+                    <input type="hidden" name="activityOrder" th:value="${activityOrder}">
                     <label for="activity-page-size">每页</label>
                     <select id="activity-page-size" name="activitySize" onchange="this.form.requestSubmit()">
                         <option value="1" th:selected="${activityPagination.size == 1}">1</option>
@@ -37,19 +38,33 @@
                 <div class="pager-links">
                     <a th:if="${activityPagination.hasPrevious}"
                        class="pager-link"
-                       th:href="@{/workflows/{workflowId}(workflowId=${workflowId},activityPage=${activityPagination.previousPage},activitySize=${activityPagination.size})}"
-                       th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.previousPage},activitySize=${activityPagination.size})}"
+                       th:href="@{/workflows/{workflowId}(workflowId=${workflowId},activityPage=${activityPagination.previousPage},activitySize=${activityPagination.size},activityOrder=${activityOrder})}"
+                       th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.previousPage},activitySize=${activityPagination.size},activityOrder=${activityOrder})}"
                        hx-target="#workflow-detail-timeline-container"
                        hx-sync="#workflow-detail-timeline-container:replace"
                        hx-swap="outerHTML">上一页</a>
                     <a th:if="${activityPagination.hasNext}"
                        class="pager-link"
-                       th:href="@{/workflows/{workflowId}(workflowId=${workflowId},activityPage=${activityPagination.nextPage},activitySize=${activityPagination.size})}"
-                       th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.nextPage},activitySize=${activityPagination.size})}"
+                       th:href="@{/workflows/{workflowId}(workflowId=${workflowId},activityPage=${activityPagination.nextPage},activitySize=${activityPagination.size},activityOrder=${activityOrder})}"
+                       th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.nextPage},activitySize=${activityPagination.size},activityOrder=${activityOrder})}"
                        hx-target="#workflow-detail-timeline-container"
                        hx-sync="#workflow-detail-timeline-container:replace"
                        hx-swap="outerHTML">下一页</a>
                 </div>
+                <form id="activity-order-form"
+                      class="page-size-form"
+                      th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId})}"
+                      hx-target="#workflow-detail-timeline-container"
+                      hx-sync="#workflow-detail-timeline-container:replace"
+                      hx-swap="outerHTML">
+                    <input type="hidden" name="activityPage" value="1">
+                    <input type="hidden" name="activitySize" th:value="${activityPagination.size}">
+                    <label for="activity-sort-order">顺序</label>
+                    <select id="activity-sort-order" name="activityOrder" onchange="this.form.requestSubmit()">
+                        <option value="asc" th:selected="${activityOrder == 'asc'}">正序</option>
+                        <option value="desc" th:selected="${activityOrder == 'desc'}">倒序</option>
+                    </select>
+                </form>
             </div>
         </div>
         <table id="activity-timeline-table" class="data-table activity-timeline">

@@ -18,6 +18,7 @@ import com.ywz.workflow.featherflow.ops.view.WorkflowListItemView;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -33,6 +34,8 @@ public class WorkflowQueryService {
     private static final TypeReference<Map<String, Object>> MAP_TYPE = new TypeReference<Map<String, Object>>() {
     };
     private static final DateTimeFormatter MODIFIED_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final String ORDER_ASC = "asc";
+    private static final String ORDER_DESC = "desc";
 
     private final WorkflowViewRepository workflowViewRepository;
     private final ObjectMapper objectMapper;
@@ -51,12 +54,17 @@ public class WorkflowQueryService {
     }
 
     public PageView<WorkflowListItemView> listWorkflowPage(WorkflowListFilter filter, int page, int size) {
+        return listWorkflowPage(filter, page, size, ORDER_DESC);
+    }
+
+    public PageView<WorkflowListItemView> listWorkflowPage(WorkflowListFilter filter, int page, int size, String order) {
         return workflowViewRepository.findWorkflowListRows().stream()
             .filter(row -> containsIgnoreCase(row.workflowId(), filter.workflowId()))
             .filter(row -> containsIgnoreCase(row.bizId(), filter.bizId()))
             .filter(row -> containsIgnoreCase(row.workflowStatus(), filter.status()))
             .filter(row -> isWithinRange(row.gmtCreated(), filter.createdFrom(), filter.createdTo()))
             .filter(row -> isWithinRange(row.gmtModified(), filter.modifiedFrom(), filter.modifiedTo()))
+            .sorted(workflowListComparator(order))
             .map(this::toListItemView)
             .filter(view -> containsIgnoreCase(view.getWorkflowName(), filter.workflowName()))
             .collect(Collectors.collectingAndThen(Collectors.toList(), rows -> paginate(rows, page, size)));
@@ -67,11 +75,16 @@ public class WorkflowQueryService {
     }
 
     public Optional<WorkflowDetailView> getWorkflowDetail(String workflowId, int activityPage, int activitySize) {
+        return getWorkflowDetail(workflowId, activityPage, activitySize, ORDER_ASC);
+    }
+
+    public Optional<WorkflowDetailView> getWorkflowDetail(String workflowId, int activityPage, int activitySize, String activityOrder) {
         Optional<WorkflowDetailRow> row = workflowViewRepository.findWorkflowDetailRow(workflowId);
         if (!row.isPresent()) {
             return Optional.empty();
         }
         List<ActivityTimelineItemView> activities = workflowViewRepository.findActivityTimelineRows(workflowId).stream()
+            .sorted(activityTimelineComparator(activityOrder))
             .map(this::toActivityTimelineItemView)
             .collect(Collectors.toList());
         PageView<ActivityTimelineItemView> activityPageView = paginate(activities, activityPage, activitySize);
@@ -80,7 +93,7 @@ public class WorkflowQueryService {
             .collect(Collectors.toList());
 
         WorkflowDetailRow detailRow = row.get();
-        String latestActivityId = activities.isEmpty() ? null : activities.get(activities.size() - 1).getActivityId();
+        String latestActivityId = workflowViewRepository.findLatestActivityId(workflowId).orElse(null);
         return Optional.of(
             new WorkflowDetailView(
                 detailRow.workflowId(),
@@ -129,10 +142,20 @@ public class WorkflowQueryService {
     }
 
     public Optional<PageView<ActivityTimelineItemView>> getWorkflowTimeline(String workflowId, int activityPage, int activitySize) {
+        return getWorkflowTimeline(workflowId, activityPage, activitySize, ORDER_ASC);
+    }
+
+    public Optional<PageView<ActivityTimelineItemView>> getWorkflowTimeline(
+        String workflowId,
+        int activityPage,
+        int activitySize,
+        String activityOrder
+    ) {
         if (!workflowViewRepository.findWorkflowDetailRow(workflowId).isPresent()) {
             return Optional.empty();
         }
         List<ActivityTimelineItemView> activities = workflowViewRepository.findActivityTimelineRows(workflowId).stream()
+            .sorted(activityTimelineComparator(activityOrder))
             .map(this::toActivityTimelineItemView)
             .collect(Collectors.toList());
         return Optional.of(paginate(activities, activityPage, activitySize));
@@ -317,6 +340,45 @@ public class WorkflowQueryService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private Comparator<WorkflowListRow> workflowListComparator(String order) {
+        boolean ascending = isAscendingOrder(order, false);
+        return Comparator
+            .comparing(WorkflowListRow::gmtModified, timeComparator(ascending))
+            .thenComparing(WorkflowListRow::workflowId, textComparator(ascending));
+    }
+
+    private Comparator<ActivityTimelineRow> activityTimelineComparator(String order) {
+        boolean ascending = isAscendingOrder(order, true);
+        return Comparator
+            .comparing(ActivityTimelineRow::gmtCreated, timeComparator(ascending))
+            .thenComparing(ActivityTimelineRow::gmtModified, timeComparator(ascending))
+            .thenComparing(ActivityTimelineRow::activityId, textComparator(ascending));
+    }
+
+    private boolean isAscendingOrder(String order, boolean defaultAscending) {
+        if (ORDER_ASC.equalsIgnoreCase(trimToEmpty(order))) {
+            return true;
+        }
+        if (ORDER_DESC.equalsIgnoreCase(trimToEmpty(order))) {
+            return false;
+        }
+        return defaultAscending;
+    }
+
+    private Comparator<LocalDateTime> timeComparator(boolean ascending) {
+        Comparator<LocalDateTime> comparator = ascending ? Comparator.naturalOrder() : Comparator.reverseOrder();
+        return Comparator.nullsLast(comparator);
+    }
+
+    private Comparator<String> textComparator(boolean ascending) {
+        Comparator<String> comparator = ascending ? Comparator.naturalOrder() : Comparator.reverseOrder();
+        return Comparator.nullsLast(comparator);
+    }
+
+    private String trimToEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private <T> PageView<T> paginate(List<T> rows, int page, int size) {
