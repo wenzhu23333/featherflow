@@ -8,6 +8,7 @@ import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.Operat
 import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.OperationRecordRow;
 import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.WorkflowDetailRow;
 import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.WorkflowListRow;
+import com.ywz.workflow.featherflow.ops.view.ActivityFlowNodeView;
 import com.ywz.workflow.featherflow.ops.view.ActivityTimelineItemView;
 import com.ywz.workflow.featherflow.ops.view.AllowedActionsView;
 import com.ywz.workflow.featherflow.ops.view.OperationRecordView;
@@ -17,8 +18,10 @@ import com.ywz.workflow.featherflow.ops.view.WorkflowDetailView;
 import com.ywz.workflow.featherflow.ops.view.WorkflowListItemView;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -83,11 +86,13 @@ public class WorkflowQueryService {
         if (!row.isPresent()) {
             return Optional.empty();
         }
-        List<ActivityTimelineItemView> activities = workflowViewRepository.findActivityTimelineRows(workflowId).stream()
+        List<ActivityTimelineRow> activityRows = workflowViewRepository.findActivityTimelineRows(workflowId);
+        List<ActivityTimelineItemView> activities = activityRows.stream()
             .sorted(activityTimelineComparator(activityOrder))
             .map(this::toActivityTimelineItemView)
             .collect(Collectors.toList());
         PageView<ActivityTimelineItemView> activityPageView = paginate(activities, activityPage, activitySize);
+        List<ActivityFlowNodeView> activityFlowNodes = buildActivityFlowNodes(activityRows);
         List<OperationRecordView> operations = workflowViewRepository.findOperationRecordRows(workflowId).stream()
             .map(this::toOperationRecordView)
             .collect(Collectors.toList());
@@ -105,6 +110,7 @@ public class WorkflowQueryService {
                 formatTime(detailRow.gmtCreated()),
                 formatTime(detailRow.gmtModified()),
                 activityPageView,
+                activityFlowNodes,
                 operations,
                 latestActivityId,
                 buildAllowedActions(detailRow.workflowStatus(), latestActivityId)
@@ -130,6 +136,7 @@ public class WorkflowQueryService {
                 formatTime(detailRow.gmtCreated()),
                 formatTime(detailRow.gmtModified()),
                 paginate(Collections.<ActivityTimelineItemView>emptyList(), 1, 5),
+                Collections.<ActivityFlowNodeView>emptyList(),
                 Collections.<OperationRecordView>emptyList(),
                 latestActivityId,
                 buildAllowedActions(detailRow.workflowStatus(), latestActivityId)
@@ -159,6 +166,13 @@ public class WorkflowQueryService {
             .map(this::toActivityTimelineItemView)
             .collect(Collectors.toList());
         return Optional.of(paginate(activities, activityPage, activitySize));
+    }
+
+    public Optional<List<ActivityFlowNodeView>> getWorkflowActivityFlow(String workflowId) {
+        if (!workflowViewRepository.findWorkflowDetailRow(workflowId).isPresent()) {
+            return Optional.empty();
+        }
+        return Optional.of(buildActivityFlowNodes(workflowViewRepository.findActivityTimelineRows(workflowId)));
     }
 
     public List<OperationHistoryItemView> listOperations() {
@@ -202,6 +216,55 @@ public class WorkflowQueryService {
             blankToDash(row.input()),
             blankToDash(row.output())
         );
+    }
+
+    private List<ActivityFlowNodeView> buildActivityFlowNodes(List<ActivityTimelineRow> activityRows) {
+        List<ActivityTimelineItemView> attempts = activityRows.stream()
+            .sorted(activityTimelineComparator(ORDER_ASC))
+            .map(this::toActivityTimelineItemView)
+            .collect(Collectors.toList());
+        Map<String, List<ActivityTimelineItemView>> groupedAttempts =
+            new LinkedHashMap<String, List<ActivityTimelineItemView>>();
+        for (ActivityTimelineItemView attempt : attempts) {
+            if (!groupedAttempts.containsKey(attempt.getActivityName())) {
+                groupedAttempts.put(attempt.getActivityName(), new ArrayList<ActivityTimelineItemView>());
+            }
+            groupedAttempts.get(attempt.getActivityName()).add(attempt);
+        }
+
+        String latestActivityId = attempts.isEmpty() ? null : attempts.get(attempts.size() - 1).getActivityId();
+        List<ActivityFlowNodeView> nodes = new ArrayList<ActivityFlowNodeView>();
+        int sequence = 1;
+        for (Map.Entry<String, List<ActivityTimelineItemView>> entry : groupedAttempts.entrySet()) {
+            List<ActivityTimelineItemView> nodeAttempts = entry.getValue();
+            ActivityTimelineItemView latestAttempt = nodeAttempts.get(nodeAttempts.size() - 1);
+            int failedAttempts = countAttemptsByStatus(nodeAttempts, "FAILED");
+            int successfulAttempts = countAttemptsByStatus(nodeAttempts, "SUCCESSFUL");
+            nodes.add(new ActivityFlowNodeView(
+                sequence,
+                entry.getKey(),
+                latestAttempt.getStatus(),
+                latestAttempt.getExecutedNode(),
+                latestAttempt.getGmtModifiedDisplay(),
+                nodeAttempts.size(),
+                failedAttempts,
+                successfulAttempts,
+                latestAttempt.getActivityId().equals(latestActivityId),
+                nodeAttempts
+            ));
+            sequence++;
+        }
+        return nodes;
+    }
+
+    private int countAttemptsByStatus(List<ActivityTimelineItemView> attempts, String status) {
+        int count = 0;
+        for (ActivityTimelineItemView attempt : attempts) {
+            if (status.equals(attempt.getStatus())) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private OperationRecordView toOperationRecordView(OperationRecordRow row) {

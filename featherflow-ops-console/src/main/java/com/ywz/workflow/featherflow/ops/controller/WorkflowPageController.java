@@ -197,9 +197,13 @@ public class WorkflowPageController {
             .map(pageView -> {
                 model.addAttribute("activities", pageView.getItems());
                 model.addAttribute("activityPagination", pageView.getPagination());
+                model.addAttribute(
+                    "activityFlowNodes",
+                    workflowQueryService.getWorkflowActivityFlow(workflowId).orElse(Collections.emptyList())
+                );
                 model.addAttribute("workflowId", workflowId);
                 model.addAttribute("activityOrder", normalizedActivityOrder);
-                return "workflows/detail-timeline :: timelineContainer(workflowId=${workflowId},activities=${activities},activityPagination=${activityPagination})";
+                return "workflows/detail-timeline :: timelineContainer(workflowId=${workflowId},activities=${activities},activityPagination=${activityPagination},activityFlowNodes=${activityFlowNodes})";
             })
             .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Workflow not found: " + workflowId));
     }

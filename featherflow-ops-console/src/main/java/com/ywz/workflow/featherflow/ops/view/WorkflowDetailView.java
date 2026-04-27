@@ -13,6 +13,7 @@ public class WorkflowDetailView {
     private final String gmtCreatedDisplay;
     private final String gmtModifiedDisplay;
     private final PageView<ActivityTimelineItemView> activityPage;
+    private final List<ActivityFlowNodeView> activityFlowNodes;
     private final List<OperationRecordView> operations;
     private final String latestActivityId;
     private final AllowedActionsView allowedActions;
@@ -27,6 +28,7 @@ public class WorkflowDetailView {
         String gmtCreatedDisplay,
         String gmtModifiedDisplay,
         PageView<ActivityTimelineItemView> activityPage,
+        List<ActivityFlowNodeView> activityFlowNodes,
         List<OperationRecordView> operations,
         String latestActivityId,
         AllowedActionsView allowedActions
@@ -40,6 +42,7 @@ public class WorkflowDetailView {
         this.gmtCreatedDisplay = gmtCreatedDisplay;
         this.gmtModifiedDisplay = gmtModifiedDisplay;
         this.activityPage = activityPage;
+        this.activityFlowNodes = activityFlowNodes;
         this.operations = operations;
         this.latestActivityId = latestActivityId;
         this.allowedActions = allowedActions;
@@ -83,6 +86,10 @@ public class WorkflowDetailView {
 
     public PaginationView getActivityPagination() {
         return activityPage.getPagination();
+    }
+
+    public List<ActivityFlowNodeView> getActivityFlowNodes() {
+        return activityFlowNodes;
     }
 
     public List<OperationRecordView> getOperations() {

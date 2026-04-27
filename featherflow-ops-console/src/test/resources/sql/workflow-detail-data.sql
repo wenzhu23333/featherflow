@@ -29,3 +29,31 @@ insert into workflow_operation (workflow_id, operation_type, input, status, gmt_
 values
     ('wf-detail-0001', 'TERMINATE', '{bad-json', 'FAILED', timestamp '2026-04-01 10:06:00', timestamp '2026-04-01 10:06:00'),
     ('wf-detail-0001', 'TERMINATE', '{"operator":"alice","reason":"manual-stop","activityId":"act-500"}', 'SUCCESSFUL', timestamp '2026-04-01 10:08:00', timestamp '2026-04-01 10:08:00');
+
+insert into workflow_instance (workflow_id, biz_id, workflow_name, start_node, gmt_created, gmt_modified, input, status)
+values (
+    'wf-graph-0001',
+    'biz-graph-2001',
+    'graphWorkflow',
+    '10.9.8.10:host-g:1234:seed',
+    timestamp '2026-04-01 11:00:00',
+    timestamp '2026-04-01 11:08:00',
+    '{"orderId":"20001"}',
+    'HUMAN_PROCESSING'
+);
+
+insert into activity_instance (
+    activity_id,
+    workflow_id,
+    activity_name,
+    executed_node,
+    gmt_created,
+    gmt_modified,
+    input,
+    output,
+    status
+) values
+    ('act-g-100', 'wf-graph-0001', 'validateOrder', '10.9.8.10:host-g:1234:seed', timestamp '2026-04-01 11:00:00', timestamp '2026-04-01 11:01:00', '{"phase":"validate","attempt":1}', '{"error":"risk timeout"}', 'FAILED'),
+    ('act-g-101', 'wf-graph-0001', 'validateOrder', '10.9.8.11:host-h:1234:seed', timestamp '2026-04-01 11:01:00', timestamp '2026-04-01 11:02:00', '{"phase":"validate","attempt":2}', '{"error":"risk timeout"}', 'FAILED'),
+    ('act-g-102', 'wf-graph-0001', 'validateOrder', '10.9.8.12:host-i:1234:seed', timestamp '2026-04-01 11:02:00', timestamp '2026-04-01 11:03:00', '{"phase":"validate","attempt":3}', '{"validated":true}', 'SUCCESSFUL'),
+    ('act-g-200', 'wf-graph-0001', 'chargePayment', '10.9.8.13:host-j:1234:seed', timestamp '2026-04-01 11:03:00', timestamp '2026-04-01 11:05:00', '{"phase":"charge"}', '{"error":"payment gateway timeout"}', 'FAILED');

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <body>
-<th:block th:fragment="timelineContainer(workflowId,activities,activityPagination)">
+<th:block th:fragment="timelineContainer(workflowId,activities,activityPagination,activityFlowNodes)">
     <div id="workflow-detail-timeline-container"
          class="panel timeline-section"
          th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.page},activitySize=${activityPagination.size},activityOrder=${activityOrder})}"
@@ -101,6 +101,78 @@
             </tr>
             </tbody>
         </table>
+        <section id="activity-flow-overview"
+                 class="activity-flow-overview"
+                 th:if="${activityFlowNodes != null and !activityFlowNodes.isEmpty()}">
+            <div class="activity-flow-header">
+                <div>
+                    <h3>执行链路总览</h3>
+                    <p>按 activity 名称聚合已落库执行记录，展示每个大节点的重试和最终状态。</p>
+                </div>
+                <span class="pager-summary" th:text="'共 ' + ${activityFlowNodes.size()} + ' 个节点'">共 0 个节点</span>
+            </div>
+            <div class="activity-flow-strip">
+                <details th:each="node : ${activityFlowNodes}"
+                         th:id="'activity-flow-node-' + ${node.sequence}"
+                         class="activity-flow-node"
+                         th:classappend="${' status-' + #strings.toLowerCase(node.finalStatus)} + (${node.latestNode} ? ' activity-flow-current' : '')"
+                         th:attr="data-activity-name=${node.activityName}">
+                    <summary class="activity-flow-summary">
+                        <span class="activity-flow-marker" th:text="${node.sequence}">1</span>
+                        <span class="activity-flow-main">
+                            <strong th:text="${node.activityName}">activityName</strong>
+                            <span class="activity-flow-meta">
+                                <span th:text="'执行 ' + ${node.totalAttempts} + ' 次'">执行 1 次</span>
+                                <span th:text="'失败 ' + ${node.failedAttempts} + ' 次'">失败 0 次</span>
+                                <span th:text="'成功 ' + ${node.successfulAttempts} + ' 次'">成功 1 次</span>
+                            </span>
+                        </span>
+                        <span class="activity-flow-status">
+                            <span class="status-badge"
+                                  th:classappend="${' status-' + #strings.toLowerCase(node.finalStatus)}"
+                                  th:text="'最终 ' + ${node.finalStatus}">最终 SUCCESSFUL</span>
+                            <span class="activity-flow-current-badge" th:if="${node.latestNode}">最新执行</span>
+                        </span>
+                    </summary>
+                    <div class="activity-flow-detail">
+                        <div class="activity-flow-latest">
+                            <span th:text="'最近节点: ' + ${node.latestExecutedNode}">最近节点: -</span>
+                            <span th:text="'最近更新时间: ' + ${node.latestModifiedDisplay}">最近更新时间: -</span>
+                        </div>
+                        <table class="data-table activity-flow-attempts">
+                            <thead>
+                            <tr>
+                                <th>Activity ID</th>
+                                <th>执行节点</th>
+                                <th>状态</th>
+                                <th>更新时间</th>
+                                <th>输入</th>
+                                <th>输出</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="attempt : ${node.attempts}">
+                                <td th:text="${attempt.activityId}">activity-id</td>
+                                <td th:text="${attempt.executedNode}">executed-node</td>
+                                <td>
+                                    <span class="status-badge"
+                                          th:classappend="${' status-' + #strings.toLowerCase(attempt.status)}"
+                                          th:text="${attempt.status}">status</span>
+                                </td>
+                                <td th:text="${attempt.gmtModifiedDisplay}">gmt-modified</td>
+                                <td>
+                                    <div th:replace="~{fragments/json-preview :: viewer(|${attempt.activityName} 输入|, ${attempt.input})}"></div>
+                                </td>
+                                <td>
+                                    <div th:replace="~{fragments/json-preview :: viewer(|${attempt.activityName} 输出|, ${attempt.output})}"></div>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </details>
+            </div>
+        </section>
     </div>
 </th:block>
 </body>

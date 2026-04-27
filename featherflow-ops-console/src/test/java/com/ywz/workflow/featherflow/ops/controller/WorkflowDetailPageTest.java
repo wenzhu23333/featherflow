@@ -138,6 +138,41 @@ class WorkflowDetailPageTest {
     }
 
     @Test
+    void shouldRenderExecutedActivityFlowOverviewOnDetailPage() throws Exception {
+        MvcResult result = mockMvc.perform(get("/workflows/wf-graph-0001"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String page = result.getResponse().getContentAsString();
+        assertThat(page).contains("id=\"activity-flow-overview\"");
+        assertThat(page).contains("执行链路总览");
+        assertThat(page).contains("id=\"activity-flow-node-1\"");
+        assertThat(page).contains("id=\"activity-flow-node-2\"");
+        assertThat(page).contains("data-activity-name=\"validateOrder\"");
+        assertThat(page).contains("data-activity-name=\"chargePayment\"");
+        assertThat(countOccurrences(page, "data-activity-name=\"validateOrder\"")).isEqualTo(1);
+        assertThat(page).contains("执行 3 次");
+        assertThat(page).contains("失败 2 次");
+        assertThat(page).contains("最终 SUCCESSFUL");
+        assertThat(page).contains("执行 1 次");
+        assertThat(page).contains("失败 1 次");
+        assertThat(page).contains("最终 FAILED");
+        assertThat(page).contains("最新执行");
+
+        String validateNode = extractById(page, "activity-flow-node-1", "details");
+        String chargeNode = extractById(page, "activity-flow-node-2", "details");
+        assertThat(validateNode).contains("act-g-100");
+        assertThat(validateNode).contains("act-g-101");
+        assertThat(validateNode).contains("act-g-102");
+        assertThat(validateNode).contains("risk timeout");
+        assertThat(validateNode).contains("validated");
+        assertThat(chargeNode).contains("act-g-200");
+        assertThat(chargeNode).contains("payment gateway timeout");
+        assertThat(chargeNode).contains("activity-flow-current");
+        assertThat(page.indexOf("activity-flow-node-1")).isLessThan(page.indexOf("activity-flow-node-2"));
+    }
+
+    @Test
     void shouldReturnNotFoundWhenWorkflowIsMissing() throws Exception {
         mockMvc.perform(get("/workflows/not-exists-0001"))
             .andExpect(status().isNotFound());
@@ -184,6 +219,23 @@ class WorkflowDetailPageTest {
 
         Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getWorkflowTimeline("wf-detail-0001", 1, 5, "asc");
         Mockito.verify(workflowQueryService, Mockito.never()).getWorkflowDetail("wf-detail-0001");
+    }
+
+    @Test
+    void shouldRenderExecutedActivityFlowOverviewInTimelineFragment() throws Exception {
+        MvcResult result = mockMvc.perform(get("/workflows/wf-graph-0001/timeline"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String fragment = result.getResponse().getContentAsString();
+        assertThat(fragment).contains("id=\"activity-flow-overview\"");
+        assertThat(fragment).contains("data-activity-name=\"validateOrder\"");
+        assertThat(fragment).contains("data-activity-name=\"chargePayment\"");
+        assertThat(fragment).contains("执行 3 次");
+        assertThat(fragment).contains("失败 2 次");
+        assertThat(fragment).contains("最终 SUCCESSFUL");
+        assertThat(fragment).contains("最终 FAILED");
+        assertThat(fragment).doesNotContain("<html");
     }
 
     @Test
