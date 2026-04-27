@@ -19,24 +19,30 @@ public class WorkflowOperationProcessor {
     private final WorkflowRepository workflowRepository;
     private final WorkflowOperationHandler workflowOperationHandler;
     private final Clock clock;
+    private final String nodeIdentity;
+    private final WorkflowOperationInputEnricher inputEnricher;
 
     public WorkflowOperationProcessor(
         WorkflowOperationRepository workflowOperationRepository,
         WorkflowRepository workflowRepository,
         WorkflowOperationHandler workflowOperationHandler,
-        Clock clock
+        Clock clock,
+        String nodeIdentity
     ) {
         this.workflowOperationRepository = workflowOperationRepository;
         this.workflowRepository = workflowRepository;
         this.workflowOperationHandler = workflowOperationHandler;
         this.clock = clock;
+        this.nodeIdentity = nodeIdentity;
+        this.inputEnricher = new WorkflowOperationInputEnricher();
     }
 
     public boolean process(WorkflowOperation operation) {
         Map<String, String> logContext = resolveLogContext(operation.getWorkflowId());
         try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(logContext)) {
             Instant claimTime = clock.instant();
-            if (!workflowOperationRepository.claimPendingOperation(operation.getOperationId(), claimTime)) {
+            String claimedInput = enrichClaimInput(operation);
+            if (!workflowOperationRepository.claimPendingOperation(operation.getOperationId(), claimedInput, claimTime)) {
                 log.info(
                     "Skip workflow operation because it was already claimed, operationId={}, operationType={}",
                     operation.getOperationId(),
@@ -44,6 +50,8 @@ public class WorkflowOperationProcessor {
                 );
                 return false;
             }
+            operation.setInput(claimedInput);
+            operation.setGmtModified(claimTime);
 
             log.info(
                 "Claim workflow operation, operationId={}, operationType={}, dueAt={}",
@@ -69,6 +77,21 @@ public class WorkflowOperationProcessor {
                 throw (RuntimeException) throwable;
             }
             throw new IllegalStateException("Workflow operation processing failed", throwable);
+        }
+    }
+
+    private String enrichClaimInput(WorkflowOperation operation) {
+        String originalInput = operation.getInput();
+        try {
+            return inputEnricher.appendProcessedNode(originalInput, nodeIdentity);
+        } catch (RuntimeException ex) {
+            log.warn(
+                "Failed to append processed node into workflow operation input, operationId={}, operationType={}",
+                operation.getOperationId(),
+                operation.getOperationType(),
+                ex
+            );
+            return originalInput;
         }
     }
 

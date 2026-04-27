@@ -37,12 +37,13 @@ public class InMemoryWorkflowOperationRepository implements WorkflowOperationRep
     }
 
     @Override
-    public boolean claimPendingOperation(Long operationId, Instant modifiedAt) {
+    public boolean claimPendingOperation(Long operationId, String claimedInput, Instant modifiedAt) {
         WorkflowOperation operation = findRequired(operationId);
         synchronized (operation) {
             if (operation.getStatus() != OperationStatus.PENDING) {
                 return false;
             }
+            operation.setInput(claimedInput);
             operation.setStatus(OperationStatus.PROCESSING);
             operation.setGmtModified(modifiedAt);
             return true;

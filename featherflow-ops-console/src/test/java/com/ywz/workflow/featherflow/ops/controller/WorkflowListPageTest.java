@@ -245,6 +245,27 @@ class WorkflowListPageTest {
     }
 
     @Test
+    void shouldIgnoreCommaOnlyDateParametersWhenSwitchingWorkflowPagination() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/workflows/table")
+                    .param("createdFrom", ",")
+                    .param("createdTo", ", ")
+                    .param("modifiedFrom", " ,")
+                    .param("modifiedTo", ",")
+                    .param("page", "2")
+                    .param("size", "1")
+            )
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String fragment = result.getResponse().getContentAsString();
+        assertThat(fragment).doesNotContain("workflow-filter-errors");
+        assertThat(fragment).doesNotContain("Invalid date-time");
+        assertThat(fragment).contains("第 2 / 2 页");
+        assertThat(fragment).contains("workflow-row-wf-running-0001");
+    }
+
+    @Test
     void shouldRenderWorkflowPageStateWithFiltersInFullPage() throws Exception {
         MvcResult result = mockMvc.perform(
                 get("/workflows")

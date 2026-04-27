@@ -58,7 +58,8 @@ class WorkflowOperationDaemonTest {
                 repository,
                 new InMemoryWorkflowRepository(),
                 operation -> processed.add(operation.getWorkflowId() + ":" + operation.getOperationType().name()),
-                clock
+                clock,
+                "daemon-node-a"
             )
         );
 
@@ -82,7 +83,8 @@ class WorkflowOperationDaemonTest {
                 operation -> {
                     throw new IllegalStateException("daemon boom");
                 },
-                clock
+                clock,
+                "daemon-node-a"
             )
         );
 
@@ -119,7 +121,8 @@ class WorkflowOperationDaemonTest {
                 workflowRepository,
                 ignored -> {
                 },
-                clock
+                clock,
+                "daemon-node-a"
             )
         );
 
@@ -129,6 +132,59 @@ class WorkflowOperationDaemonTest {
             assertThat(event.getFormattedMessage()).contains("Process workflow operation");
             assertThat(event.getMDCPropertyMap()).containsEntry("workflowId", "wf-log-1");
             assertThat(event.getMDCPropertyMap()).containsEntry("bizId", "biz-log-1");
+        });
+    }
+
+    @Test
+    void shouldAppendProcessedNodeIntoOperationInputWhenClaimed() {
+        WorkflowOperationRepository repository = new InMemoryWorkflowOperationRepository();
+        repository.savePendingOperation(WorkflowOperation.pending("wf-claim-1", OperationType.START, "{\"source\":\"ops-console\"}", clock.instant()));
+
+        WorkflowOperationDaemon daemon = new WorkflowOperationDaemon(
+            repository,
+            clock,
+            new WorkflowOperationProcessor(
+                repository,
+                new InMemoryWorkflowRepository(),
+                ignored -> {
+                },
+                clock,
+                "daemon-node-a"
+            )
+        );
+
+        daemon.pollOnce();
+
+        assertThat(repository.findAll()).singleElement().satisfies(operation -> {
+            assertThat(operation.getStatus()).isEqualTo(OperationStatus.SUCCESSFUL);
+            assertThat(operation.getInput()).contains("\"source\":\"ops-console\"");
+            assertThat(operation.getInput()).contains("\"processedNode\":\"daemon-node-a\"");
+        });
+    }
+
+    @Test
+    void shouldPreserveOriginalOperationInputWhenItIsNotJsonObject() {
+        WorkflowOperationRepository repository = new InMemoryWorkflowOperationRepository();
+        repository.savePendingOperation(WorkflowOperation.pending("wf-claim-2", OperationType.START, "plain-text-input", clock.instant()));
+
+        WorkflowOperationDaemon daemon = new WorkflowOperationDaemon(
+            repository,
+            clock,
+            new WorkflowOperationProcessor(
+                repository,
+                new InMemoryWorkflowRepository(),
+                ignored -> {
+                },
+                clock,
+                "daemon-node-b"
+            )
+        );
+
+        daemon.pollOnce();
+
+        assertThat(repository.findAll()).singleElement().satisfies(operation -> {
+            assertThat(operation.getInput()).contains("\"processedNode\":\"daemon-node-b\"");
+            assertThat(operation.getInput()).contains("\"originalInput\":\"plain-text-input\"");
         });
     }
 }

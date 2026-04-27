@@ -29,8 +29,11 @@ public class RetryingWorkflowOperationRepository implements WorkflowOperationRep
     }
 
     @Override
-    public boolean claimPendingOperation(Long operationId, Instant modifiedAt) {
-        return retrier.call("workflowOperationRepository.claimPendingOperation", () -> Boolean.valueOf(delegate.claimPendingOperation(operationId, modifiedAt)))
+    public boolean claimPendingOperation(Long operationId, String claimedInput, Instant modifiedAt) {
+        return retrier.call(
+                "workflowOperationRepository.claimPendingOperation",
+                () -> Boolean.valueOf(delegate.claimPendingOperation(operationId, claimedInput, modifiedAt))
+            )
             .booleanValue();
     }
 

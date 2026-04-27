@@ -308,9 +308,16 @@ public class FeatherFlowAutoConfiguration {
         WorkflowOperationRepository workflowOperationRepository,
         WorkflowRepository workflowRepository,
         WorkflowOperationHandler workflowOperationHandler,
-        Clock featherflowClock
+        Clock featherflowClock,
+        WorkflowNodeIdentity workflowNodeIdentity
     ) {
-        return new WorkflowOperationProcessor(workflowOperationRepository, workflowRepository, workflowOperationHandler, featherflowClock);
+        return new WorkflowOperationProcessor(
+            workflowOperationRepository,
+            workflowRepository,
+            workflowOperationHandler,
+            featherflowClock,
+            workflowNodeIdentity.getInstanceId()
+        );
     }
 
     @Bean

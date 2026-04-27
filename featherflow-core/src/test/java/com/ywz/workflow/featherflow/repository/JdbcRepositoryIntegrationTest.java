@@ -70,8 +70,8 @@ class JdbcRepositoryIntegrationTest {
 
         WorkflowOperation operation = WorkflowOperation.pending(workflow.getWorkflowId(), OperationType.START, "{\"amount\":100}", now);
         operationRepository.savePendingOperation(operation);
-        assertThat(operationRepository.claimPendingOperation(operation.getOperationId(), now)).isTrue();
-        assertThat(operationRepository.claimPendingOperation(operation.getOperationId(), now)).isFalse();
+        assertThat(operationRepository.claimPendingOperation(operation.getOperationId(), "{\"amount\":100,\"processedNode\":\"daemon-node-a\"}", now)).isTrue();
+        assertThat(operationRepository.claimPendingOperation(operation.getOperationId(), "{\"amount\":100,\"processedNode\":\"daemon-node-b\"}", now)).isFalse();
         operationRepository.markSuccessful(operation.getOperationId(), now);
 
         WorkflowInstance loadedWorkflow = workflowRepository.findRequired(workflow.getWorkflowId());
@@ -85,6 +85,7 @@ class JdbcRepositoryIntegrationTest {
         assertThat(operationRepository.findAll()).hasSize(1);
         assertThat(operationRepository.findAll()).singleElement().satisfies(savedOperation -> {
             assertThat(savedOperation.getStatus()).isEqualTo(OperationStatus.SUCCESSFUL);
+            assertThat(savedOperation.getInput()).contains("\"processedNode\":\"daemon-node-a\"");
         });
     }
 

@@ -57,10 +57,11 @@ public class JdbcWorkflowOperationRepository implements WorkflowOperationReposit
     }
 
     @Override
-    public boolean claimPendingOperation(Long operationId, Instant modifiedAt) {
+    public boolean claimPendingOperation(Long operationId, String claimedInput, Instant modifiedAt) {
         return jdbcTemplate.update(
-            "update workflow_operation set status = ?, gmt_modified = ? where operation_id = ? and status = ?",
+            "update workflow_operation set status = ?, input = ?, gmt_modified = ? where operation_id = ? and status = ?",
             OperationStatus.PROCESSING.name(),
+            claimedInput,
             Timestamp.from(modifiedAt),
             operationId,
             OperationStatus.PENDING.name()

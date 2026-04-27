@@ -44,6 +44,19 @@ public final class FilterDateTimeParser {
     }
 
     private static boolean isBlank(String value) {
-        return value == null || value.trim().isEmpty();
+        if (value == null) {
+            return true;
+        }
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) {
+            return true;
+        }
+        for (int index = 0; index < trimmed.length(); index++) {
+            char current = trimmed.charAt(index);
+            if (current != ',' && !Character.isWhitespace(current)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

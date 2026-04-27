@@ -10,7 +10,7 @@ public interface WorkflowOperationRepository {
 
     List<WorkflowOperation> findDuePendingOperations(Instant now);
 
-    boolean claimPendingOperation(Long operationId, Instant modifiedAt);
+    boolean claimPendingOperation(Long operationId, String claimedInput, Instant modifiedAt);
 
     List<WorkflowOperation> findPendingByWorkflowId(String workflowId);
 
