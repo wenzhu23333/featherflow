@@ -5,7 +5,6 @@ import com.ywz.workflow.featherflow.ops.service.FilterDateTimeParser;
 import com.ywz.workflow.featherflow.ops.service.WorkflowListFilter;
 import com.ywz.workflow.featherflow.ops.view.PageView;
 import com.ywz.workflow.featherflow.ops.view.WorkflowListItemView;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -228,9 +227,6 @@ public class WorkflowPageController {
         model.addAttribute("modifiedTo", modifiedTo);
         model.addAttribute("order", order);
         model.addAttribute("workflowStatuses", WORKFLOW_STATUS_OPTIONS);
-        List<String> selectedStatuses = splitRequestValues(filter.status());
-        model.addAttribute("selectedStatuses", selectedStatuses);
-        model.addAttribute("selectedStatusSummary", selectedStatuses.isEmpty() ? "全部状态" : String.join(", ", selectedStatuses));
         model.addAttribute("dateFilterErrors", dateFilterErrors);
     }
 
@@ -276,19 +272,5 @@ public class WorkflowPageController {
             }
         }
         return firstNonBlankPart;
-    }
-
-    private List<String> splitRequestValues(String value) {
-        if (value == null || value.trim().isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<String> values = new ArrayList<>();
-        for (String part : value.split(",")) {
-            String normalizedPart = part.trim();
-            if (!normalizedPart.isEmpty() && !values.contains(normalizedPart)) {
-                values.add(normalizedPart);
-            }
-        }
-        return values;
     }
 }

@@ -3,7 +3,10 @@ package com.ywz.workflow.featherflow.ops.controller;
 import com.ywz.workflow.featherflow.ops.service.WorkflowQueryService;
 import com.ywz.workflow.featherflow.ops.service.FilterDateTimeParser;
 import com.ywz.workflow.featherflow.ops.service.OperationHistoryFilter;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,6 +15,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class OperationHistoryController {
+
+    private static final List<String> OPERATION_STATUS_OPTIONS = Collections.unmodifiableList(Arrays.asList(
+        "PENDING",
+        "PROCESSING",
+        "SUCCESSFUL",
+        "FAILED"
+    ));
 
     private final WorkflowQueryService workflowQueryService;
 
@@ -82,6 +92,7 @@ public class OperationHistoryController {
         model.addAttribute("bizId", filter.bizId());
         model.addAttribute("operationType", filter.operationType());
         model.addAttribute("status", filter.status());
+        model.addAttribute("operationStatuses", OPERATION_STATUS_OPTIONS);
         model.addAttribute("operator", filter.operator());
         model.addAttribute("createdFrom", createdFrom);
         model.addAttribute("createdTo", createdTo);

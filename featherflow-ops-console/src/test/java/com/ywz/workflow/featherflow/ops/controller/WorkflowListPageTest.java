@@ -330,27 +330,25 @@ class WorkflowListPageTest {
     }
 
     @Test
-    void shouldRenderWorkflowStatusFilterAsMultiSelect() throws Exception {
+    void shouldRenderWorkflowStatusFilterAsNativeSelect() throws Exception {
         MvcResult result = mockMvc.perform(
                 get("/workflows")
-                    .param("status", "RUNNING", "TERMINATED")
+                    .param("status", "RUNNING")
             )
             .andExpect(status().isOk())
             .andReturn();
 
         String page = result.getResponse().getContentAsString();
-        assertThat(page).contains("status-multiselect.js");
-        assertThat(page).contains("id=\"workflow-status-filter\" type=\"hidden\" name=\"status\"");
-        assertThat(page).contains("data-multi-select");
-        assertThat(page).contains("id=\"workflow-status-filter-button\"");
-        assertThat(page).contains("class=\"multi-select-summary\"");
-        assertThat(page).contains(">RUNNING, TERMINATED<");
-        assertThat(page).contains("class=\"multi-select-menu\"");
-        assertThat(page).containsPattern("(?s)<input[^>]*type=\"checkbox\"[^>]*value=\"RUNNING\"[^>]*checked=\"checked\"");
-        assertThat(page).containsPattern("(?s)<input[^>]*type=\"checkbox\"[^>]*value=\"TERMINATED\"[^>]*checked=\"checked\"");
-        assertThat(page).containsPattern("(?s)<input[^>]*type=\"checkbox\"[^>]*value=\"HUMAN_PROCESSING\"");
-        assertThat(page).containsPattern("(?s)<input[^>]*type=\"checkbox\"[^>]*value=\"COMPLETED\"");
-        assertThat(page).doesNotContain("multiple=\"multiple\"");
+        assertThat(page).doesNotContain("status-multiselect.js");
+        assertThat(page).contains("<select id=\"workflow-status-filter\" name=\"status\"");
+        assertThat(page).contains("<option value=\"\">全部状态</option>");
+        assertThat(Pattern.compile("<option value=\"RUNNING\"\\s+selected=\"selected\">RUNNING</option>").matcher(page).find())
+            .isTrue();
+        assertThat(page).contains("<option value=\"HUMAN_PROCESSING\">HUMAN_PROCESSING</option>");
+        assertThat(page).contains("<option value=\"TERMINATED\">TERMINATED</option>");
+        assertThat(page).contains("<option value=\"COMPLETED\">COMPLETED</option>");
+        assertThat(page).doesNotContain("data-multi-select");
+        assertThat(page).doesNotContain("class=\"multi-select-trigger\"");
     }
 
     @Test

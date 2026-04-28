@@ -42,6 +42,12 @@ class OperationHistoryPageTest {
         assertThat(page).contains("name=\"bizId\"");
         assertThat(page).contains("name=\"operationType\"");
         assertThat(page).contains("name=\"status\"");
+        assertThat(page).contains("<select id=\"operation-status\" name=\"status\"");
+        assertThat(page).contains("<option value=\"\">全部状态</option>");
+        assertThat(page).contains("<option value=\"PENDING\">PENDING</option>");
+        assertThat(page).contains("<option value=\"PROCESSING\">PROCESSING</option>");
+        assertThat(page).contains("<option value=\"SUCCESSFUL\">SUCCESSFUL</option>");
+        assertThat(page).contains("<option value=\"FAILED\">FAILED</option>");
         assertThat(page).contains("name=\"operator\"");
         assertThat(page).contains("name=\"createdFrom\"");
         assertThat(page).contains("name=\"createdTo\"");

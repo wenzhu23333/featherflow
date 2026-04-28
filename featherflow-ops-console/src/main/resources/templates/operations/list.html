@@ -46,7 +46,13 @@
             </div>
             <div class="field-group">
                 <label for="operation-status">状态</label>
-                <input id="operation-status" type="text" name="status" placeholder="status" th:value="${status}">
+                <select id="operation-status" name="status" th:value="${status}">
+                    <option value="">全部状态</option>
+                    <option th:each="operationStatus : ${operationStatuses}"
+                            th:value="${operationStatus}"
+                            th:text="${operationStatus}"
+                            th:selected="${status == operationStatus}">SUCCESSFUL</option>
+                </select>
             </div>
             <div class="field-group">
                 <label for="operation-operator">操作人</label>
