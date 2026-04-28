@@ -5,6 +5,8 @@
     <title>Workflow 列表</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script th:src="@{/js/status-multiselect.js}" defer></script>
+    <script th:src="@{/js/workflow-list-controls.js}" defer></script>
 </head>
 <body>
 <div class="page-shell">
@@ -43,13 +45,26 @@
                 <input id="biz-id-filter" type="text" name="bizId" placeholder="bizId" th:value="${bizId}">
             </div>
             <div class="field-group">
-                <label for="workflow-status-filter">状态</label>
-                <select id="workflow-status-filter" name="status" multiple="multiple" size="4">
-                    <option th:each="workflowStatus : ${workflowStatuses}"
-                            th:value="${workflowStatus}"
-                            th:text="${workflowStatus}"
-                            th:selected="${selectedStatuses != null and selectedStatuses.contains(workflowStatus)}">RUNNING</option>
-                </select>
+                <label for="workflow-status-filter-button">状态</label>
+                <input id="workflow-status-filter" type="hidden" name="status" th:value="${status}">
+                <div class="multi-select" data-multi-select>
+                    <button id="workflow-status-filter-button"
+                            class="multi-select-trigger"
+                            type="button"
+                            aria-haspopup="listbox"
+                            aria-expanded="false">
+                        <span class="multi-select-summary" data-multi-select-summary th:text="${selectedStatusSummary}">全部状态</span>
+                        <span class="multi-select-caret" aria-hidden="true">v</span>
+                    </button>
+                    <div class="multi-select-menu" role="listbox" aria-labelledby="workflow-status-filter-button">
+                        <label class="multi-select-option" th:each="workflowStatus : ${workflowStatuses}">
+                            <input type="checkbox"
+                                   th:value="${workflowStatus}"
+                                   th:checked="${selectedStatuses != null and selectedStatuses.contains(workflowStatus)}">
+                            <span th:text="${workflowStatus}">RUNNING</span>
+                        </label>
+                    </div>
+                </div>
             </div>
             <div class="field-group">
                 <label for="workflow-name-filter">Workflow 名称</label>

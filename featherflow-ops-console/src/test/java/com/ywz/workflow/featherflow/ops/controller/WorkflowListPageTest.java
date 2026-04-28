@@ -108,6 +108,20 @@ class WorkflowListPageTest {
     }
 
     @Test
+    void shouldTreatBlankWorkflowStatusFilterAsAllStatuses() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/workflows/table")
+                    .param("status", "")
+            )
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String fragment = result.getResponse().getContentAsString();
+        assertThat(fragment).contains("workflow-row-wf-running-0001");
+        assertThat(fragment).contains("workflow-row-wf-terminated-01");
+    }
+
+    @Test
     void shouldRenderWorkflowListTableFragment() throws Exception {
         MvcResult result = mockMvc.perform(get("/workflows/table"))
             .andExpect(status().isOk())
@@ -195,11 +209,15 @@ class WorkflowListPageTest {
             .andReturn();
 
         String page = result.getResponse().getContentAsString();
+        String pageSizeSelect = extractTagById(page, "workflow-page-size", "select");
         assertThat(page).contains("workflow-page-size");
+        assertThat(page).contains("workflow-list-controls.js");
         assertThat(page).contains("第 1 / 2 页");
         assertThat(page).contains("共 2 条");
         assertThat(page).contains("page=2");
         assertThat(page).contains("id=\"workflow-page-size\"");
+        assertThat(pageSizeSelect).contains("data-workflow-page-size-control");
+        assertThat(pageSizeSelect).doesNotContain("name=\"size\"");
         assertThat(page).contains("class=\"pager-summary\"");
     }
 
@@ -215,9 +233,12 @@ class WorkflowListPageTest {
             .andReturn();
 
         String fragment = result.getResponse().getContentAsString();
+        String orderSelect = extractTagById(fragment, "workflow-sort-order", "select");
         assertThat(fragment).contains("workflow-row-wf-running-0001");
         assertThat(fragment).doesNotContain("workflow-row-wf-terminated-01");
         assertThat(fragment).contains("id=\"workflow-sort-order\"");
+        assertThat(orderSelect).contains("data-workflow-order-control");
+        assertThat(orderSelect).doesNotContain("name=\"order\"");
         assertThat(fragment).contains("<option value=\"asc\" selected=\"selected\">最早优先</option>");
         assertThat(fragment).contains("order=asc");
         assertThat(fragment).contains("id=\"workflow-order-input\" name=\"order\" value=\"asc\"");
@@ -318,15 +339,18 @@ class WorkflowListPageTest {
             .andReturn();
 
         String page = result.getResponse().getContentAsString();
-        assertThat(page).contains("id=\"workflow-status-filter\"");
-        assertThat(page).contains("name=\"status\"");
-        assertThat(page).contains("multiple=\"multiple\"");
-        assertThat(page).contains("value=\"RUNNING\"");
-        assertThat(page).contains("selected=\"selected\">RUNNING</option>");
-        assertThat(page).contains("value=\"TERMINATED\"");
-        assertThat(page).contains("selected=\"selected\">TERMINATED</option>");
-        assertThat(page).contains("<option value=\"HUMAN_PROCESSING\">HUMAN_PROCESSING</option>");
-        assertThat(page).contains("<option value=\"COMPLETED\">COMPLETED</option>");
+        assertThat(page).contains("status-multiselect.js");
+        assertThat(page).contains("id=\"workflow-status-filter\" type=\"hidden\" name=\"status\"");
+        assertThat(page).contains("data-multi-select");
+        assertThat(page).contains("id=\"workflow-status-filter-button\"");
+        assertThat(page).contains("class=\"multi-select-summary\"");
+        assertThat(page).contains(">RUNNING, TERMINATED<");
+        assertThat(page).contains("class=\"multi-select-menu\"");
+        assertThat(page).containsPattern("(?s)<input[^>]*type=\"checkbox\"[^>]*value=\"RUNNING\"[^>]*checked=\"checked\"");
+        assertThat(page).containsPattern("(?s)<input[^>]*type=\"checkbox\"[^>]*value=\"TERMINATED\"[^>]*checked=\"checked\"");
+        assertThat(page).containsPattern("(?s)<input[^>]*type=\"checkbox\"[^>]*value=\"HUMAN_PROCESSING\"");
+        assertThat(page).containsPattern("(?s)<input[^>]*type=\"checkbox\"[^>]*value=\"COMPLETED\"");
+        assertThat(page).doesNotContain("multiple=\"multiple\"");
     }
 
     @Test

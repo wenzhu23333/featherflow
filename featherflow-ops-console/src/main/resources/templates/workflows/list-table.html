@@ -22,30 +22,15 @@
                 <span th:text="'第 ' + ${workflowPage.pagination.page} + ' / ' + ${workflowPage.pagination.totalPages} + ' 页'">第 1 / 1 页</span>
                 <span th:text="'共 ' + ${workflowPage.pagination.totalElements} + ' 条'">共 0 条</span>
             </div>
-            <form id="workflow-page-size-form"
-                  class="page-size-form"
-                  hx-get="/workflows/table"
-                  hx-target="#workflow-list-container"
-                  hx-swap="innerHTML"
-                  hx-disinherit="hx-include">
-                <input type="hidden" name="workflowId" th:value="${workflowId}">
-                <input type="hidden" name="bizId" th:value="${bizId}">
-                <input type="hidden" name="status" th:value="${status}">
-                <input type="hidden" name="workflowName" th:value="${workflowName}">
-                <input type="hidden" name="createdFrom" th:value="${createdFrom}">
-                <input type="hidden" name="createdTo" th:value="${createdTo}">
-                <input type="hidden" name="modifiedFrom" th:value="${modifiedFrom}">
-                <input type="hidden" name="modifiedTo" th:value="${modifiedTo}">
-                <input type="hidden" name="order" th:value="${order}">
-                <input type="hidden" name="page" value="1">
+            <div id="workflow-page-size-control" class="page-size-form">
                 <label for="workflow-page-size">每页</label>
-                <select id="workflow-page-size" name="size" onchange="this.form.requestSubmit()">
+                <select id="workflow-page-size" data-workflow-page-size-control>
                     <option value="1" th:selected="${workflowPage.pagination.size == 1}">1</option>
                     <option value="5" th:selected="${workflowPage.pagination.size == 5}">5</option>
                     <option value="10" th:selected="${workflowPage.pagination.size == 10}">10</option>
                     <option value="20" th:selected="${workflowPage.pagination.size == 20}">20</option>
                 </select>
-            </form>
+            </div>
             <div class="pager-links">
                 <a th:if="${workflowPage.pagination.hasPrevious}"
                    class="pager-link"
@@ -62,28 +47,13 @@
                    hx-swap="innerHTML"
                    hx-disinherit="hx-include">下一页</a>
             </div>
-            <form id="workflow-order-form"
-                  class="page-size-form"
-                  hx-get="/workflows/table"
-                  hx-target="#workflow-list-container"
-                  hx-swap="innerHTML"
-                  hx-disinherit="hx-include">
-                <input type="hidden" name="workflowId" th:value="${workflowId}">
-                <input type="hidden" name="bizId" th:value="${bizId}">
-                <input type="hidden" name="status" th:value="${status}">
-                <input type="hidden" name="workflowName" th:value="${workflowName}">
-                <input type="hidden" name="createdFrom" th:value="${createdFrom}">
-                <input type="hidden" name="createdTo" th:value="${createdTo}">
-                <input type="hidden" name="modifiedFrom" th:value="${modifiedFrom}">
-                <input type="hidden" name="modifiedTo" th:value="${modifiedTo}">
-                <input type="hidden" name="page" value="1">
-                <input type="hidden" name="size" th:value="${workflowPage.pagination.size}">
+            <div id="workflow-order-control" class="page-size-form">
                 <label for="workflow-sort-order">顺序</label>
-                <select id="workflow-sort-order" name="order" onchange="this.form.requestSubmit()">
+                <select id="workflow-sort-order" data-workflow-order-control>
                     <option value="desc" th:selected="${order == 'desc'}">最新优先</option>
                     <option value="asc" th:selected="${order == 'asc'}">最早优先</option>
                 </select>
-            </form>
+            </div>
         </div>
     </div>
     <div class="table-scroll workflow-table-scroll">

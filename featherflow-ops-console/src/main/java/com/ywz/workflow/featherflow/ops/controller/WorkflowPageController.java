@@ -228,7 +228,9 @@ public class WorkflowPageController {
         model.addAttribute("modifiedTo", modifiedTo);
         model.addAttribute("order", order);
         model.addAttribute("workflowStatuses", WORKFLOW_STATUS_OPTIONS);
-        model.addAttribute("selectedStatuses", splitRequestValues(filter.status()));
+        List<String> selectedStatuses = splitRequestValues(filter.status());
+        model.addAttribute("selectedStatuses", selectedStatuses);
+        model.addAttribute("selectedStatusSummary", selectedStatuses.isEmpty() ? "全部状态" : String.join(", ", selectedStatuses));
         model.addAttribute("dateFilterErrors", dateFilterErrors);
     }
 

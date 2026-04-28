@@ -261,15 +261,92 @@ select {
 
 input[type="text"]:focus,
 input[type="datetime-local"]:focus,
-select:focus {
+select:focus,
+.multi-select-trigger:focus {
     outline: 3px solid rgba(15, 118, 110, 0.13);
     outline-offset: 1px;
     border-color: rgba(15, 118, 110, 0.42);
 }
 
-.field-group select[multiple] {
-    min-height: 92px;
-    padding: 6px 10px;
+.multi-select {
+    position: relative;
+}
+
+.multi-select-trigger {
+    display: flex;
+    width: 100%;
+    min-height: 36px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--text);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.multi-select-summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.multi-select-caret {
+    color: var(--muted);
+    font-size: 11px;
+    line-height: 1;
+    transition: transform 0.16s ease;
+}
+
+.multi-select.is-open .multi-select-caret {
+    transform: rotate(180deg);
+}
+
+.multi-select-menu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    display: none;
+    gap: 4px;
+    max-height: 240px;
+    padding: 8px;
+    overflow-y: auto;
+    border: 1px solid rgba(198, 212, 222, 0.92);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
+}
+
+.multi-select.is-open .multi-select-menu {
+    display: grid;
+}
+
+.multi-select-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.multi-select-option:hover {
+    background: rgba(15, 118, 110, 0.08);
+}
+
+.multi-select-option input {
+    width: 14px;
+    height: 14px;
+    accent-color: var(--primary);
 }
 
 .filter-actions,
@@ -559,6 +636,73 @@ select:focus {
     width: 150px;
     background: #f5f9fb;
     color: #475467;
+}
+
+.info-table td {
+    position: relative;
+}
+
+.info-value {
+    overflow-wrap: anywhere;
+}
+
+.copy-value-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    margin-left: 8px;
+    padding: 0;
+    vertical-align: middle;
+    border: 1px solid rgba(15, 118, 110, 0.22);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--accent-deep);
+    cursor: pointer;
+    transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
+}
+
+.copy-value-button svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+}
+
+.copy-value-button:hover {
+    background: var(--accent-soft);
+    border-color: rgba(15, 118, 110, 0.48);
+    transform: translateY(-1px);
+}
+
+.copy-value-button.is-copied {
+    color: var(--success);
+    border-color: rgba(22, 163, 74, 0.35);
+    background: var(--success-soft);
+}
+
+.log-center-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border: 1px solid rgba(15, 118, 110, 0.28);
+    border-radius: 999px;
+    background: linear-gradient(180deg, #f8fbfb, #ecf8f5);
+    color: var(--accent-deep);
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.log-center-link:hover {
+    border-color: rgba(15, 118, 110, 0.5);
+    background: var(--accent-soft);
+}
+
+.log-center-link.is-disabled {
+    color: var(--muted);
+    background: var(--neutral-soft);
+    border-color: var(--border);
 }
 
 .json-block,

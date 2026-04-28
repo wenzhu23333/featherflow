@@ -10,6 +10,7 @@ public class WorkflowDetailView {
     private final String startNode;
     private final String workflowStatus;
     private final String workflowInput;
+    private final String logCenterUrl;
     private final String gmtCreatedDisplay;
     private final String gmtModifiedDisplay;
     private final PageView<ActivityTimelineItemView> activityPage;
@@ -25,6 +26,7 @@ public class WorkflowDetailView {
         String startNode,
         String workflowStatus,
         String workflowInput,
+        String logCenterUrl,
         String gmtCreatedDisplay,
         String gmtModifiedDisplay,
         PageView<ActivityTimelineItemView> activityPage,
@@ -39,6 +41,7 @@ public class WorkflowDetailView {
         this.startNode = startNode;
         this.workflowStatus = workflowStatus;
         this.workflowInput = workflowInput;
+        this.logCenterUrl = logCenterUrl;
         this.gmtCreatedDisplay = gmtCreatedDisplay;
         this.gmtModifiedDisplay = gmtModifiedDisplay;
         this.activityPage = activityPage;
@@ -70,6 +73,10 @@ public class WorkflowDetailView {
 
     public String getWorkflowInput() {
         return workflowInput;
+    }
+
+    public String getLogCenterUrl() {
+        return logCenterUrl;
     }
 
     public String getGmtCreatedDisplay() {

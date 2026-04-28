@@ -33,6 +33,9 @@ class WorkflowListStyleTest {
         assertThat(css).contains("word-wrap: break-word;");
         assertThat(css).contains("box-sizing: border-box;");
         assertThat(css).contains("min-width: 0;");
+        assertThat(css).contains(".multi-select-trigger");
+        assertThat(css).contains(".multi-select-menu");
+        assertThat(css).contains(".multi-select.is-open .multi-select-menu");
         assertThat(css).doesNotContain(".json-formatted-output");
     }
 

@@ -54,6 +54,11 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("2026-04-01 10:08:00");
         assertThat(page).contains("重试");
         assertThat(page).contains("跳过最新活动");
+        assertThat(page).contains("日志中心");
+        assertThat(page).contains("暂无链接");
+        assertThat(page).contains("copy-value-button");
+        assertThat(page).contains("clipboard-copy.js");
+        assertThat(page).doesNotContain("xray.devops.xiaohongshu.com");
         assertThat(page).doesNotContain(">终止<");
         assertThat(page).contains("status-badge");
         assertThat(page).contains("status-terminated");
@@ -188,6 +193,9 @@ class WorkflowDetailPageTest {
         String fragment = result.getResponse().getContentAsString();
         assertThat(fragment).contains("data-latest-activity-id=\"act-500\"");
         assertThat(fragment).contains("wf-detail-0001");
+        assertThat(fragment).contains("日志中心");
+        assertThat(fragment).contains("暂无链接");
+        assertThat(fragment).contains("copy-value-button");
         assertThat(fragment).doesNotContain("<html");
 
         Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getWorkflowSummary("wf-detail-0001");
