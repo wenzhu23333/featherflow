@@ -187,7 +187,10 @@ class WorkflowListPageTest {
             .andReturn();
 
         String fragment = result.getResponse().getContentAsString();
-        assertThat(fragment).contains("hx-get=\"/workflows/table");
+        String nextPageLink = extractAnchorByText(fragment, "下一页");
+        assertThat(nextPageLink).contains("href=\"/workflows?page=2");
+        assertThat(nextPageLink).doesNotContain("hx-get=");
+        assertThat(nextPageLink).doesNotContain("hx-disinherit=");
         assertThat(fragment).contains("page=2");
         assertThat(fragment).contains("size=1");
         assertThat(fragment).contains("workflowId=wf-");
@@ -195,7 +198,6 @@ class WorkflowListPageTest {
         assertThat(fragment).contains("createdFrom=2026-04-01%2009:00:00");
         assertThat(fragment).contains("modifiedTo=2026-04-01%2009:10:00");
         assertThat(fragment).contains("order=asc");
-        assertThat(fragment).contains("hx-disinherit=\"hx-include\"");
     }
 
     @Test
@@ -444,6 +446,13 @@ class WorkflowListPageTest {
 
     private String extractTagById(String html, String id, String tagName) {
         Pattern pattern = Pattern.compile("(?s)<" + tagName + "\\s+id=\"" + Pattern.quote(id) + "\".*?</" + tagName + ">");
+        Matcher matcher = pattern.matcher(html);
+        assertThat(matcher.find()).isTrue();
+        return matcher.group();
+    }
+
+    private String extractAnchorByText(String html, String linkText) {
+        Pattern pattern = Pattern.compile("(?s)<a\\b[^>]*>\\s*" + Pattern.quote(linkText) + "\\s*</a>");
         Matcher matcher = pattern.matcher(html);
         assertThat(matcher.find()).isTrue();
         return matcher.group();

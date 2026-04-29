@@ -568,32 +568,31 @@ select:focus {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    margin-left: 6px;
+    width: 24px;
+    height: 24px;
+    margin-left: 4px;
     padding: 0;
     vertical-align: middle;
-    border: 1px solid transparent;
-    border-radius: 8px;
+    border: 0;
+    border-radius: 6px;
     background: transparent;
     color: #667085;
     cursor: pointer;
-    transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease;
+    transition: background-color 0.16s ease, color 0.16s ease;
 }
 
 .copy-value-button svg {
-    width: 15px;
-    height: 15px;
+    width: 16px;
+    height: 16px;
     fill: none;
     stroke: currentColor;
-    stroke-width: 1.8;
+    stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
 }
 
 .copy-value-button:hover {
     background: #f2f4f7;
-    border-color: #d0d5dd;
     color: #344054;
 }
 
@@ -604,7 +603,6 @@ select:focus {
 
 .copy-value-button.is-copied {
     color: var(--success);
-    border-color: rgba(22, 163, 74, 0.28);
     background: var(--success-soft);
 }
 

@@ -34,18 +34,10 @@
             <div class="pager-links">
                 <a th:if="${workflowPage.pagination.hasPrevious}"
                    class="pager-link"
-                   th:href="@{/workflows(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
-                   th:attr="hx-get=@{/workflows/table(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
-                   hx-target="#workflow-list-container"
-                   hx-swap="innerHTML"
-                   hx-disinherit="hx-include">上一页</a>
+                   th:href="@{/workflows(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">上一页</a>
                 <a th:if="${workflowPage.pagination.hasNext}"
                    class="pager-link"
-                   th:href="@{/workflows(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
-                   th:attr="hx-get=@{/workflows/table(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}"
-                   hx-target="#workflow-list-container"
-                   hx-swap="innerHTML"
-                   hx-disinherit="hx-include">下一页</a>
+                   th:href="@{/workflows(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">下一页</a>
             </div>
             <div id="workflow-order-control" class="page-size-form">
                 <label for="workflow-sort-order">顺序</label>

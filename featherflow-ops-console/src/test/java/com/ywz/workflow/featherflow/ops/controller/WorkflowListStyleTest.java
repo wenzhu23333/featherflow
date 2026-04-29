@@ -34,8 +34,12 @@ class WorkflowListStyleTest {
         assertThat(css).contains("box-sizing: border-box;");
         assertThat(css).contains("min-width: 0;");
         assertThat(css).contains(".copy-value-button {\n    display: inline-flex;");
-        assertThat(css).contains("border: 1px solid transparent;");
-        assertThat(css).contains("border-radius: 8px;");
+        assertThat(css).contains("width: 24px;");
+        assertThat(css).contains("height: 24px;");
+        assertThat(css).contains("border: 0;");
+        assertThat(css).contains("border-radius: 6px;");
+        assertThat(css).contains("width: 16px;\n    height: 16px;");
+        assertThat(css).contains("stroke-width: 2;");
         assertThat(css).contains(".copy-value-button:hover");
         assertThat(css).doesNotContain(".multi-select-trigger");
         assertThat(css).doesNotContain(".multi-select-menu");
