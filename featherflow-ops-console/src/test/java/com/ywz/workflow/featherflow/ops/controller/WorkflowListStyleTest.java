@@ -46,6 +46,20 @@ class WorkflowListStyleTest {
         assertThat(css).doesNotContain(".json-formatted-output");
     }
 
+    @Test
+    void shouldKeepWorkflowDetailLayoutInsideViewport() throws IOException {
+        String css = readCss();
+
+        assertThat(css).contains(".detail-grid {\n    display: grid;\n    gap: 14px;\n    width: 100%;\n    max-width: 100%;\n    min-width: 0;\n    overflow-x: hidden;");
+        assertThat(css).contains(".detail-summary-grid {\n    display: grid;\n    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);");
+        assertThat(css).contains(".detail-summary-grid > *,\n.stacked-panels > *,\n.timeline-section,\n.history-section {\n    min-width: 0;");
+        assertThat(css).contains(".info-table {\n    table-layout: fixed;");
+        assertThat(css).contains(".info-table td {\n    position: relative;\n    min-width: 0;");
+        assertThat(css).contains(".activity-timeline {\n    table-layout: fixed;");
+        assertThat(css).contains(".activity-timeline th,\n.activity-timeline td {\n    overflow-wrap: anywhere;");
+        assertThat(css).contains(".activity-timeline .json-preview-widget,\n.activity-timeline .cell-block {\n    min-width: 0;\n    max-width: 100%;");
+    }
+
     private String readCss() throws IOException {
         ClassPathResource resource = new ClassPathResource("static/css/app.css");
         return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
