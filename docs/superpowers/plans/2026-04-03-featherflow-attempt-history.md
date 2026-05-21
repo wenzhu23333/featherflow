@@ -102,7 +102,7 @@ assertThat(loaded.getStartNode()).isEqualTo("10.9.8.7:host-a:1234:seed");
 
 ```sql
 create table workflow_instance (
-    workflow_id varchar(19) primary key,
+    workflow_id varchar(64) primary key,
     biz_id varchar(128) not null,
     workflow_name varchar(128) not null,
     start_node varchar(128) not null,
@@ -668,4 +668,3 @@ Type consistency check:
 - `startNode` is the workflow field used consistently across model/repository/docs
 - `executedNode` is the activity field used consistently across model/repository/docs
 - `saveAttempt(...)`, `findLatestByWorkflowIdAndActivityName(...)`, and `countByWorkflowIdAndActivityNameAndStatus(...)` are used consistently after introduction
-

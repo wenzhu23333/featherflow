@@ -469,7 +469,7 @@ Because the console talks only to the database, start must be represented as an 
 
 Recommended sequence:
 
-1. generate a workflowId in ops console with the same `xxxx-xxxx-xxxx-xxxx` format
+1. generate a workflowId in ops console with the same full UUID format
 2. resolve bizId
 3. insert `workflow_instance`
 4. insert `workflow_operation` with:

@@ -1,5 +1,5 @@
 create table workflow_instance (
-    workflow_id varchar(19) primary key,
+    workflow_id varchar(64) primary key,
     biz_id varchar(128) not null,
     workflow_name varchar(128) not null,
     start_node varchar(128) not null,
@@ -15,8 +15,8 @@ create index idx_workflow_instance_name_modified on workflow_instance (workflow_
 create index idx_workflow_instance_status on workflow_instance (status);
 
 create table activity_instance (
-    activity_id varchar(64) primary key,
-    workflow_id varchar(19) not null,
+    activity_id varchar(128) primary key,
+    workflow_id varchar(64) not null,
     activity_name varchar(128) not null,
     executed_node varchar(128) not null,
     gmt_created timestamp not null,
@@ -32,7 +32,7 @@ create index idx_activity_instance_workflow_name on activity_instance (workflow_
 
 create table workflow_operation (
     operation_id bigint auto_increment primary key,
-    workflow_id varchar(19) not null,
+    workflow_id varchar(64) not null,
     operation_type varchar(32) not null,
     input varchar(4096),
     status varchar(32) not null,

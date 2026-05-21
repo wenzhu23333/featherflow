@@ -83,7 +83,7 @@ Indexes:
 
 Notes:
 
-- `workflow_id` format is `xxxx-xxxx-xxxx-xxxx`.
+- `workflow_id` format is a full UUID string, for example `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.
 - `biz_id` defaults to `workflow_id` if absent.
 - `ext_col` stores internal metadata such as definition name, current pointer, retry bookkeeping, and operator notes in JSON.
 

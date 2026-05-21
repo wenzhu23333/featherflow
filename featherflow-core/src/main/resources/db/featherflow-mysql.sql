@@ -1,5 +1,5 @@
 create table workflow_instance (
-    workflow_id varchar(19) primary key comment 'Workflow instance identifier',
+    workflow_id varchar(64) primary key comment 'Workflow instance identifier',
     biz_id varchar(128) not null comment 'Business identifier',
     workflow_name varchar(128) not null comment 'Workflow definition name',
     start_node varchar(128) not null comment 'Node that started the workflow',
@@ -14,8 +14,8 @@ create table workflow_instance (
 ) engine=InnoDB default charset=utf8mb4 comment='Workflow instance table';
 
 create table activity_instance (
-    activity_id varchar(64) primary key comment 'Activity attempt identifier',
-    workflow_id varchar(19) not null comment 'Workflow instance identifier',
+    activity_id varchar(128) primary key comment 'Activity attempt identifier',
+    workflow_id varchar(64) not null comment 'Workflow instance identifier',
     activity_name varchar(128) not null comment 'Activity definition name',
     executed_node varchar(128) not null comment 'Node that executed the activity',
     gmt_created datetime not null default current_timestamp comment 'Creation time',
@@ -30,7 +30,7 @@ create table activity_instance (
 
 create table workflow_operation (
     operation_id bigint primary key auto_increment comment 'Workflow operation identifier',
-    workflow_id varchar(19) not null comment 'Workflow instance identifier',
+    workflow_id varchar(64) not null comment 'Workflow instance identifier',
     operation_type varchar(32) not null comment 'Operation type',
     input text comment 'Operation request payload',
     status varchar(32) not null comment 'Operation processing status',

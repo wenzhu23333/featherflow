@@ -30,6 +30,7 @@ import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -104,7 +105,7 @@ class WorkflowCommandServiceTest {
     void shouldGenerateWorkflowIdAndDefaultBizIdOnStart() {
         WorkflowInstance workflow = service.startWorkflow("orderWorkflow", null, "{\"amount\":100}");
 
-        assertThat(workflow.getWorkflowId()).matches("[a-f0-9]{4}(-[a-f0-9]{4}){3}");
+        assertThat(UUID.fromString(workflow.getWorkflowId()).toString()).isEqualTo(workflow.getWorkflowId());
         assertThat(workflow.getBizId()).isEqualTo(workflow.getWorkflowId());
         assertThat(workflow.getStatus()).isEqualTo(WorkflowStatus.RUNNING);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).isEmpty();
