@@ -41,6 +41,7 @@ class WorkflowListPageTest {
         assertThat(page).contains("hx-target=\"#workflow-list-container\"");
         assertThat(page).contains("name=\"workflowId\"");
         assertThat(page).contains("name=\"bizId\"");
+        assertThat(page).contains("name=\"bizKey\"");
         assertThat(page).contains("name=\"status\"");
         assertThat(page).contains("name=\"workflowName\"");
         assertThat(page).contains("name=\"createdFrom\"");
@@ -56,6 +57,7 @@ class WorkflowListPageTest {
         String terminatedRow = extractRowById(page, "workflow-row-wf-terminated-01");
 
         assertThat(runningRow).contains("status-badge");
+        assertThat(runningRow).contains("order:1001");
         assertThat(runningRow).contains("status-running");
         assertThat(runningRow).contains(">RUNNING<");
         assertThat(runningRow).contains("<td>2026-04-01 09:08:00</td>");
@@ -66,6 +68,7 @@ class WorkflowListPageTest {
         assertThat(runningRow).doesNotContain("<span>跳过最新活动</span>");
 
         assertThat(terminatedRow).contains("status-badge");
+        assertThat(terminatedRow).contains("refund:1002");
         assertThat(terminatedRow).contains("status-terminated");
         assertThat(terminatedRow).contains(">TERMINATED<");
         assertThat(terminatedRow).contains("<td>2026-04-01 09:10:00</td>");
@@ -74,6 +77,21 @@ class WorkflowListPageTest {
         assertThat(terminatedRow).contains("<span>重试</span>");
         assertThat(terminatedRow).contains("<span>跳过最新活动</span>");
         assertThat(terminatedRow).doesNotContain("<span>终止</span>");
+    }
+
+    @Test
+    void shouldFilterWorkflowTableByBizKey() throws Exception {
+        MvcResult result = mockMvc.perform(
+                get("/workflows/table")
+                    .param("bizKey", "refund:1002")
+            )
+            .andExpect(status().isOk())
+            .andReturn();
+
+        String fragment = result.getResponse().getContentAsString();
+        assertThat(fragment).contains("workflow-row-wf-terminated-01");
+        assertThat(fragment).contains("refund:1002");
+        assertThat(fragment).doesNotContain("workflow-row-wf-running-0001");
     }
 
     @Test
@@ -173,6 +191,7 @@ class WorkflowListPageTest {
                 get("/workflows/table")
                     .param("workflowId", "wf-")
                     .param("bizId", "biz-10")
+                    .param("bizKey", "100")
                     .param("status", "")
                     .param("workflowName", "")
                     .param("createdFrom", "2026-04-01 09:00:00")
@@ -195,6 +214,7 @@ class WorkflowListPageTest {
         assertThat(fragment).contains("size=1");
         assertThat(fragment).contains("workflowId=wf-");
         assertThat(fragment).contains("bizId=biz-10");
+        assertThat(fragment).contains("bizKey=100");
         assertThat(fragment).contains("createdFrom=2026-04-01%2009:00:00");
         assertThat(fragment).contains("modifiedTo=2026-04-01%2009:10:00");
         assertThat(fragment).contains("order=asc");

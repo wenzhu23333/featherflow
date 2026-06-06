@@ -123,8 +123,9 @@
                             <strong th:text="${node.activityName}">activityName</strong>
                             <span class="activity-flow-meta">
                                 <span th:text="'执行 ' + ${node.totalAttempts} + ' 次'">执行 1 次</span>
-                                <span th:text="'失败 ' + ${node.failedAttempts} + ' 次'">失败 0 次</span>
-                                <span th:text="'成功 ' + ${node.successfulAttempts} + ' 次'">成功 1 次</span>
+                                <span th:text="'失败 ' + ${node.failedTimes} + ' 次'">失败 0 次</span>
+                                <span th:text="'重试 ' + ${node.retryTimes} + ' 次'">重试 0 次</span>
+                                <span th:text="'成功 ' + ${node.successfulTimes} + ' 次'">成功 1 次</span>
                             </span>
                         </span>
                         <span class="activity-flow-status">
@@ -139,6 +140,7 @@
                             <span th:text="'最近节点: ' + ${node.latestExecutedNode}">最近节点: -</span>
                             <span th:text="'最近更新时间: ' + ${node.latestModifiedDisplay}">最近更新时间: -</span>
                         </div>
+                        <div class="section-note">最新结果</div>
                         <table class="data-table activity-flow-attempts">
                             <thead>
                             <tr>

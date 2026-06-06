@@ -22,6 +22,7 @@ class WorkflowDefinitionParserTest {
             + "  activities:\n"
             + "    - name: createOrder\n"
             + "      handler: createOrderHandler\n"
+            + "      desc: 创建订单 / Create order\n"
             + "      retryInterval: PT5S\n"
             + "      maxRetryTimes: 3\n"
             + "    - name: notifyCustomer\n"
@@ -35,6 +36,7 @@ class WorkflowDefinitionParserTest {
         assertThat(definition.getActivities()).hasSize(2);
         assertThat(definition.getActivities().get(0).getName()).isEqualTo("createOrder");
         assertThat(definition.getActivities().get(0).getHandler()).isEqualTo("createOrderHandler");
+        assertThat(definition.getActivities().get(0).getDesc()).isEqualTo("创建订单 / Create order");
         assertThat(definition.getActivities().get(0).getRetryInterval()).isEqualTo(Duration.ofSeconds(5));
         assertThat(definition.getActivities().get(0).getMaxRetryTimes()).isEqualTo(3);
     }
@@ -43,15 +45,19 @@ class WorkflowDefinitionParserTest {
     void shouldParseXmlDefinition() {
         String xml = ""
             + "<workflow name=\"paymentWorkflow\">"
-            + "  <activity name=\"freezeBalance\" handler=\"freezeBalanceHandler\" retryInterval=\"PT2S\" maxRetryTimes=\"2\"/>"
-            + "  <activity name=\"confirmPayment\" handler=\"confirmPaymentHandler\" retryInterval=\"PT4S\" maxRetryTimes=\"1\"/>"
+            + "  <activity name=\"freezeBalance\" handler=\"freezeBalanceHandler\" desc=\"冻结余额 / Freeze balance\" retryInterval=\"PT2S\" maxRetryTimes=\"2\"/>"
+            + "  <activity name=\"confirmPayment\" handler=\"confirmPaymentHandler\" retryInterval=\"PT4S\" maxRetryTimes=\"1\">"
+            + "    <desc>确认支付 / Confirm payment</desc>"
+            + "  </activity>"
             + "</workflow>";
 
         WorkflowDefinition definition = parser.parse(DefinitionFormat.XML, xml);
 
         assertThat(definition.getName()).isEqualTo("paymentWorkflow");
         assertThat(definition.getActivities()).hasSize(2);
+        assertThat(definition.getActivities().get(0).getDesc()).isEqualTo("冻结余额 / Freeze balance");
         assertThat(definition.getActivities().get(1).getName()).isEqualTo("confirmPayment");
+        assertThat(definition.getActivities().get(1).getDesc()).isEqualTo("确认支付 / Confirm payment");
         assertThat(definition.getActivities().get(1).getRetryInterval()).isEqualTo(Duration.ofSeconds(4));
     }
 

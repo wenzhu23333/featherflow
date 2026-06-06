@@ -12,8 +12,9 @@ public class ActivityFlowNodeView {
     private final String latestExecutedNode;
     private final String latestModifiedDisplay;
     private final int totalAttempts;
-    private final int failedAttempts;
-    private final int successfulAttempts;
+    private final int failedTimes;
+    private final int retryTimes;
+    private final int successfulTimes;
     private final boolean latestNode;
     private final List<ActivityTimelineItemView> attempts;
 
@@ -24,8 +25,9 @@ public class ActivityFlowNodeView {
         String latestExecutedNode,
         String latestModifiedDisplay,
         int totalAttempts,
-        int failedAttempts,
-        int successfulAttempts,
+        int failedTimes,
+        int retryTimes,
+        int successfulTimes,
         boolean latestNode,
         List<ActivityTimelineItemView> attempts
     ) {
@@ -35,8 +37,9 @@ public class ActivityFlowNodeView {
         this.latestExecutedNode = latestExecutedNode;
         this.latestModifiedDisplay = latestModifiedDisplay;
         this.totalAttempts = totalAttempts;
-        this.failedAttempts = failedAttempts;
-        this.successfulAttempts = successfulAttempts;
+        this.failedTimes = failedTimes;
+        this.retryTimes = retryTimes;
+        this.successfulTimes = successfulTimes;
         this.latestNode = latestNode;
         this.attempts = Collections.unmodifiableList(new ArrayList<ActivityTimelineItemView>(attempts));
     }
@@ -65,12 +68,16 @@ public class ActivityFlowNodeView {
         return totalAttempts;
     }
 
-    public int getFailedAttempts() {
-        return failedAttempts;
+    public int getFailedTimes() {
+        return failedTimes;
     }
 
-    public int getSuccessfulAttempts() {
-        return successfulAttempts;
+    public int getRetryTimes() {
+        return retryTimes;
+    }
+
+    public int getSuccessfulTimes() {
+        return successfulTimes;
     }
 
     public boolean isLatestNode() {

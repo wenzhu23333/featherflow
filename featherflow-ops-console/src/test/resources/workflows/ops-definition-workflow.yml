@@ -1,0 +1,13 @@
+workflow:
+  name: opsDefinitionWorkflow
+  activities:
+    - name: validateWorker
+      handler: validateWorkerHandler
+      desc: 校验 worker / Validate worker
+      retryInterval: PT3S
+      maxRetryTimes: 2
+    - name: publishWorker
+      handler: publishWorkerHandler
+      desc: 发布 worker / Publish worker
+      retryInterval: PT5S
+      maxRetryTimes: 1

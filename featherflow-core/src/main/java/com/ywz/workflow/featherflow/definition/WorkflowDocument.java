@@ -78,6 +78,7 @@ class WorkflowDocument {
 
         private String name;
         private String handler;
+        private String desc;
         private String retryInterval;
         private Integer maxRetryTimes;
 
@@ -95,6 +96,14 @@ class WorkflowDocument {
 
         public void setHandler(String handler) {
             this.handler = handler;
+        }
+
+        public String getDesc() {
+            return desc;
+        }
+
+        public void setDesc(String desc) {
+            this.desc = desc;
         }
 
         public String getRetryInterval() {

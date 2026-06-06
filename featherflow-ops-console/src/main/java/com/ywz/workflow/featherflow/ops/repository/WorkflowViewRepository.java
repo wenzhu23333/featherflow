@@ -13,6 +13,7 @@ public class WorkflowViewRepository {
         "select"
             + "     w.workflow_id,"
             + "     w.biz_id,"
+            + "     w.biz_key,"
             + "     w.workflow_name,"
             + "     w.status as workflow_status,"
             + "     w.gmt_created,"
@@ -52,6 +53,7 @@ public class WorkflowViewRepository {
         "select"
             + " w.workflow_id,"
             + " w.biz_id,"
+            + " w.biz_key,"
             + " w.workflow_name,"
             + " w.start_node,"
             + " w.status as workflow_status,"
@@ -120,6 +122,7 @@ public class WorkflowViewRepository {
             (rs, rowNum) -> new WorkflowListRow(
                 rs.getString("workflow_id"),
                 rs.getString("biz_id"),
+                rs.getString("biz_key"),
                 rs.getString("workflow_name"),
                 rs.getString("workflow_status"),
                 rs.getObject("gmt_created", LocalDateTime.class),
@@ -138,6 +141,7 @@ public class WorkflowViewRepository {
             (rs, rowNum) -> new WorkflowDetailRow(
                 rs.getString("workflow_id"),
                 rs.getString("biz_id"),
+                rs.getString("biz_key"),
                 rs.getString("workflow_name"),
                 rs.getString("start_node"),
                 rs.getString("workflow_status"),
@@ -217,6 +221,7 @@ public class WorkflowViewRepository {
 
         private final String workflowId;
         private final String bizId;
+        private final String bizKey;
         private final String workflowName;
         private final String workflowStatus;
         private final LocalDateTime gmtCreated;
@@ -229,6 +234,7 @@ public class WorkflowViewRepository {
         public WorkflowListRow(
             String workflowId,
             String bizId,
+            String bizKey,
             String workflowName,
             String workflowStatus,
             LocalDateTime gmtCreated,
@@ -240,6 +246,7 @@ public class WorkflowViewRepository {
         ) {
             this.workflowId = workflowId;
             this.bizId = bizId;
+            this.bizKey = bizKey;
             this.workflowName = workflowName;
             this.workflowStatus = workflowStatus;
             this.gmtCreated = gmtCreated;
@@ -256,6 +263,10 @@ public class WorkflowViewRepository {
 
         public String bizId() {
             return bizId;
+        }
+
+        public String bizKey() {
+            return bizKey;
         }
 
         public String workflowName() {
@@ -295,6 +306,7 @@ public class WorkflowViewRepository {
 
         private final String workflowId;
         private final String bizId;
+        private final String bizKey;
         private final String workflowName;
         private final String startNode;
         private final String workflowStatus;
@@ -305,6 +317,7 @@ public class WorkflowViewRepository {
         public WorkflowDetailRow(
             String workflowId,
             String bizId,
+            String bizKey,
             String workflowName,
             String startNode,
             String workflowStatus,
@@ -314,6 +327,7 @@ public class WorkflowViewRepository {
         ) {
             this.workflowId = workflowId;
             this.bizId = bizId;
+            this.bizKey = bizKey;
             this.workflowName = workflowName;
             this.startNode = startNode;
             this.workflowStatus = workflowStatus;
@@ -328,6 +342,10 @@ public class WorkflowViewRepository {
 
         public String bizId() {
             return bizId;
+        }
+
+        public String bizKey() {
+            return bizKey;
         }
 
         public String startNode() {

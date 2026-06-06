@@ -22,9 +22,10 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
     @Override
     public void save(WorkflowInstance workflowInstance) {
         jdbcTemplate.update(
-            "insert into workflow_instance (workflow_id, biz_id, workflow_name, start_node, gmt_created, gmt_modified, input, status) values (?, ?, ?, ?, ?, ?, ?, ?)",
+            "insert into workflow_instance (workflow_id, biz_id, biz_key, workflow_name, start_node, gmt_created, gmt_modified, input, status) values (?, ?, ?, ?, ?, ?, ?, ?, ?)",
             workflowInstance.getWorkflowId(),
             workflowInstance.getBizId(),
+            workflowInstance.getBizKey(),
             workflowInstance.getWorkflowName(),
             workflowInstance.getStartNode(),
             Timestamp.from(workflowInstance.getGmtCreated()),
@@ -37,8 +38,9 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
     @Override
     public void update(WorkflowInstance workflowInstance) {
         jdbcTemplate.update(
-            "update workflow_instance set biz_id = ?, workflow_name = ?, start_node = ?, gmt_modified = ?, input = ?, status = ? where workflow_id = ?",
+            "update workflow_instance set biz_id = ?, biz_key = ?, workflow_name = ?, start_node = ?, gmt_modified = ?, input = ?, status = ? where workflow_id = ?",
             workflowInstance.getBizId(),
+            workflowInstance.getBizKey(),
             workflowInstance.getWorkflowName(),
             workflowInstance.getStartNode(),
             Timestamp.from(workflowInstance.getGmtModified()),
@@ -51,7 +53,7 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
     @Override
     public WorkflowInstance find(String workflowId) {
         List<WorkflowInstance> results = jdbcTemplate.query(
-            "select workflow_id, biz_id, workflow_name, start_node, gmt_created, gmt_modified, input, status from workflow_instance where workflow_id = ?",
+            "select workflow_id, biz_id, biz_key, workflow_name, start_node, gmt_created, gmt_modified, input, status from workflow_instance where workflow_id = ?",
             new WorkflowInstanceRowMapper(),
             workflowId
         );
@@ -83,6 +85,7 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
             return new WorkflowInstance(
                 rs.getString("workflow_id"),
                 rs.getString("biz_id"),
+                rs.getString("biz_key"),
                 rs.getString("workflow_name"),
                 rs.getString("start_node"),
                 rs.getTimestamp("gmt_created").toInstant(),

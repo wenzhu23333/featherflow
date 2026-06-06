@@ -42,7 +42,7 @@ public class DefaultWorkflowOperationHandler implements WorkflowOperationHandler
                     applyTerminate(operation);
                     return;
                 case START:
-                    applyStart(operation);
+                    applyStart(operation, workflowInstance);
                     return;
                 case RETRY:
                     applyRetry(operation);
@@ -56,7 +56,12 @@ public class DefaultWorkflowOperationHandler implements WorkflowOperationHandler
         }
     }
 
-    private void applyStart(WorkflowOperation operation) {
+    private void applyStart(WorkflowOperation operation, WorkflowInstance workflowInstance) {
+        String bizKey = readBizKey(operation.getInput());
+        if (bizKey != null) {
+            workflowInstance.setBizKey(bizKey);
+            workflowRepository.update(workflowInstance);
+        }
         log.info("Dispatch workflow start operation");
         workflowRuntimeService.dispatchWorkflow(operation.getWorkflowId());
     }
@@ -85,5 +90,21 @@ public class DefaultWorkflowOperationHandler implements WorkflowOperationHandler
             return serializer.serialize((Map<String, Object>) payload);
         }
         return serializer.serialize(new LinkedHashMap<String, Object>());
+    }
+
+    private String readBizKey(String input) {
+        Map<String, Object> instruction;
+        try {
+            instruction = serializer.deserialize(input);
+        } catch (IllegalArgumentException ex) {
+            log.debug("Ignore non-json workflow start operation input when reading bizKey");
+            return null;
+        }
+        Object bizKey = instruction.get("bizKey");
+        if (bizKey == null) {
+            return null;
+        }
+        String value = String.valueOf(bizKey).trim();
+        return value.isEmpty() ? null : value;
     }
 }

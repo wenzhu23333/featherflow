@@ -21,6 +21,7 @@ FeatherFlow is a self-developed lightweight Java workflow framework with persist
 - Supports both YAML and XML workflow definitions.
 - Supports single-workflow files, multi-workflow files, and mixed loading across multiple files.
 - Persists the three core tables: `workflow_instance`, `activity_instance`, and `workflow_operation`.
+- Optionally stores the business object operated by the workflow in `workflow_instance.biz_key`, such as an order number, worker name, resource ID, or release ID.
 - Stores the workflow definition name in `workflow_instance.workflow_name` and the workflow start node in `workflow_instance.start_node`.
 - Stores the execution node for each activity attempt in `activity_instance.executed_node`.
 - Uses append-only activity history: each completed activity attempt is persisted as one row, whether it succeeds or fails, and the retry budget is derived from failed history counts for the same `workflow_id + activity_name`.
@@ -37,7 +38,7 @@ FeatherFlow is a self-developed lightweight Java workflow framework with persist
 <dependency>
     <groupId>com.ywz.workflow</groupId>
     <artifactId>featherflow-spring-boot-starter</artifactId>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.3-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -140,6 +141,7 @@ Key `workflow_instance` and `activity_instance` field semantics:
 
 - `workflow_id`: workflow runtime instance ID
 - `biz_id`: business identifier supplied by the caller or defaulted from the workflow ID
+- `biz_key`: optional business object key, not unique, useful for operations searches by order number, resource ID, worker name, and similar identifiers
 - `workflow_name`: workflow definition name, matching the workflow `name` declared in YAML/XML
 - `start_node`: the node that created and initially dispatched the workflow instance
 - `executed_node`: the node that actually executed a given activity attempt
@@ -193,10 +195,12 @@ workflow:
   activities:
     - name: createOrder
       handler: createOrderHandler
+      desc: Create order
       retryInterval: PT5S
       maxRetryTimes: 2
     - name: notifyCustomer
       handler: notifyCustomerHandler
+      desc: Notify customer
       retryInterval: PT10S
       maxRetryTimes: 1
 ```
@@ -205,8 +209,10 @@ Single-workflow XML example:
 
 ```xml
 <workflow name="sampleOrderWorkflow">
-  <activity name="createOrder" handler="createOrderHandler" retryInterval="PT5S" maxRetryTimes="2"/>
-  <activity name="notifyCustomer" handler="notifyCustomerHandler" retryInterval="PT10S" maxRetryTimes="1"/>
+  <activity name="createOrder" handler="createOrderHandler" desc="Create order" retryInterval="PT5S" maxRetryTimes="2"/>
+  <activity name="notifyCustomer" handler="notifyCustomerHandler" retryInterval="PT10S" maxRetryTimes="1">
+    <desc>Notify customer</desc>
+  </activity>
 </workflow>
 ```
 
@@ -265,9 +271,25 @@ Field notes:
 
 - `name`: workflow or activity name.
 - `handler`: the Activity Handler bean name in the Spring container.
+- `desc`: optional activity description. YAML uses the `desc` field; XML supports both the `desc="..."` attribute and a `<desc>...</desc>` child element.
 - `retryInterval`: retry interval after failure, using `Duration` format.
 - `maxRetryTimes`: maximum retry count before entering manual processing.
 - Both `workflow:` and `workflows:` are supported at the top level. When `workflows:` is used, every workflow `name` inside the file must still be unique.
+
+## Definition Step Query
+
+The starter automatically provides `WorkflowDefinitionQueryService`, which can return the declared activity steps for a workflow definition:
+
+```java
+List<WorkflowDefinitionStepView> steps =
+    workflowDefinitionQueryService.listActivitySteps("sampleOrderWorkflow");
+```
+
+Each item includes `workflowName`, `activityName`, `desc`, `handler`, `retryInterval`, `maxRetryTimes`, and `sequence`. Ops Console loads the same `definition-locations` and exposes:
+
+```text
+GET /workflow-definitions/{workflowName}/steps
+```
 
 ## Activity Handler
 
@@ -309,6 +331,7 @@ If you want the current business thread to continue logging on the same trace af
 WorkflowInstance workflow = workflowCommandService.startWorkflow(
     "sampleOrderWorkflow",
     "biz-token-001",
+    "order:10001",
     "{\"amount\":100}"
 );
 
@@ -334,10 +357,23 @@ workflowCommandService.skipActivity(workflow.getWorkflowId(), "{\"manual\":true}
 Command semantics:
 
 - `startWorkflow`: synchronously persists the workflow instance and immediately submits it into the execution scheduler; submission failure is raised to the caller.
+- `startWorkflow(definitionName, bizId, bizKey, input)`: the four-argument overload records the business object key operated by the workflow. The existing three-argument API remains compatible and writes `null` as `bizKey`.
 - `terminateWorkflow`: the local API directly moves the workflow to `TERMINATED`; the engine stops before the next activity. External operations systems can also write a `TERMINATE` operation, which the daemon consumes and forwards to the same runtime logic.
 - `retryWorkflow`: allowed only when the workflow is `HUMAN_PROCESSING` or `TERMINATED`; the local API reopens the workflow to `RUNNING` and submits it into the unified execution pool. The resumed context is derived from the latest persisted activity snapshot, reusing `output` after success and `input` after failure. External operations systems can also write a `RETRY` operation, which the daemon consumes and forwards to the same runtime logic.
 - `skipActivity`: skips the latest recorded activity, allowed only when the workflow is `TERMINATED`.
 - `workflow_operation.status`: `PENDING -> PROCESSING -> SUCCESSFUL/FAILED`, which represents only external command-consumption state rather than overall workflow success.
+- When an external `START` operation input contains `bizKey`, the daemon writes it back to `workflow_instance.biz_key` before dispatching the workflow.
+
+## Compressed Activity Flow
+
+The raw append-only `activity_instance` timeline is still preserved. Query-side views can also aggregate by `workflow_id + activity_name`, returning only the latest result per activity together with:
+
+- `totalAttempts`: total attempt count.
+- `failedTimes`: failed attempt count.
+- `retryTimes`: `max(totalAttempts - 1, 0)`.
+- `successfulTimes`: successful attempt count.
+
+This compressed view is intended for an operations-friendly chain overview, while the raw activity timeline remains available for detailed troubleshooting.
 
 ## Build
 

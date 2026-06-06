@@ -64,6 +64,7 @@ public class WorkflowQueryService {
         return workflowViewRepository.findWorkflowListRows().stream()
             .filter(row -> containsIgnoreCase(row.workflowId(), filter.workflowId()))
             .filter(row -> containsIgnoreCase(row.bizId(), filter.bizId()))
+            .filter(row -> containsIgnoreCase(row.bizKey(), filter.bizKey()))
             .filter(row -> matchesAnyStatus(row.workflowStatus(), filter.status()))
             .filter(row -> isWithinRange(row.gmtCreated(), filter.createdFrom(), filter.createdTo()))
             .filter(row -> isWithinRange(row.gmtModified(), filter.modifiedFrom(), filter.modifiedTo()))
@@ -86,13 +87,9 @@ public class WorkflowQueryService {
         if (!row.isPresent()) {
             return Optional.empty();
         }
-        List<ActivityTimelineRow> activityRows = workflowViewRepository.findActivityTimelineRows(workflowId);
-        List<ActivityTimelineItemView> activities = activityRows.stream()
-            .sorted(activityTimelineComparator(activityOrder))
-            .map(this::toActivityTimelineItemView)
-            .collect(Collectors.toList());
-        PageView<ActivityTimelineItemView> activityPageView = paginate(activities, activityPage, activitySize);
-        List<ActivityFlowNodeView> activityFlowNodes = buildActivityFlowNodes(activityRows);
+        PageView<ActivityTimelineItemView> activityPageView =
+            buildWorkflowActivityTimeline(workflowId, activityPage, activitySize, activityOrder);
+        List<ActivityFlowNodeView> activityFlowNodes = buildCompressedWorkflowActivityFlow(workflowId);
         List<OperationRecordView> operations = workflowViewRepository.findOperationRecordRows(workflowId).stream()
             .map(this::toOperationRecordView)
             .collect(Collectors.toList());
@@ -103,6 +100,7 @@ public class WorkflowQueryService {
             new WorkflowDetailView(
                 detailRow.workflowId(),
                 detailRow.bizId(),
+                blankToDash(detailRow.bizKey()),
                 blankToDash(detailRow.workflowName()),
                 blankToDash(detailRow.startNode()),
                 detailRow.workflowStatus(),
@@ -130,6 +128,7 @@ public class WorkflowQueryService {
             new WorkflowDetailView(
                 detailRow.workflowId(),
                 detailRow.bizId(),
+                blankToDash(detailRow.bizKey()),
                 blankToDash(detailRow.workflowName()),
                 blankToDash(detailRow.startNode()),
                 detailRow.workflowStatus(),
@@ -147,11 +146,11 @@ public class WorkflowQueryService {
     }
 
     public Optional<List<ActivityTimelineItemView>> getWorkflowTimeline(String workflowId) {
-        return getWorkflowTimeline(workflowId, 1, 5).map(PageView::getItems);
+        return getWorkflowActivityTimeline(workflowId, 1, 5).map(PageView::getItems);
     }
 
     public Optional<PageView<ActivityTimelineItemView>> getWorkflowTimeline(String workflowId, int activityPage, int activitySize) {
-        return getWorkflowTimeline(workflowId, activityPage, activitySize, ORDER_ASC);
+        return getWorkflowActivityTimeline(workflowId, activityPage, activitySize, ORDER_ASC);
     }
 
     public Optional<PageView<ActivityTimelineItemView>> getWorkflowTimeline(
@@ -160,21 +159,38 @@ public class WorkflowQueryService {
         int activitySize,
         String activityOrder
     ) {
+        return getWorkflowActivityTimeline(workflowId, activityPage, activitySize, activityOrder);
+    }
+
+    public Optional<List<ActivityTimelineItemView>> getWorkflowActivityTimeline(String workflowId) {
+        return getWorkflowActivityTimeline(workflowId, 1, 5).map(PageView::getItems);
+    }
+
+    public Optional<PageView<ActivityTimelineItemView>> getWorkflowActivityTimeline(String workflowId, int activityPage, int activitySize) {
+        return getWorkflowActivityTimeline(workflowId, activityPage, activitySize, ORDER_ASC);
+    }
+
+    public Optional<PageView<ActivityTimelineItemView>> getWorkflowActivityTimeline(
+        String workflowId,
+        int activityPage,
+        int activitySize,
+        String activityOrder
+    ) {
         if (!workflowViewRepository.findWorkflowDetailRow(workflowId).isPresent()) {
             return Optional.empty();
         }
-        List<ActivityTimelineItemView> activities = workflowViewRepository.findActivityTimelineRows(workflowId).stream()
-            .sorted(activityTimelineComparator(activityOrder))
-            .map(this::toActivityTimelineItemView)
-            .collect(Collectors.toList());
-        return Optional.of(paginate(activities, activityPage, activitySize));
+        return Optional.of(buildWorkflowActivityTimeline(workflowId, activityPage, activitySize, activityOrder));
     }
 
     public Optional<List<ActivityFlowNodeView>> getWorkflowActivityFlow(String workflowId) {
+        return getCompressedWorkflowActivityFlow(workflowId);
+    }
+
+    public Optional<List<ActivityFlowNodeView>> getCompressedWorkflowActivityFlow(String workflowId) {
         if (!workflowViewRepository.findWorkflowDetailRow(workflowId).isPresent()) {
             return Optional.empty();
         }
-        return Optional.of(buildActivityFlowNodes(workflowViewRepository.findActivityTimelineRows(workflowId)));
+        return Optional.of(buildCompressedWorkflowActivityFlow(workflowId));
     }
 
     public List<OperationHistoryItemView> listOperations() {
@@ -197,6 +213,7 @@ public class WorkflowQueryService {
         return new WorkflowListItemView(
             row.workflowId(),
             row.bizId(),
+            blankToDash(row.bizKey()),
             blankToDash(row.workflowName()),
             row.workflowStatus(),
             row.latestActivityId(),
@@ -218,6 +235,23 @@ public class WorkflowQueryService {
             blankToDash(row.input()),
             blankToDash(row.output())
         );
+    }
+
+    private PageView<ActivityTimelineItemView> buildWorkflowActivityTimeline(
+        String workflowId,
+        int activityPage,
+        int activitySize,
+        String activityOrder
+    ) {
+        List<ActivityTimelineItemView> activities = workflowViewRepository.findActivityTimelineRows(workflowId).stream()
+            .sorted(activityTimelineComparator(activityOrder))
+            .map(this::toActivityTimelineItemView)
+            .collect(Collectors.toList());
+        return paginate(activities, activityPage, activitySize);
+    }
+
+    private List<ActivityFlowNodeView> buildCompressedWorkflowActivityFlow(String workflowId) {
+        return buildActivityFlowNodes(workflowViewRepository.findActivityTimelineRows(workflowId));
     }
 
     private List<ActivityFlowNodeView> buildActivityFlowNodes(List<ActivityTimelineRow> activityRows) {
@@ -242,6 +276,7 @@ public class WorkflowQueryService {
             ActivityTimelineItemView latestAttempt = nodeAttempts.get(nodeAttempts.size() - 1);
             int failedAttempts = countAttemptsByStatus(nodeAttempts, "FAILED");
             int successfulAttempts = countAttemptsByStatus(nodeAttempts, "SUCCESSFUL");
+            int retryTimes = Math.max(nodeAttempts.size() - 1, 0);
             nodes.add(new ActivityFlowNodeView(
                 sequence,
                 entry.getKey(),
@@ -250,9 +285,10 @@ public class WorkflowQueryService {
                 latestAttempt.getGmtModifiedDisplay(),
                 nodeAttempts.size(),
                 failedAttempts,
+                retryTimes,
                 successfulAttempts,
                 latestAttempt.getActivityId().equals(latestActivityId),
-                nodeAttempts
+                Collections.singletonList(latestAttempt)
             ));
             sequence++;
         }

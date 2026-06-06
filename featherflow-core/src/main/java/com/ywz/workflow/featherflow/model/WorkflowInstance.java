@@ -6,6 +6,7 @@ public class WorkflowInstance {
 
     private final String workflowId;
     private final String bizId;
+    private String bizKey;
     private final String workflowName;
     private final String startNode;
     private final Instant gmtCreated;
@@ -23,8 +24,23 @@ public class WorkflowInstance {
         String input,
         WorkflowStatus status
     ) {
+        this(workflowId, bizId, null, workflowName, startNode, gmtCreated, gmtModified, input, status);
+    }
+
+    public WorkflowInstance(
+        String workflowId,
+        String bizId,
+        String bizKey,
+        String workflowName,
+        String startNode,
+        Instant gmtCreated,
+        Instant gmtModified,
+        String input,
+        WorkflowStatus status
+    ) {
         this.workflowId = workflowId;
         this.bizId = bizId;
+        this.bizKey = bizKey;
         this.workflowName = workflowName;
         this.startNode = startNode;
         this.gmtCreated = gmtCreated;
@@ -39,6 +55,14 @@ public class WorkflowInstance {
 
     public String getBizId() {
         return bizId;
+    }
+
+    public String getBizKey() {
+        return bizKey;
+    }
+
+    public void setBizKey(String bizKey) {
+        this.bizKey = bizKey;
     }
 
     public String getWorkflowName() {

@@ -4,6 +4,7 @@ public class WorkflowListItemView {
 
     private final String workflowId;
     private final String bizId;
+    private final String bizKey;
     private final String workflowName;
     private final String workflowStatus;
     private final String latestActivityId;
@@ -15,6 +16,7 @@ public class WorkflowListItemView {
     public WorkflowListItemView(
         String workflowId,
         String bizId,
+        String bizKey,
         String workflowName,
         String workflowStatus,
         String latestActivityId,
@@ -25,6 +27,7 @@ public class WorkflowListItemView {
     ) {
         this.workflowId = workflowId;
         this.bizId = bizId;
+        this.bizKey = bizKey;
         this.workflowName = workflowName;
         this.workflowStatus = workflowStatus;
         this.latestActivityId = latestActivityId;
@@ -40,6 +43,10 @@ public class WorkflowListItemView {
 
     public String getBizId() {
         return bizId;
+    }
+
+    public String getBizKey() {
+        return bizKey;
     }
 
     public String getWorkflowName() {

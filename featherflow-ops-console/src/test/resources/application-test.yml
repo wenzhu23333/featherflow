@@ -11,5 +11,7 @@ spring:
     cache: false
 
 featherflow:
+  definition-locations:
+    - classpath:/workflows/ops-definition-workflow.yml
   ops:
     test-profile-active: true

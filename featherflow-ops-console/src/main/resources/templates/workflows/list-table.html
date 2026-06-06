@@ -2,7 +2,7 @@
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <body>
 <th:block th:fragment="table(workflows,workflowPage,dateFilterErrors)"
-          th:with="listRedirectTo=@{/workflows(page=${workflowPage.pagination.page},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">
+          th:with="listRedirectTo=@{/workflows(page=${workflowPage.pagination.page},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},bizKey=${bizKey},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">
     <input type="hidden" id="workflow-page-input" name="page" th:value="${workflowPage.pagination.page}" hx-swap-oob="true">
     <input type="hidden" id="workflow-size-input" name="size" th:value="${workflowPage.pagination.size}" hx-swap-oob="true">
     <input type="hidden" id="workflow-order-input" name="order" th:value="${order}" hx-swap-oob="true">
@@ -34,10 +34,10 @@
             <div class="pager-links">
                 <a th:if="${workflowPage.pagination.hasPrevious}"
                    class="pager-link"
-                   th:href="@{/workflows(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">上一页</a>
+                   th:href="@{/workflows(page=${workflowPage.pagination.previousPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},bizKey=${bizKey},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">上一页</a>
                 <a th:if="${workflowPage.pagination.hasNext}"
                    class="pager-link"
-                   th:href="@{/workflows(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">下一页</a>
+                   th:href="@{/workflows(page=${workflowPage.pagination.nextPage},size=${workflowPage.pagination.size},order=${order},workflowId=${workflowId},bizId=${bizId},bizKey=${bizKey},status=${status},workflowName=${workflowName},createdFrom=${createdFrom},createdTo=${createdTo},modifiedFrom=${modifiedFrom},modifiedTo=${modifiedTo})}">下一页</a>
             </div>
             <div id="workflow-order-control" class="page-size-form">
                 <label for="workflow-sort-order">顺序</label>
@@ -54,6 +54,7 @@
             <tr>
                 <th>Workflow ID</th>
                 <th>Biz ID</th>
+                <th>Biz Key</th>
                 <th>Workflow 名称</th>
                 <th>状态</th>
                 <th>最新活动</th>
@@ -67,6 +68,7 @@
             <tr th:each="workflow : ${workflows}" th:id="'workflow-row-' + ${workflow.workflowId}">
                 <td th:text="${workflow.workflowId}">workflow-id</td>
                 <td th:text="${workflow.bizId}">biz-id</td>
+                <td th:text="${workflow.bizKey}">biz-key</td>
                 <td th:text="${workflow.workflowName}">workflow-name</td>
                 <td>
                     <span class="status-badge"

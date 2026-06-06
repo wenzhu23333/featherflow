@@ -1,7 +1,8 @@
-insert into workflow_instance (workflow_id, biz_id, workflow_name, start_node, gmt_created, gmt_modified, input, status)
+insert into workflow_instance (workflow_id, biz_id, biz_key, workflow_name, start_node, gmt_created, gmt_modified, input, status)
 values (
     'wf-detail-0001',
     'biz-2001',
+    'order:10001',
     'orderWorkflow',
     '10.9.8.7:host-d:1234:seed',
     timestamp '2026-04-01 10:00:00',
@@ -30,10 +31,11 @@ values
     ('wf-detail-0001', 'TERMINATE', '{bad-json', 'FAILED', timestamp '2026-04-01 10:06:00', timestamp '2026-04-01 10:06:00'),
     ('wf-detail-0001', 'TERMINATE', '{"operator":"alice","reason":"manual-stop","activityId":"act-500"}', 'SUCCESSFUL', timestamp '2026-04-01 10:08:00', timestamp '2026-04-01 10:08:00');
 
-insert into workflow_instance (workflow_id, biz_id, workflow_name, start_node, gmt_created, gmt_modified, input, status)
+insert into workflow_instance (workflow_id, biz_id, biz_key, workflow_name, start_node, gmt_created, gmt_modified, input, status)
 values (
     'wf-graph-0001',
     'biz-graph-2001',
+    'payment:20001',
     'graphWorkflow',
     '10.9.8.10:host-g:1234:seed',
     timestamp '2026-04-01 11:00:00',

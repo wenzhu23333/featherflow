@@ -6,12 +6,18 @@ public class ActivityDefinition {
 
     private final String name;
     private final String handler;
+    private final String desc;
     private final Duration retryInterval;
     private final int maxRetryTimes;
 
     public ActivityDefinition(String name, String handler, Duration retryInterval, int maxRetryTimes) {
+        this(name, handler, null, retryInterval, maxRetryTimes);
+    }
+
+    public ActivityDefinition(String name, String handler, String desc, Duration retryInterval, int maxRetryTimes) {
         this.name = name;
         this.handler = handler;
+        this.desc = desc;
         this.retryInterval = retryInterval;
         this.maxRetryTimes = maxRetryTimes;
     }
@@ -22,6 +28,10 @@ public class ActivityDefinition {
 
     public String getHandler() {
         return handler;
+    }
+
+    public String getDesc() {
+        return desc;
     }
 
     public Duration getRetryInterval() {

@@ -107,9 +107,20 @@ class WorkflowCommandServiceTest {
 
         assertThat(UUID.fromString(workflow.getWorkflowId()).toString()).isEqualTo(workflow.getWorkflowId());
         assertThat(workflow.getBizId()).isEqualTo(workflow.getWorkflowId());
+        assertThat(workflow.getBizKey()).isNull();
         assertThat(workflow.getStatus()).isEqualTo(WorkflowStatus.RUNNING);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).isEmpty();
         assertThat(operationRepository.findDuePendingOperations(clock.instant())).isEmpty();
+        assertThat(workflowExecutionScheduler.workflowIds).containsExactly(workflow.getWorkflowId());
+    }
+
+    @Test
+    void shouldPersistBizKeyWhenStartingWorkflowWithBusinessObjectKey() {
+        WorkflowInstance workflow = service.startWorkflow("orderWorkflow", "biz-1", "order:10001", "{\"amount\":100}");
+
+        assertThat(workflow.getBizId()).isEqualTo("biz-1");
+        assertThat(workflow.getBizKey()).isEqualTo("order:10001");
+        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getBizKey()).isEqualTo("order:10001");
         assertThat(workflowExecutionScheduler.workflowIds).containsExactly(workflow.getWorkflowId());
     }
 

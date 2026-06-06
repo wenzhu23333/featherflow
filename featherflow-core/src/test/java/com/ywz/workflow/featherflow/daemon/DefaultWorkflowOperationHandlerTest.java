@@ -169,6 +169,78 @@ class DefaultWorkflowOperationHandlerTest {
     }
 
     @Test
+    void shouldPersistBizKeyFromStartOperationInputBeforeDispatchingWorkflow() {
+        WorkflowInstance workflow = new WorkflowInstance(
+            "wf-start-biz-key-1",
+            "biz-start-biz-key-1",
+            "skipWorkflow",
+            "test-node",
+            clock.instant(),
+            clock.instant(),
+            "{\"base\":1}",
+            WorkflowStatus.RUNNING
+        );
+        workflowRepository.save(workflow);
+        WorkflowRuntimeService workflowRuntimeService = new DefaultWorkflowRuntimeService(
+            workflowRepository,
+            newEngine(),
+            new NoOpWorkflowExecutionScheduler(),
+            serializer,
+            clock
+        );
+        DefaultWorkflowOperationHandler handler = new DefaultWorkflowOperationHandler(
+            workflowRepository,
+            workflowRuntimeService,
+            serializer
+        );
+
+        handler.process(WorkflowOperation.pending(
+            workflow.getWorkflowId(),
+            com.ywz.workflow.featherflow.model.OperationType.START,
+            "{\"bizKey\":\"worker:publish:10001\"}",
+            clock.instant()
+        ));
+
+        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getBizKey()).isEqualTo("worker:publish:10001");
+    }
+
+    @Test
+    void shouldIgnoreMalformedStartOperationInputWhenReadingBizKey() {
+        WorkflowInstance workflow = new WorkflowInstance(
+            "wf-start-biz-key-plain-1",
+            "biz-start-biz-key-plain-1",
+            "skipWorkflow",
+            "test-node",
+            clock.instant(),
+            clock.instant(),
+            "{\"base\":1}",
+            WorkflowStatus.RUNNING
+        );
+        workflowRepository.save(workflow);
+        WorkflowRuntimeService workflowRuntimeService = new DefaultWorkflowRuntimeService(
+            workflowRepository,
+            newEngine(),
+            new NoOpWorkflowExecutionScheduler(),
+            serializer,
+            clock
+        );
+        DefaultWorkflowOperationHandler handler = new DefaultWorkflowOperationHandler(
+            workflowRepository,
+            workflowRuntimeService,
+            serializer
+        );
+
+        handler.process(WorkflowOperation.pending(
+            workflow.getWorkflowId(),
+            com.ywz.workflow.featherflow.model.OperationType.START,
+            "plain-text-input",
+            clock.instant()
+        ));
+
+        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getBizKey()).isNull();
+    }
+
+    @Test
     void shouldRejectRetryOperationWhenWorkflowIsRunning() {
         WorkflowInstance workflow = new WorkflowInstance(
             "wf-running-retry-1",

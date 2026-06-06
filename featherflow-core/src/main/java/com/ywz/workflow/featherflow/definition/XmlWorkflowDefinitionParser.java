@@ -7,6 +7,7 @@ import java.util.List;
 import javax.xml.parsers.DocumentBuilderFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
@@ -51,12 +52,29 @@ public class XmlWorkflowDefinitionParser implements WorkflowDefinitionParser {
             Element activityElement = (Element) activityNodes.item(i);
             String activityName = activityElement.getAttribute("name");
             String handler = activityElement.getAttribute("handler");
+            String desc = readActivityDesc(activityElement);
             String retryInterval = activityElement.getAttribute("retryInterval");
             String maxRetryTimesStr = activityElement.getAttribute("maxRetryTimes");
             int maxRetryTimes = maxRetryTimesStr.isEmpty() ? 0 : Integer.parseInt(maxRetryTimesStr);
-            activities.add(new ActivityDefinition(activityName, handler, Duration.parse(retryInterval), maxRetryTimes));
+            activities.add(new ActivityDefinition(activityName, handler, desc, Duration.parse(retryInterval), maxRetryTimes));
         }
         return new WorkflowDefinition(name, activities);
+    }
+
+    private String readActivityDesc(Element activityElement) {
+        String attributeDesc = activityElement.getAttribute("desc");
+        if (attributeDesc != null && !attributeDesc.trim().isEmpty()) {
+            return attributeDesc.trim();
+        }
+        NodeList childNodes = activityElement.getChildNodes();
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node childNode = childNodes.item(i);
+            if (childNode instanceof Element && "desc".equals(childNode.getNodeName())) {
+                String childDesc = childNode.getTextContent();
+                return childDesc == null || childDesc.trim().isEmpty() ? null : childDesc.trim();
+            }
+        }
+        return null;
     }
 
     private Document parseDocument(String content) throws Exception {

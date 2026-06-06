@@ -1,6 +1,7 @@
 create table workflow_instance (
     workflow_id varchar(64) primary key comment 'Workflow instance identifier',
     biz_id varchar(128) not null comment 'Business identifier',
+    biz_key varchar(256) comment 'Business object key operated by workflow',
     workflow_name varchar(128) not null comment 'Workflow definition name',
     start_node varchar(128) not null comment 'Node that started the workflow',
     gmt_created datetime not null default current_timestamp comment 'Creation time',
@@ -8,6 +9,7 @@ create table workflow_instance (
     input longtext comment 'Workflow input context snapshot',
     status varchar(32) not null comment 'Workflow execution status',
     key idx_workflow_instance_biz_id (biz_id),
+    key idx_workflow_instance_biz_key (biz_key),
     key idx_workflow_instance_modified (gmt_modified),
     key idx_workflow_instance_name_modified (workflow_name, gmt_modified),
     key idx_workflow_instance_status (status)

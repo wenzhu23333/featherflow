@@ -1,6 +1,7 @@
 create table workflow_instance (
     workflow_id varchar(64) primary key,
     biz_id varchar(128) not null,
+    biz_key varchar(256),
     workflow_name varchar(128) not null,
     start_node varchar(128) not null,
     gmt_created timestamp not null,
@@ -10,6 +11,7 @@ create table workflow_instance (
 );
 
 create index idx_workflow_instance_biz_id on workflow_instance (biz_id);
+create index idx_workflow_instance_biz_key on workflow_instance (biz_key);
 create index idx_workflow_instance_modified on workflow_instance (gmt_modified);
 create index idx_workflow_instance_name_modified on workflow_instance (workflow_name, gmt_modified);
 create index idx_workflow_instance_status on workflow_instance (status);

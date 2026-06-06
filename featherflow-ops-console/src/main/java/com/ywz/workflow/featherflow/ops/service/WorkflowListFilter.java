@@ -6,6 +6,7 @@ public final class WorkflowListFilter {
 
     private final String workflowId;
     private final String bizId;
+    private final String bizKey;
     private final String status;
     private final String workflowName;
     private final LocalDateTime createdFrom;
@@ -16,6 +17,7 @@ public final class WorkflowListFilter {
     public WorkflowListFilter(
         String workflowId,
         String bizId,
+        String bizKey,
         String status,
         String workflowName,
         LocalDateTime createdFrom,
@@ -25,6 +27,7 @@ public final class WorkflowListFilter {
     ) {
         this.workflowId = workflowId;
         this.bizId = bizId;
+        this.bizKey = bizKey;
         this.status = status;
         this.workflowName = workflowName;
         this.createdFrom = createdFrom;
@@ -39,6 +42,10 @@ public final class WorkflowListFilter {
 
     public String bizId() {
         return bizId;
+    }
+
+    public String bizKey() {
+        return bizKey;
     }
 
     public String status() {
@@ -66,6 +73,6 @@ public final class WorkflowListFilter {
     }
 
     public static WorkflowListFilter empty() {
-        return new WorkflowListFilter(null, null, null, null, null, null, null, null);
+        return new WorkflowListFilter(null, null, null, null, null, null, null, null, null);
     }
 }

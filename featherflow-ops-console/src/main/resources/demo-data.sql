@@ -1,6 +1,7 @@
 insert into workflow_instance (
     workflow_id,
     biz_id,
+    biz_key,
     workflow_name,
     start_node,
     gmt_created,
@@ -10,6 +11,7 @@ insert into workflow_instance (
 ) values (
     'demo-run-0001',
     'biz-order-2001',
+    'order:O-2001',
     'demoOrderWorkflow',
     '10.9.8.7:ops-node-a:8421:demo',
     timestamp '2026-04-02 09:00:00',
@@ -21,6 +23,7 @@ insert into workflow_instance (
 insert into workflow_instance (
     workflow_id,
     biz_id,
+    biz_key,
     workflow_name,
     start_node,
     gmt_created,
@@ -30,6 +33,7 @@ insert into workflow_instance (
 ) values (
     'demo-success-01',
     'biz-notify-1001',
+    'customer:C-1001',
     'demoOrderWorkflow',
     '10.9.8.8:ops-node-b:8421:demo',
     timestamp '2026-04-02 08:20:00',
@@ -41,6 +45,7 @@ insert into workflow_instance (
 insert into workflow_instance (
     workflow_id,
     biz_id,
+    biz_key,
     workflow_name,
     start_node,
     gmt_created,
@@ -50,6 +55,7 @@ insert into workflow_instance (
 ) values (
     'demo-human-0001',
     'biz-risk-3001',
+    'application:A-3001',
     'demoRiskWorkflow',
     '10.9.8.9:ops-node-c:8421:demo',
     timestamp '2026-04-02 10:00:00',

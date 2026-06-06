@@ -36,6 +36,7 @@ import com.ywz.workflow.featherflow.repository.jdbc.JdbcWorkflowRepository;
 import com.ywz.workflow.featherflow.service.DefaultWorkflowCommandService;
 import com.ywz.workflow.featherflow.service.DefaultWorkflowIdGenerator;
 import com.ywz.workflow.featherflow.service.DefaultWorkflowRuntimeService;
+import com.ywz.workflow.featherflow.service.WorkflowDefinitionQueryService;
 import com.ywz.workflow.featherflow.service.WorkflowCommandService;
 import com.ywz.workflow.featherflow.service.WorkflowRuntimeService;
 import com.ywz.workflow.featherflow.support.JsonWorkflowContextSerializer;
@@ -128,6 +129,12 @@ public class FeatherFlowAutoConfiguration {
             registry.register(entry.getKey(), entry.getValue());
         }
         return registry;
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public WorkflowDefinitionQueryService workflowDefinitionQueryService(WorkflowDefinitionRegistry workflowDefinitionRegistry) {
+        return new WorkflowDefinitionQueryService(workflowDefinitionRegistry);
     }
 
     @Bean

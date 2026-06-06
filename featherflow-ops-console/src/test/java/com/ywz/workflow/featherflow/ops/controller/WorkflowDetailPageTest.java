@@ -41,6 +41,8 @@ class WorkflowDetailPageTest {
         String page = result.getResponse().getContentAsString();
         assertThat(page).contains("class=\"page-shell\"");
         assertThat(page).contains("wf-detail-0001");
+        assertThat(page).contains("Biz Key");
+        assertThat(page).contains("order:10001");
         assertThat(page).contains("TERMINATED");
         assertThat(page).contains("orderId");
         assertThat(page).contains("10001");
@@ -158,18 +160,21 @@ class WorkflowDetailPageTest {
         assertThat(countOccurrences(page, "data-activity-name=\"validateOrder\"")).isEqualTo(1);
         assertThat(page).contains("执行 3 次");
         assertThat(page).contains("失败 2 次");
+        assertThat(page).contains("重试 2 次");
         assertThat(page).contains("最终 SUCCESSFUL");
         assertThat(page).contains("执行 1 次");
         assertThat(page).contains("失败 1 次");
+        assertThat(page).contains("重试 0 次");
         assertThat(page).contains("最终 FAILED");
         assertThat(page).contains("最新执行");
 
         String validateNode = extractById(page, "activity-flow-node-1", "details");
         String chargeNode = extractById(page, "activity-flow-node-2", "details");
-        assertThat(validateNode).contains("act-g-100");
-        assertThat(validateNode).contains("act-g-101");
         assertThat(validateNode).contains("act-g-102");
-        assertThat(validateNode).contains("risk timeout");
+        assertThat(validateNode).contains("最新结果");
+        assertThat(validateNode).doesNotContain("act-g-100");
+        assertThat(validateNode).doesNotContain("act-g-101");
+        assertThat(validateNode).doesNotContain("risk timeout");
         assertThat(validateNode).contains("validated");
         assertThat(chargeNode).contains("act-g-200");
         assertThat(chargeNode).contains("payment gateway timeout");
@@ -225,7 +230,8 @@ class WorkflowDetailPageTest {
         assertThat(fragment).doesNotContain("operation-row-");
         assertThat(fragment).doesNotContain("<html");
 
-        Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getWorkflowTimeline("wf-detail-0001", 1, 5, "asc");
+        Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getWorkflowActivityTimeline("wf-detail-0001", 1, 5, "asc");
+        Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getCompressedWorkflowActivityFlow("wf-detail-0001");
         Mockito.verify(workflowQueryService, Mockito.never()).getWorkflowDetail("wf-detail-0001");
     }
 
@@ -241,6 +247,7 @@ class WorkflowDetailPageTest {
         assertThat(fragment).contains("data-activity-name=\"chargePayment\"");
         assertThat(fragment).contains("执行 3 次");
         assertThat(fragment).contains("失败 2 次");
+        assertThat(fragment).contains("重试 2 次");
         assertThat(fragment).contains("最终 SUCCESSFUL");
         assertThat(fragment).contains("最终 FAILED");
         assertThat(fragment).doesNotContain("<html");

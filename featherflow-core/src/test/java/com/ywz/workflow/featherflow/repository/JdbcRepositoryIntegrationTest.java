@@ -76,6 +76,7 @@ class JdbcRepositoryIntegrationTest {
 
         WorkflowInstance loadedWorkflow = workflowRepository.findRequired(workflow.getWorkflowId());
         assertThat(loadedWorkflow.getBizId()).isEqualTo("biz-1");
+        assertThat(loadedWorkflow.getBizKey()).isNull();
         assertThat(loadedWorkflow.getWorkflowName()).isEqualTo("orderWorkflow");
         assertThat(loadedWorkflow.getStartNode()).isEqualTo(startNode);
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).hasSize(2);
@@ -87,6 +88,27 @@ class JdbcRepositoryIntegrationTest {
             assertThat(savedOperation.getStatus()).isEqualTo(OperationStatus.SUCCESSFUL);
             assertThat(savedOperation.getInput()).contains("\"processedNode\":\"daemon-node-a\"");
         });
+    }
+
+    @Test
+    void shouldPersistAndLoadWorkflowBizKey() {
+        Instant now = Instant.parse("2026-03-30T13:00:00Z");
+        WorkflowInstance workflow = new WorkflowInstance(
+            "biz-key-workflow-0001",
+            "biz-2",
+            "worker:publish:10001",
+            "publishWorkflow",
+            "10.9.8.7:host-a:1234:seed",
+            now,
+            now,
+            "{\"workerName\":\"publish\"}",
+            WorkflowStatus.RUNNING
+        );
+
+        workflowRepository.save(workflow);
+
+        WorkflowInstance loadedWorkflow = workflowRepository.findRequired(workflow.getWorkflowId());
+        assertThat(loadedWorkflow.getBizKey()).isEqualTo("worker:publish:10001");
     }
 
     @Test

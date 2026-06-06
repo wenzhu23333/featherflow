@@ -37,6 +37,7 @@ public class YamlWorkflowDefinitionParser implements WorkflowDefinitionParser {
             activities.add(new ActivityDefinition(
                 activityDocument.getName(),
                 activityDocument.getHandler(),
+                activityDocument.getDesc(),
                 Duration.parse(activityDocument.getRetryInterval()),
                 activityDocument.getMaxRetryTimes() == null ? 0 : activityDocument.getMaxRetryTimes().intValue()
             ));

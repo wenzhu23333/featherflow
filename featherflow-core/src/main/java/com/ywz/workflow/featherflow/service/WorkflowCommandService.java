@@ -15,7 +15,14 @@ public interface WorkflowCommandService {
     /**
      * Create a workflow instance and submit it for execution.
      */
-    WorkflowInstance startWorkflow(String definitionName, String bizId, String input);
+    default WorkflowInstance startWorkflow(String definitionName, String bizId, String input) {
+        return startWorkflow(definitionName, bizId, null, input);
+    }
+
+    /**
+     * Create a workflow instance with the business object key it operates on.
+     */
+    WorkflowInstance startWorkflow(String definitionName, String bizId, String bizKey, String input);
 
     /**
      * Change workflow status directly for administrative use.

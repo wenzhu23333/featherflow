@@ -41,6 +41,7 @@ public class WorkflowPageController {
     public String workflows(
         @RequestParam(required = false) String workflowId,
         @RequestParam(required = false) String bizId,
+        @RequestParam(required = false) String bizKey,
         @RequestParam(required = false) String status,
         @RequestParam(required = false) String workflowName,
         @RequestParam(required = false) String createdFrom,
@@ -54,6 +55,7 @@ public class WorkflowPageController {
     ) {
         String normalizedWorkflowId = normalizeRequestValue(workflowId);
         String normalizedBizId = normalizeRequestValue(bizId);
+        String normalizedBizKey = normalizeRequestValue(bizKey);
         String normalizedStatus = normalizeRequestValue(status);
         String normalizedWorkflowName = normalizeRequestValue(workflowName);
         String normalizedCreatedFrom = normalizeRequestValue(createdFrom);
@@ -67,6 +69,7 @@ public class WorkflowPageController {
         WorkflowListFilter filter = new WorkflowListFilter(
             normalizedWorkflowId,
             normalizedBizId,
+            normalizedBizKey,
             normalizedStatus,
             normalizedWorkflowName,
             FilterDateTimeParser.parseNullable("createdFrom", normalizedCreatedFrom, dateFilterErrors),
@@ -81,6 +84,7 @@ public class WorkflowPageController {
             normalizedCreatedTo,
             normalizedModifiedFrom,
             normalizedModifiedTo,
+            normalizedBizKey,
             normalizedOrder,
             dateFilterErrors
         );
@@ -97,6 +101,7 @@ public class WorkflowPageController {
     public String workflowsTable(
         @RequestParam(required = false) String workflowId,
         @RequestParam(required = false) String bizId,
+        @RequestParam(required = false) String bizKey,
         @RequestParam(required = false) String status,
         @RequestParam(required = false) String workflowName,
         @RequestParam(required = false) String createdFrom,
@@ -110,6 +115,7 @@ public class WorkflowPageController {
     ) {
         String normalizedWorkflowId = normalizeRequestValue(workflowId);
         String normalizedBizId = normalizeRequestValue(bizId);
+        String normalizedBizKey = normalizeRequestValue(bizKey);
         String normalizedStatus = normalizeRequestValue(status);
         String normalizedWorkflowName = normalizeRequestValue(workflowName);
         String normalizedCreatedFrom = normalizeRequestValue(createdFrom);
@@ -123,6 +129,7 @@ public class WorkflowPageController {
         WorkflowListFilter filter = new WorkflowListFilter(
             normalizedWorkflowId,
             normalizedBizId,
+            normalizedBizKey,
             normalizedStatus,
             normalizedWorkflowName,
             FilterDateTimeParser.parseNullable("createdFrom", normalizedCreatedFrom, dateFilterErrors),
@@ -137,6 +144,7 @@ public class WorkflowPageController {
             normalizedCreatedTo,
             normalizedModifiedFrom,
             normalizedModifiedTo,
+            normalizedBizKey,
             normalizedOrder,
             dateFilterErrors
         );
@@ -192,13 +200,13 @@ public class WorkflowPageController {
         int parsedActivityPage = parsePositiveIntOrDefault(activityPage, 1);
         int parsedActivitySize = parsePositiveIntOrDefault(activitySize, 5);
         String normalizedActivityOrder = normalizeOrder(activityOrder, ORDER_ASC);
-        return workflowQueryService.getWorkflowTimeline(workflowId, parsedActivityPage, parsedActivitySize, normalizedActivityOrder)
+        return workflowQueryService.getWorkflowActivityTimeline(workflowId, parsedActivityPage, parsedActivitySize, normalizedActivityOrder)
             .map(pageView -> {
                 model.addAttribute("activities", pageView.getItems());
                 model.addAttribute("activityPagination", pageView.getPagination());
                 model.addAttribute(
                     "activityFlowNodes",
-                    workflowQueryService.getWorkflowActivityFlow(workflowId).orElse(Collections.emptyList())
+                    workflowQueryService.getCompressedWorkflowActivityFlow(workflowId).orElse(Collections.emptyList())
                 );
                 model.addAttribute("workflowId", workflowId);
                 model.addAttribute("activityOrder", normalizedActivityOrder);
@@ -214,11 +222,13 @@ public class WorkflowPageController {
         String createdTo,
         String modifiedFrom,
         String modifiedTo,
+        String bizKey,
         String order,
         Map<String, String> dateFilterErrors
     ) {
         model.addAttribute("workflowId", filter.workflowId());
         model.addAttribute("bizId", filter.bizId());
+        model.addAttribute("bizKey", bizKey);
         model.addAttribute("status", filter.status());
         model.addAttribute("workflowName", filter.workflowName());
         model.addAttribute("createdFrom", createdFrom);

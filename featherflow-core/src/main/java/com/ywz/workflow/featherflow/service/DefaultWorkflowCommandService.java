@@ -43,16 +43,18 @@ public class DefaultWorkflowCommandService implements WorkflowCommandService {
     }
 
     @Override
-    public WorkflowInstance startWorkflow(String definitionName, String bizId, String input) {
+    public WorkflowInstance startWorkflow(String definitionName, String bizId, String bizKey, String input) {
         WorkflowDefinition definition = definitionRegistry.getRequired(definitionName);
         Instant now = clock.instant();
         String workflowId = workflowIdGenerator.nextId();
         String effectiveBizId = bizId == null || bizId.trim().isEmpty() ? workflowId : bizId;
+        String effectiveBizKey = normalizeNullableText(bizKey);
         String effectiveInput = normalizeJson(input);
 
         WorkflowInstance workflowInstance = new WorkflowInstance(
             workflowId,
             effectiveBizId,
+            effectiveBizKey,
             definition.getName(),
             nodeIdentity,
             now,
@@ -110,5 +112,9 @@ public class DefaultWorkflowCommandService implements WorkflowCommandService {
 
     private String normalizeJson(String input) {
         return input == null || input.trim().isEmpty() ? "{}" : input;
+    }
+
+    private String normalizeNullableText(String value) {
+        return value == null || value.trim().isEmpty() ? null : value.trim();
     }
 }
