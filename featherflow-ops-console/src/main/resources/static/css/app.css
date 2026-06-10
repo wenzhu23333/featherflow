@@ -436,47 +436,57 @@ select:focus {
 
 .workflow-table th:nth-child(1),
 .workflow-table td:nth-child(1) {
-    width: 8%;
+    width: 7%;
 }
 
 .workflow-table th:nth-child(2),
 .workflow-table td:nth-child(2) {
-    width: 12%;
+    width: 10%;
 }
 
 .workflow-table th:nth-child(3),
 .workflow-table td:nth-child(3) {
-    width: 13%;
+    width: 10%;
 }
 
 .workflow-table th:nth-child(4),
 .workflow-table td:nth-child(4) {
-    width: 8%;
+    width: 10%;
 }
 
 .workflow-table th:nth-child(5),
 .workflow-table td:nth-child(5) {
-    width: 14%;
+    width: 7%;
 }
 
 .workflow-table th:nth-child(6),
 .workflow-table td:nth-child(6) {
-    width: 22%;
+    width: 11%;
 }
 
 .workflow-table th:nth-child(7),
 .workflow-table td:nth-child(7) {
-    width: 8%;
+    width: 10%;
 }
 
 .workflow-table th:nth-child(8),
 .workflow-table td:nth-child(8) {
-    width: 5%;
+    width: 12%;
 }
 
 .workflow-table th:nth-child(9),
 .workflow-table td:nth-child(9) {
-    width: 10%;
+    width: 8%;
+}
+
+.workflow-table th:nth-child(10),
+.workflow-table td:nth-child(10) {
+    width: 7%;
+}
+
+.workflow-table th:nth-child(11),
+.workflow-table td:nth-child(11) {
+    width: 8%;
 }
 
 .workflow-table th,

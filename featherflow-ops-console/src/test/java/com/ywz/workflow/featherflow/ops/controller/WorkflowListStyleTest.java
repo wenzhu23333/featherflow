@@ -17,6 +17,8 @@ class WorkflowListStyleTest {
         assertThat(css).contains(".workflow-table {\n    width: 100%;\n    table-layout: fixed;");
         assertThat(css).doesNotContain("min-width: 1320px;");
         assertThat(css).contains("overflow-x: hidden;");
+        assertThat(css).contains(".workflow-table th:nth-child(10),\n.workflow-table td:nth-child(10) {");
+        assertThat(css).contains(".workflow-table th:nth-child(11),\n.workflow-table td:nth-child(11) {");
         assertThat(css).contains("--surface-glass");
         assertThat(css).contains("backdrop-filter: blur(18px);");
         assertThat(css).contains(".json-preview-open");
