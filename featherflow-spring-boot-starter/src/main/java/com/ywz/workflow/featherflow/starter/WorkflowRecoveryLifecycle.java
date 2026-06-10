@@ -1,0 +1,86 @@
+package com.ywz.workflow.featherflow.starter;
+
+import com.ywz.workflow.featherflow.service.StaleRunningWorkflowRecoveryService;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import org.springframework.context.SmartLifecycle;
+
+/**
+ * Runs low-frequency recovery scans only during the startup window.
+ */
+public class WorkflowRecoveryLifecycle implements SmartLifecycle {
+
+    private final StaleRunningWorkflowRecoveryService recoveryService;
+    private final FeatherFlowProperties properties;
+    private ScheduledExecutorService scheduler;
+    private Instant stopAt;
+    private volatile boolean running;
+
+    public WorkflowRecoveryLifecycle(StaleRunningWorkflowRecoveryService recoveryService, FeatherFlowProperties properties) {
+        this.recoveryService = recoveryService;
+        this.properties = properties;
+    }
+
+    @Override
+    public void start() {
+        if (!properties.isAutoRecoverRunningWorkflows()) {
+            return;
+        }
+        scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "featherflow-recovery");
+            thread.setDaemon(true);
+            return thread;
+        });
+        stopAt = Instant.now().plusMillis(properties.getRunningWorkflowRecoveryWindowMillis());
+        scheduler.scheduleWithFixedDelay(
+            this::recoverOnceWithinStartupWindow,
+            properties.getRunningWorkflowRecoveryDelayMillis(),
+            properties.getRunningWorkflowRecoveryIntervalMillis(),
+            TimeUnit.MILLISECONDS
+        );
+        running = true;
+    }
+
+    @Override
+    public void stop() {
+        if (scheduler != null) {
+            scheduler.shutdownNow();
+        }
+        running = false;
+    }
+
+    @Override
+    public boolean isRunning() {
+        return running;
+    }
+
+    @Override
+    public int getPhase() {
+        return Integer.MAX_VALUE - 1;
+    }
+
+    @Override
+    public boolean isAutoStartup() {
+        return properties.isAutoRecoverRunningWorkflows();
+    }
+
+    @Override
+    public void stop(Runnable callback) {
+        stop();
+        callback.run();
+    }
+
+    private void recoverOnceWithinStartupWindow() {
+        if (Instant.now().isAfter(stopAt)) {
+            stop();
+            return;
+        }
+        recoveryService.recover(
+            Duration.ofMillis(properties.getRunningWorkflowRecoveryStaleMillis()),
+            properties.getRunningWorkflowRecoveryBatchSize()
+        );
+    }
+}

@@ -79,6 +79,18 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
         );
     }
 
+    @Override
+    public List<WorkflowInstance> findRunningModifiedBefore(Instant modifiedBefore, int limit) {
+        return jdbcTemplate.query(
+            "select workflow_id, biz_id, biz_key, workflow_name, start_node, gmt_created, gmt_modified, input, status "
+                + "from workflow_instance where status = ? and gmt_modified < ? order by gmt_modified asc, workflow_id asc limit ?",
+            new WorkflowInstanceRowMapper(),
+            WorkflowStatus.RUNNING.name(),
+            Timestamp.from(modifiedBefore),
+            limit
+        );
+    }
+
     private static final class WorkflowInstanceRowMapper implements RowMapper<WorkflowInstance> {
         @Override
         public WorkflowInstance mapRow(ResultSet rs, int rowNum) throws SQLException {

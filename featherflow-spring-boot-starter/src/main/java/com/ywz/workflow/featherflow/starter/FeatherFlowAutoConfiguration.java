@@ -39,6 +39,7 @@ import com.ywz.workflow.featherflow.service.DefaultWorkflowRuntimeService;
 import com.ywz.workflow.featherflow.service.WorkflowDefinitionQueryService;
 import com.ywz.workflow.featherflow.service.WorkflowCommandService;
 import com.ywz.workflow.featherflow.service.WorkflowRuntimeService;
+import com.ywz.workflow.featherflow.service.StaleRunningWorkflowRecoveryService;
 import com.ywz.workflow.featherflow.support.JsonWorkflowContextSerializer;
 import com.ywz.workflow.featherflow.support.WorkflowNodeIdentity;
 import com.ywz.workflow.featherflow.support.WorkflowContextSerializer;
@@ -344,5 +345,24 @@ public class FeatherFlowAutoConfiguration {
         FeatherFlowProperties properties
     ) {
         return new WorkflowOperationDaemonLifecycle(workflowOperationDaemon, properties);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public StaleRunningWorkflowRecoveryService staleRunningWorkflowRecoveryService(
+        WorkflowRepository workflowRepository,
+        WorkflowRuntimeService workflowRuntimeService,
+        Clock featherflowClock
+    ) {
+        return new StaleRunningWorkflowRecoveryService(workflowRepository, workflowRuntimeService, featherflowClock);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
+    public WorkflowRecoveryLifecycle workflowRecoveryLifecycle(
+        StaleRunningWorkflowRecoveryService staleRunningWorkflowRecoveryService,
+        FeatherFlowProperties properties
+    ) {
+        return new WorkflowRecoveryLifecycle(staleRunningWorkflowRecoveryService, properties);
     }
 }

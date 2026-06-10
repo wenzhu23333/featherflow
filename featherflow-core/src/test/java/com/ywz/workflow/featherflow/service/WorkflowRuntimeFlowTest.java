@@ -79,6 +79,13 @@ class WorkflowRuntimeFlowTest {
             "manualRetryHistoryWorkflow",
             Arrays.asList(new ActivityDefinition("alwaysFail", "alwaysFailHandler", Duration.ofSeconds(5), 0))
         ));
+        registry.register(new WorkflowDefinition(
+            "startupRecoveryWorkflow",
+            Arrays.asList(
+                new ActivityDefinition("step1", "recoveryStep1Handler", Duration.ofSeconds(5), 0),
+                new ActivityDefinition("step2", "recoveryStep2Handler", Duration.ofSeconds(5), 0)
+            )
+        ));
         workflowExecutor = Executors.newSingleThreadExecutor(runnable -> new Thread(runnable, "workflow-test-thread"));
     }
 
@@ -267,7 +274,93 @@ class WorkflowRuntimeFlowTest {
         assertThat(activityThreadName.get()).isEqualTo("workflow-test-thread");
     }
 
+    @Test
+    void shouldRecoverStaleRunningWorkflowFromLatestSuccessfulActivity() throws Exception {
+        CountDownLatch recovered = new CountDownLatch(1);
+        handlerRegistry.register("recoveryStep1Handler", context -> {
+            throw new AssertionError("completed step1 should be skipped during recovery");
+        });
+        handlerRegistry.register("recoveryStep2Handler", context -> {
+            assertThat(context).containsEntry("step1", Boolean.TRUE);
+            context.put("step2", true);
+            recovered.countDown();
+            return context;
+        });
+
+        WorkflowInstance workflow = new WorkflowInstance(
+            "wf-stale-running-1",
+            "biz-stale-running-1",
+            "startupRecoveryWorkflow",
+            "old-node",
+            clock.instant().minus(Duration.ofMinutes(20)),
+            clock.instant().minus(Duration.ofMinutes(20)),
+            "{\"base\":1}",
+            WorkflowStatus.RUNNING
+        );
+        workflowRepository.save(workflow);
+        activityRepository.saveAttempt(
+            workflow.getWorkflowId() + "-01-01",
+            workflow.getWorkflowId(),
+            "step1",
+            "old-node",
+            "{\"base\":1}",
+            serializer.merge("{\"base\":1}", "{\"step1\":true}"),
+            ActivityExecutionStatus.SUCCESSFUL,
+            clock.instant().minus(Duration.ofMinutes(20))
+        );
+
+        StaleRunningWorkflowRecoveryService recoveryService = new StaleRunningWorkflowRecoveryService(
+            workflowRepository,
+            createRuntimeService(),
+            clock
+        );
+
+        assertThat(recoveryService.recover(Duration.ofMinutes(10), 10)).isEqualTo(1);
+        assertThat(recovered.await(1, TimeUnit.SECONDS)).isTrue();
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(ActivityInstance::getActivityName)
+            .containsExactly("step1", "step2");
+    }
+
+    @Test
+    void shouldNotRecoverFreshRunningWorkflow() {
+        WorkflowInstance workflow = new WorkflowInstance(
+            "wf-fresh-running-1",
+            "biz-fresh-running-1",
+            "startupRecoveryWorkflow",
+            "active-node",
+            clock.instant().minus(Duration.ofMinutes(1)),
+            clock.instant().minus(Duration.ofMinutes(1)),
+            "{\"base\":1}",
+            WorkflowStatus.RUNNING
+        );
+        workflowRepository.save(workflow);
+
+        StaleRunningWorkflowRecoveryService recoveryService = new StaleRunningWorkflowRecoveryService(
+            workflowRepository,
+            createRuntimeService(),
+            clock
+        );
+
+        assertThat(recoveryService.recover(Duration.ofMinutes(10), 10)).isZero();
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).isEmpty();
+    }
+
     private WorkflowCommandService createTriggeredService() {
+        DefaultWorkflowRuntimeService workflowRuntimeService = createRuntimeService();
+        return new DefaultWorkflowCommandService(
+            registry,
+            workflowRepository,
+            new DefaultWorkflowIdGenerator(),
+            serializer,
+            clock,
+            workflowRuntimeService,
+            "test-node"
+        );
+    }
+
+    private DefaultWorkflowRuntimeService createRuntimeService() {
         WorkflowRetryScheduler workflowRetryScheduler = (workflowId, delay) -> {
         };
         WorkflowEngine engine = new WorkflowEngine(
@@ -286,21 +379,12 @@ class WorkflowRuntimeFlowTest {
             workflowExecutor,
             clock
         );
-        DefaultWorkflowRuntimeService workflowRuntimeService = new DefaultWorkflowRuntimeService(
+        return new DefaultWorkflowRuntimeService(
             workflowRepository,
             engine,
             workflowExecutionScheduler,
             serializer,
             clock
-        );
-        return new DefaultWorkflowCommandService(
-            registry,
-            workflowRepository,
-            new DefaultWorkflowIdGenerator(),
-            serializer,
-            clock,
-            workflowRuntimeService,
-            "test-node"
         );
     }
 

@@ -5,7 +5,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.ywz.workflow.featherflow.definition.ActivityDefinition;
 import com.ywz.workflow.featherflow.definition.InMemoryWorkflowDefinitionRegistry;
 import com.ywz.workflow.featherflow.definition.WorkflowDefinition;
+import com.ywz.workflow.featherflow.engine.DefaultWorkflowExecutionScheduler;
 import com.ywz.workflow.featherflow.engine.WorkflowEngine;
+import com.ywz.workflow.featherflow.engine.WorkflowExecutionScheduler;
 import com.ywz.workflow.featherflow.engine.WorkflowRetryScheduler;
 import com.ywz.workflow.featherflow.handler.MapBackedWorkflowActivityHandlerRegistry;
 import com.ywz.workflow.featherflow.model.ActivityExecutionStatus;
@@ -277,6 +279,86 @@ class WorkflowRetrySafetyIntegrationTest {
         assertThat(workflowRepository.findRequired(workflowId).getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
     }
 
+    @Test
+    void shouldPreventDuplicateActivityExecutionWhenTwoNodesRecoverSameStaleRunningWorkflow() throws Exception {
+        definitionRegistry.register(new WorkflowDefinition(
+            "staleRecoveryRaceWorkflow",
+            Arrays.asList(new ActivityDefinition("rebuildIndex", "rebuildIndexHandler", Duration.ofMillis(10), 0))
+        ));
+        String workflowId = "wf-stale-recovery-race-0001";
+        workflowRepository.save(new WorkflowInstance(
+            workflowId,
+            "biz-" + workflowId,
+            "staleRecoveryRaceWorkflow",
+            "old-pod",
+            clock.instant().minus(Duration.ofMinutes(20)),
+            clock.instant().minus(Duration.ofMinutes(20)),
+            "{\"resourceId\":\"R-100\"}",
+            WorkflowStatus.RUNNING
+        ));
+
+        CountDownLatch handlerEntered = new CountDownLatch(1);
+        CountDownLatch releaseHandler = new CountDownLatch(1);
+        AtomicInteger handlerCalls = new AtomicInteger();
+        handlerRegistry.register("rebuildIndexHandler", context -> {
+            handlerCalls.incrementAndGet();
+            handlerEntered.countDown();
+            assertThat(releaseHandler.await(2, TimeUnit.SECONDS)).isTrue();
+            Map<String, Object> output = new LinkedHashMap<String, Object>(context);
+            output.put("rebuilt", Boolean.TRUE);
+            return output;
+        });
+
+        ExecutorService firstWorkflowExecutor = Executors.newSingleThreadExecutor();
+        ExecutorService secondWorkflowExecutor = Executors.newSingleThreadExecutor();
+        try {
+            StaleRunningWorkflowRecoveryService firstRecoveryService = new StaleRunningWorkflowRecoveryService(
+                workflowRepository,
+                createRuntimeService("10.0.0.6:recovery-node-a", firstWorkflowExecutor),
+                clock
+            );
+            StaleRunningWorkflowRecoveryService secondRecoveryService = new StaleRunningWorkflowRecoveryService(
+                workflowRepository,
+                createRuntimeService("10.0.0.7:recovery-node-b", secondWorkflowExecutor),
+                clock
+            );
+
+            assertThat(firstRecoveryService.recover(Duration.ofMinutes(5), 10)).isEqualTo(1);
+            assertThat(handlerEntered.await(2, TimeUnit.SECONDS)).isTrue();
+
+            assertThat(secondRecoveryService.recover(Duration.ofMinutes(5), 10)).isEqualTo(1);
+            secondWorkflowExecutor.shutdown();
+            assertThat(secondWorkflowExecutor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+
+            releaseHandler.countDown();
+            firstWorkflowExecutor.shutdown();
+            assertThat(firstWorkflowExecutor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            releaseHandler.countDown();
+            firstWorkflowExecutor.shutdownNow();
+            secondWorkflowExecutor.shutdownNow();
+        }
+
+        List<ActivityInstance> attempts = activityRepository.findByWorkflowId(workflowId);
+        assertThat(handlerCalls.get()).isEqualTo(1);
+        assertThat(attempts).hasSize(1);
+        assertThat(attempts)
+            .singleElement()
+            .satisfies(activity -> {
+                assertThat(activity.getActivityId()).isEqualTo(workflowId + "-01-01");
+                assertThat(activity.getActivityName()).isEqualTo("rebuildIndex");
+                assertThat(activity.getStatus()).isEqualTo(ActivityExecutionStatus.SUCCESSFUL);
+                assertThat(activity.getOutput()).contains("\"rebuilt\":true");
+            });
+        assertThat(activityRepository.countByWorkflowIdAndActivityNameAndStatus(
+            workflowId,
+            "rebuildIndex",
+            ActivityExecutionStatus.SUCCESSFUL
+        )).isEqualTo(1L);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from workflow_lock", Long.class)).isEqualTo(0L);
+        assertThat(workflowRepository.findRequired(workflowId).getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
+    }
+
     private WorkflowEngine createEngine(String nodeIdentity) {
         return new WorkflowEngine(
             definitionRegistry,
@@ -289,6 +371,17 @@ class WorkflowRetrySafetyIntegrationTest {
             new NoOpWorkflowRetryScheduler(),
             nodeIdentity
         );
+    }
+
+    private WorkflowRuntimeService createRuntimeService(String nodeIdentity, ExecutorService executorService) {
+        WorkflowEngine engine = createEngine(nodeIdentity);
+        WorkflowExecutionScheduler scheduler = new DefaultWorkflowExecutionScheduler(
+            engine,
+            workflowRepository,
+            executorService,
+            clock
+        );
+        return new DefaultWorkflowRuntimeService(workflowRepository, engine, scheduler, serializer, clock);
     }
 
     private void saveRunningWorkflow(String workflowId, String workflowName, String input) {

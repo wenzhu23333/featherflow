@@ -154,6 +154,12 @@ featherflow:
   enabled: true
   auto-start-daemon: true
   poll-interval-millis: 1000
+  auto-recover-running-workflows: true
+  running-workflow-recovery-delay-millis: 30000
+  running-workflow-recovery-interval-millis: 30000
+  running-workflow-recovery-window-millis: 600000
+  running-workflow-recovery-stale-millis: 300000
+  running-workflow-recovery-batch-size: 100
   core-pool-size: 4
   max-pool-size: 8
   queue-capacity: 200
@@ -171,6 +177,12 @@ featherflow:
 
 - `enabled`：是否启用 FeatherFlow。
 - `auto-start-daemon`：是否自动启动扫描 `workflow_operation` 的守护线程，供外部运维命令消费使用。
+- `auto-recover-running-workflows`：是否在应用启动后自动恢复超时未更新的 `RUNNING` workflow。
+- `running-workflow-recovery-delay-millis`：启动后多久开始第一次恢复扫描，默认 30 秒。
+- `running-workflow-recovery-interval-millis`：启动恢复窗口内的扫描间隔，默认 30 秒。
+- `running-workflow-recovery-window-millis`：启动后最多扫描多久，默认 10 分钟；窗口结束后恢复扫描器自动停止。
+- `running-workflow-recovery-stale-millis`：`RUNNING` workflow 多久未更新才视为可恢复，默认 5 分钟。
+- `running-workflow-recovery-batch-size`：每次恢复扫描最多投递的 workflow 数量，默认 100。
 - `definition-locations`：工作流定义文件加载路径。
 - `definition-locations` 支持多个路径项；每个路径项既可以是单个文件，也可以是 `*.yml`、`*.yaml`、`*.xml` 这样的通配符。
 - 每个被加载的文件里既可以只定义一个 workflow，也可以一次定义多个 workflow。
@@ -183,6 +195,7 @@ featherflow:
 - 守护线程只负责认领并调度外部写入的 `workflow_operation`；本地 API 直接把 workflow 投递到执行线程池。
 - 工作流真正的推进在线程池中完成；同一个执行线程会顺序完成 activity 业务逻辑和后续状态机流转。
 - Activity 自动重试使用框架内部延迟调度器，不写 `workflow_operation`。
+- `RUNNING` 自动恢复只会把超时 workflow 重新投递到本机执行线程池，不直接修改状态；实际是否执行 activity 仍由 DB 分布式锁和幂等检查决定。
 - 框架自己的关键写库默认会对瞬时性数据库异常做有限重试；若重试耗尽仍失败，会记录高优先级错误日志并按当前已落库状态结束当前线程。
 
 ## 工作流定义

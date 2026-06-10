@@ -154,6 +154,12 @@ featherflow:
   enabled: true
   auto-start-daemon: true
   poll-interval-millis: 1000
+  auto-recover-running-workflows: true
+  running-workflow-recovery-delay-millis: 30000
+  running-workflow-recovery-interval-millis: 30000
+  running-workflow-recovery-window-millis: 600000
+  running-workflow-recovery-stale-millis: 300000
+  running-workflow-recovery-batch-size: 100
   core-pool-size: 4
   max-pool-size: 8
   queue-capacity: 200
@@ -171,6 +177,12 @@ Configuration notes:
 
 - `enabled`: whether FeatherFlow is enabled.
 - `auto-start-daemon`: whether to automatically start the daemon that scans `workflow_operation` for externally submitted commands.
+- `auto-recover-running-workflows`: whether to automatically recover stale `RUNNING` workflows after application startup.
+- `running-workflow-recovery-delay-millis`: delay before the first startup recovery scan. The default is 30 seconds.
+- `running-workflow-recovery-interval-millis`: scan interval during the startup recovery window. The default is 30 seconds.
+- `running-workflow-recovery-window-millis`: maximum startup recovery window. The default is 10 minutes; the recovery scanner stops after the window ends.
+- `running-workflow-recovery-stale-millis`: how long a `RUNNING` workflow must remain unmodified before it is eligible for recovery. The default is 5 minutes.
+- `running-workflow-recovery-batch-size`: maximum workflows submitted by each recovery scan. The default is 100.
 - `definition-locations`: resource locations used to load workflow definition files.
 - `definition-locations` supports multiple entries. Each entry can point to a single file or to wildcard patterns such as `*.yml`, `*.yaml`, and `*.xml`.
 - Each matched file may contain either one workflow definition or multiple workflow definitions.
@@ -183,6 +195,7 @@ Configuration notes:
 - The daemon only claims and dispatches externally written `workflow_operation` rows; local API calls submit workflows directly into the execution scheduler.
 - Actual workflow execution runs in a unified execution thread pool, where the same worker thread performs both activity logic and the subsequent state transitions.
 - Automatic activity retries use an internal delayed retry scheduler instead of writing `workflow_operation` rows.
+- Automatic `RUNNING` recovery only resubmits stale workflows into the local execution pool. It does not directly mutate workflow state; activity-level DB locks and idempotency still decide whether a step actually runs.
 - Framework-owned critical writes retry transient database failures by default; if retries are exhausted, FeatherFlow emits high-signal error logs and stops the current worker with whatever state was last persisted.
 
 ## Workflow Definition

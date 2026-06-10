@@ -4,8 +4,11 @@ import com.ywz.workflow.featherflow.model.WorkflowInstance;
 import com.ywz.workflow.featherflow.model.WorkflowStatus;
 import com.ywz.workflow.featherflow.repository.WorkflowRepository;
 import java.time.Instant;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 public class InMemoryWorkflowRepository implements WorkflowRepository {
 
@@ -40,5 +43,15 @@ public class InMemoryWorkflowRepository implements WorkflowRepository {
         WorkflowInstance workflowInstance = findRequired(workflowId);
         workflowInstance.setStatus(status);
         workflowInstance.setGmtModified(modifiedAt);
+    }
+
+    @Override
+    public List<WorkflowInstance> findRunningModifiedBefore(Instant modifiedBefore, int limit) {
+        return storage.values().stream()
+            .filter(workflow -> workflow.getStatus() == WorkflowStatus.RUNNING)
+            .filter(workflow -> workflow.getGmtModified().isBefore(modifiedBefore))
+            .sorted(Comparator.comparing(WorkflowInstance::getGmtModified).thenComparing(WorkflowInstance::getWorkflowId))
+            .limit(limit)
+            .collect(Collectors.toList());
     }
 }

@@ -4,6 +4,7 @@ import com.ywz.workflow.featherflow.model.WorkflowInstance;
 import com.ywz.workflow.featherflow.model.WorkflowStatus;
 import com.ywz.workflow.featherflow.repository.WorkflowRepository;
 import java.time.Instant;
+import java.util.List;
 
 /**
  * Retries framework-owned workflow state writes before delegating to the real repository.
@@ -41,5 +42,10 @@ public class RetryingWorkflowRepository implements WorkflowRepository {
     @Override
     public void updateStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
         retrier.run("workflowRepository.updateStatus", () -> delegate.updateStatus(workflowId, status, modifiedAt));
+    }
+
+    @Override
+    public List<WorkflowInstance> findRunningModifiedBefore(Instant modifiedBefore, int limit) {
+        return delegate.findRunningModifiedBefore(modifiedBefore, limit);
     }
 }

@@ -112,6 +112,58 @@ class JdbcRepositoryIntegrationTest {
     }
 
     @Test
+    void shouldFindStaleRunningWorkflowsForStartupRecovery() {
+        Instant now = Instant.parse("2026-03-30T13:00:00Z");
+        workflowRepository.save(new WorkflowInstance(
+            "wf-stale-running-a",
+            "biz-stale-a",
+            "orderWorkflow",
+            "old-node-a",
+            now.minusSeconds(1200),
+            now.minusSeconds(1200),
+            "{}",
+            WorkflowStatus.RUNNING
+        ));
+        workflowRepository.save(new WorkflowInstance(
+            "wf-stale-running-b",
+            "biz-stale-b",
+            "orderWorkflow",
+            "old-node-b",
+            now.minusSeconds(900),
+            now.minusSeconds(900),
+            "{}",
+            WorkflowStatus.RUNNING
+        ));
+        workflowRepository.save(new WorkflowInstance(
+            "wf-fresh-running",
+            "biz-fresh",
+            "orderWorkflow",
+            "active-node",
+            now.minusSeconds(60),
+            now.minusSeconds(60),
+            "{}",
+            WorkflowStatus.RUNNING
+        ));
+        workflowRepository.save(new WorkflowInstance(
+            "wf-stale-completed",
+            "biz-completed",
+            "orderWorkflow",
+            "old-node-c",
+            now.minusSeconds(1200),
+            now.minusSeconds(1200),
+            "{}",
+            WorkflowStatus.COMPLETED
+        ));
+
+        assertThat(workflowRepository.findRunningModifiedBefore(now.minusSeconds(300), 10))
+            .extracting(WorkflowInstance::getWorkflowId)
+            .containsExactly("wf-stale-running-a", "wf-stale-running-b");
+        assertThat(workflowRepository.findRunningModifiedBefore(now.minusSeconds(300), 1))
+            .extracting(WorkflowInstance::getWorkflowId)
+            .containsExactly("wf-stale-running-a");
+    }
+
+    @Test
     void shouldRejectUnsupportedWorkflowStatusFromDatabase() {
         Instant now = Instant.parse("2026-03-30T13:00:00Z");
         jdbcTemplate.update(
