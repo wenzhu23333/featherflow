@@ -6,12 +6,16 @@ import java.time.Instant;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.SmartLifecycle;
 
 /**
  * Runs low-frequency recovery scans only during the startup window.
  */
 public class WorkflowRecoveryLifecycle implements SmartLifecycle {
+
+    private static final Logger log = LoggerFactory.getLogger(WorkflowRecoveryLifecycle.class);
 
     private final StaleRunningWorkflowRecoveryService recoveryService;
     private final FeatherFlowProperties properties;
@@ -36,7 +40,7 @@ public class WorkflowRecoveryLifecycle implements SmartLifecycle {
         });
         stopAt = Instant.now().plusMillis(properties.getRunningWorkflowRecoveryWindowMillis());
         scheduler.scheduleWithFixedDelay(
-            this::recoverOnceWithinStartupWindow,
+            this::recoverOnceWithinStartupWindowSafely,
             properties.getRunningWorkflowRecoveryDelayMillis(),
             properties.getRunningWorkflowRecoveryIntervalMillis(),
             TimeUnit.MILLISECONDS
@@ -82,5 +86,13 @@ public class WorkflowRecoveryLifecycle implements SmartLifecycle {
             Duration.ofMillis(properties.getRunningWorkflowRecoveryStaleMillis()),
             properties.getRunningWorkflowRecoveryBatchSize()
         );
+    }
+
+    private void recoverOnceWithinStartupWindowSafely() {
+        try {
+            recoverOnceWithinStartupWindow();
+        } catch (Throwable throwable) {
+            log.error("Failed to run startup workflow recovery scan, next scan will continue within startup window", throwable);
+        }
     }
 }

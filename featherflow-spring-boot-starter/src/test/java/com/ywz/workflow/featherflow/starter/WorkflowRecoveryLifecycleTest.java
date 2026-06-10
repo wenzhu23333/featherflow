@@ -53,6 +53,23 @@ class WorkflowRecoveryLifecycleTest {
         assertThat(recoveryService.calls.get()).isZero();
     }
 
+    @Test
+    void shouldKeepScanningWhenOneRecoveryScanFails() throws Exception {
+        RecordingRecoveryService recoveryService = new RecordingRecoveryService();
+        recoveryService.failuresBeforeSuccess.set(1);
+        FeatherFlowProperties properties = new FeatherFlowProperties();
+        properties.setRunningWorkflowRecoveryDelayMillis(1L);
+        properties.setRunningWorkflowRecoveryIntervalMillis(20L);
+        properties.setRunningWorkflowRecoveryWindowMillis(200L);
+        WorkflowRecoveryLifecycle lifecycle = new WorkflowRecoveryLifecycle(recoveryService, properties);
+
+        lifecycle.start();
+
+        assertThat(recoveryService.awaitCalls(2)).isTrue();
+        lifecycle.stop();
+        assertThat(recoveryService.calls.get()).isGreaterThanOrEqualTo(2);
+    }
+
     private static void waitUntilStopped(WorkflowRecoveryLifecycle lifecycle) throws InterruptedException {
         long deadline = System.currentTimeMillis() + 1000L;
         while (System.currentTimeMillis() < deadline && lifecycle.isRunning()) {
@@ -63,6 +80,7 @@ class WorkflowRecoveryLifecycleTest {
     private static final class RecordingRecoveryService extends StaleRunningWorkflowRecoveryService {
 
         private final AtomicInteger calls = new AtomicInteger();
+        private final AtomicInteger failuresBeforeSuccess = new AtomicInteger();
         private final AtomicReference<Duration> lastStaleTimeout = new AtomicReference<Duration>();
         private final AtomicReference<Integer> lastBatchSize = new AtomicReference<Integer>();
         private final CountDownLatch firstCall = new CountDownLatch(1);
@@ -77,11 +95,25 @@ class WorkflowRecoveryLifecycleTest {
             lastStaleTimeout.set(staleTimeout);
             lastBatchSize.set(batchSize);
             firstCall.countDown();
+            if (failuresBeforeSuccess.getAndUpdate(value -> Math.max(value - 1, 0)) > 0) {
+                throw new IllegalStateException("temporary recovery failure");
+            }
             return 0;
         }
 
         private boolean awaitFirstCall() throws InterruptedException {
             return firstCall.await(1, TimeUnit.SECONDS);
+        }
+
+        private boolean awaitCalls(int expectedCalls) throws InterruptedException {
+            long deadline = System.currentTimeMillis() + 1000L;
+            while (System.currentTimeMillis() < deadline) {
+                if (calls.get() >= expectedCalls) {
+                    return true;
+                }
+                Thread.sleep(10L);
+            }
+            return calls.get() >= expectedCalls;
         }
     }
 }
