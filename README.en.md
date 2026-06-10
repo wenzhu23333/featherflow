@@ -2,35 +2,46 @@
 
 [中文 README](./README.md)
 
-FeatherFlow is a self-developed lightweight Java workflow framework with persistent runtime state, YAML/XML workflow definitions, retry and manual operation control, and Spring Boot starter integration.
+<p align="center">
+  <img src="./docs/assets/featherflow-hero.svg" alt="FeatherFlow architecture overview" width="100%" />
+</p>
+
+FeatherFlow is a lightweight Java workflow engine for Spring Boot services. It is not an in-memory-only flow library. It uses the database as the source of truth, uses `input/output` snapshots as workflow context, and uses append-only activity records as the audit model.
+
+It is designed for order fulfillment, resource publishing, asynchronous orchestration, manual intervention, failure retry, operational recovery, and similar business workflows.
+
+Primary goals:
+
+- Make every workflow and every activity traceable, recoverable, and auditable.
+- Provide a second-party package that business services can adopt quickly.
+- Reduce split-brain risk in multi-node deployments through DB locks, idempotency, and operation claiming.
+- Provide clear data contracts for operations consoles and external operational systems.
+
+## Core Capabilities
+
+| Capability | Description |
+| --- | --- |
+| Persistent runtime state | `workflow_instance`, `activity_instance`, and `workflow_operation` record workflow state, activity attempts, and external commands. |
+| Workflow definitions | Supports YAML/XML, single-workflow files, multi-workflow files, mixed loading, and startup-time workflow name uniqueness checks. |
+| Context propagation | The workflow `input` is the initial context. A successful activity `output` becomes the next context. A failed retry uses the last failed activity `input`. |
+| Append-only activity history | Every completed activity attempt inserts one success or failure row. Failure and retry counts are derived from history. |
+| DB distributed lock | Before executing an activity, the engine locks by `workflow_id + activity_name` to avoid concurrent execution of the same step. |
+| Idempotent progress | If an activity is already `SUCCESSFUL`, the engine reuses its output and does not run the business handler again. |
+| Automatic retry | Failed activities are retried according to retry interval and max retry count. Exhausted retries move the workflow to `HUMAN_PROCESSING`. |
+| Manual operations | Supports retry, terminate, and skip latest activity. External systems submit commands through `workflow_operation`. |
+| Startup recovery | After Spring startup, stale `RUNNING` workflows are scanned and resubmitted during a bounded 10-minute recovery window. |
+| Full-chain logs | workflowId, bizId, bizKey, and node information flow through the logging context, including logs written inside activity handlers. |
+| Ops console | A lightweight console shows workflow lists, details, activity timelines, compressed execution paths, and operation history. |
 
 ## Modules
 
-- `featherflow-core`
-  - Workflow model, definition parsing, execution engine, retry logic, daemon scanning, locking/idempotency, repositories, and tests.
-- `featherflow-spring-boot-starter`
-  - Spring Boot auto-configuration, resource loading, default JDBC repositories, and daemon lifecycle management.
-- `featherflow-spring-boot-demo`
-  - A runnable Spring Boot sample that demonstrates handlers, YAML workflow definitions, REST endpoints, and local H2 execution.
-- `featherflow-ops-console`
-  - A lightweight operations console built with `Spring Boot + Thymeleaf + HTMX` that connects directly to the FeatherFlow database, visualizes workflow/activity/operation state, and submits operations by writing `workflow_operation`.
-
-## Features
-
-- Supports sequential workflow orchestration.
-- Supports both YAML and XML workflow definitions.
-- Supports single-workflow files, multi-workflow files, and mixed loading across multiple files.
-- Persists the three core tables: `workflow_instance`, `activity_instance`, and `workflow_operation`.
-- Optionally stores the business object operated by the workflow in `workflow_instance.biz_key`, such as an order number, worker name, resource ID, or release ID.
-- Stores the workflow definition name in `workflow_instance.workflow_name` and the workflow start node in `workflow_instance.start_node`.
-- Stores the execution node for each activity attempt in `activity_instance.executed_node`.
-- Uses append-only activity history: each completed activity attempt is persisted as one row, whether it succeeds or fails, and the retry budget is derived from failed history counts for the same `workflow_id + activity_name`.
-- Supports per-activity retry interval and maximum retry count.
-- Persists exception details into `activity_instance.output` when an activity fails.
-- Moves the workflow into `HUMAN_PROCESSING` after retries are exhausted and supports manual retry.
-- Local `start/retry/terminate/skip` calls go directly through the runtime service, while `workflow_operation` is reserved for commands written by external operations systems.
-- Prevents duplicate concurrent activity execution through a database-backed lock and idempotency checks by default.
-- Provides a Spring Boot starter for fast integration into business applications.
+| Module | Responsibility |
+| --- | --- |
+| `featherflow-core` | Core model, definition parsing, execution engine, retry scheduling, DB locking, repositories, state machines, and runtime services. |
+| `featherflow-spring-boot-starter` | Spring Boot auto-configuration, properties, definition loading, execution pools, daemon lifecycle, and startup recovery lifecycle. |
+| `featherflow-spring-boot-demo` | Runnable demo for handlers, YAML definitions, REST calls, and local H2 execution. |
+| `featherflow-integration-tests` | End-to-end tests for DB locks, idempotency, concurrent retry, and startup recovery. |
+| `featherflow-ops-console` | Spring Boot + Thymeleaf + HTMX console that connects directly to the workflow database. |
 
 ## Maven Dependency
 
@@ -42,165 +53,13 @@ FeatherFlow is a self-developed lightweight Java workflow framework with persist
 </dependency>
 ```
 
-## Spring Boot Demo
+Business services should normally depend on the starter. It auto-configures the engine, repositories, DB lock service, execution pools, operation daemon, and startup recovery lifecycle.
 
-The repository includes a runnable sample module:
+## Quick Start
 
-- `featherflow-spring-boot-demo`
+### 1. Define a workflow
 
-The demo shows:
-
-- how to integrate FeatherFlow through the starter
-- how to implement `WorkflowActivityHandler`
-- how to define multiple workflows in one YAML file
-- how to call `start / terminate / retry / skip` through HTTP
-- how to correlate logs with `workflowId` and `bizId`
-
-Run the demo:
-
-```bash
-mvn -q -pl featherflow-spring-boot-demo -am spring-boot:run
-```
-
-Start a workflow:
-
-```bash
-curl -X POST http://localhost:8080/demo/workflows/start \
-  -H 'Content-Type: application/json' \
-  -d '{"bizId":"demo-biz-001","amount":100,"customerName":"Alice"}'
-```
-
-Start another workflow that lives in the same demo definition file:
-
-```bash
-curl -X POST http://localhost:8080/demo/workflows/start \
-  -H 'Content-Type: application/json' \
-  -d '{"workflowName":"demoFastTrackWorkflow","bizId":"demo-biz-002","amount":88,"customerName":"Bob"}'
-```
-
-Query the current workflow view:
-
-```bash
-curl http://localhost:8080/demo/workflows/{workflowId}
-```
-
-Terminate and retry:
-
-```bash
-curl -X POST http://localhost:8080/demo/workflows/{workflowId}/terminate
-curl -X POST http://localhost:8080/demo/workflows/{workflowId}/retry
-```
-
-Skip the latest activity:
-
-```bash
-curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip
-```
-
-Notes:
-
-- `skip` is only allowed when the workflow is already `TERMINATED`.
-- To observe retry behavior, include `"forceNotifyFailure": true` in the start payload.
-- The demo uses an in-memory H2 database and the built-in schema SQL. No manual database setup is required.
-- The demo intentionally keeps `demoOrderWorkflow` and `demoFastTrackWorkflow` in the same YAML file to demonstrate multi-workflow definitions in a single file.
-- The sample source entry point lives in `featherflow-spring-boot-demo/src/main/java/com/ywz/workflow/featherflow/demo`.
-
-## Ops Console
-
-The repository also includes an operations console module:
-
-- `featherflow-ops-console`
-
-The console provides:
-
-- workflow list page at `/workflows`
-- workflow detail page at `/workflows/{workflowId}`
-- operation history page at `/operations`
-- direct `terminate / retry / skip latest activity` actions on both the list and detail pages
-
-Run the console:
-
-```bash
-mvn -q -pl featherflow-ops-console -am spring-boot:run
-```
-
-Notes:
-
-- It uses in-memory H2 plus the built-in `schema.sql` by default, which is convenient for local UI preview.
-- In real environments, point `spring.datasource.*` to the actual FeatherFlow database.
-- The console does not directly mutate core workflow state tables to drive actions; it writes operational commands into `workflow_operation`.
-
-## Database Schema
-
-Reference SQL files:
-
-- `featherflow-core/src/main/resources/db/featherflow-h2.sql`
-- `featherflow-core/src/main/resources/db/featherflow-mysql.sql`
-
-Key `workflow_instance` and `activity_instance` field semantics:
-
-- `workflow_id`: workflow runtime instance ID
-- `biz_id`: business identifier supplied by the caller or defaulted from the workflow ID
-- `biz_key`: optional business object key, not unique, useful for operations searches by order number, resource ID, worker name, and similar identifiers
-- `workflow_name`: workflow definition name, matching the workflow `name` declared in YAML/XML
-- `start_node`: the node that created and initially dispatched the workflow instance
-- `executed_node`: the node that actually executed a given activity attempt
-- `activity_instance`: one row is written after each completed activity attempt, regardless of success or failure
-
-## Spring Boot Configuration
-
-```yaml
-featherflow:
-  enabled: true
-  auto-start-daemon: true
-  poll-interval-millis: 1000
-  auto-recover-running-workflows: true
-  running-workflow-recovery-delay-millis: 30000
-  running-workflow-recovery-interval-millis: 30000
-  running-workflow-recovery-window-millis: 600000
-  running-workflow-recovery-stale-millis: 300000
-  running-workflow-recovery-batch-size: 100
-  core-pool-size: 4
-  max-pool-size: 8
-  queue-capacity: 200
-  persistence-write-retry-max-attempts: 4
-  persistence-write-retry-initial-delay-millis: 100
-  persistence-write-retry-max-delay-millis: 1000
-  instance-id: 10.9.8.7:workflow-engine-a
-  definition-locations:
-    - classpath:/workflows/*.yml
-    - classpath:/workflows/*.yaml
-    - classpath:/workflows/*.xml
-```
-
-Configuration notes:
-
-- `enabled`: whether FeatherFlow is enabled.
-- `auto-start-daemon`: whether to automatically start the daemon that scans `workflow_operation` for externally submitted commands.
-- `auto-recover-running-workflows`: whether to automatically recover stale `RUNNING` workflows after application startup.
-- `running-workflow-recovery-delay-millis`: delay before the first startup recovery scan. The default is 30 seconds.
-- `running-workflow-recovery-interval-millis`: scan interval during the startup recovery window. The default is 30 seconds.
-- `running-workflow-recovery-window-millis`: maximum startup recovery window. The default is 10 minutes; the recovery scanner stops after the window ends.
-- `running-workflow-recovery-stale-millis`: how long a `RUNNING` workflow must remain unmodified before it is eligible for recovery. The default is 5 minutes.
-- `running-workflow-recovery-batch-size`: maximum workflows submitted by each recovery scan. The default is 100.
-- `definition-locations`: resource locations used to load workflow definition files.
-- `definition-locations` supports multiple entries. Each entry can point to a single file or to wildcard patterns such as `*.yml`, `*.yaml`, and `*.xml`.
-- Each matched file may contain either one workflow definition or multiple workflow definitions.
-- XML workflow definitions are parsed with the JDK built-in DOM parser, so no extra `jackson-dataformat-xml` dependency is required.
-- Workflow `name` values must be unique across files. FeatherFlow fails fast at startup when duplicate workflow names are detected.
-- `instance-id`: optional instance identifier. A readable value such as `IP:node-name` or `IP:service-name` is recommended; if omitted, FeatherFlow generates `IP:hostname:PID:random-suffix`.
-- `persistence-write-retry-max-attempts`: maximum retry attempts for framework-owned persistence writes.
-- `persistence-write-retry-initial-delay-millis`: delay before the first retry.
-- `persistence-write-retry-max-delay-millis`: upper bound of the exponential backoff delay.
-- The daemon only claims and dispatches externally written `workflow_operation` rows; local API calls submit workflows directly into the execution scheduler.
-- Actual workflow execution runs in a unified execution thread pool, where the same worker thread performs both activity logic and the subsequent state transitions.
-- Automatic activity retries use an internal delayed retry scheduler instead of writing `workflow_operation` rows.
-- Automatic `RUNNING` recovery only resubmits stale workflows into the local execution pool. It does not directly mutate workflow state; activity-level DB locks and idempotency still decide whether a step actually runs.
-- Framework-owned critical writes retry transient database failures by default; if retries are exhausted, FeatherFlow emits high-signal error logs and stops the current worker with whatever state was last persisted.
-
-## Workflow Definition
-
-Single-workflow YAML example:
+`src/main/resources/workflows/order-workflow.yml`
 
 ```yaml
 workflow:
@@ -218,180 +77,453 @@ workflow:
       maxRetryTimes: 1
 ```
 
-Single-workflow XML example:
-
-```xml
-<workflow name="sampleOrderWorkflow">
-  <activity name="createOrder" handler="createOrderHandler" desc="Create order" retryInterval="PT5S" maxRetryTimes="2"/>
-  <activity name="notifyCustomer" handler="notifyCustomerHandler" retryInterval="PT10S" maxRetryTimes="1">
-    <desc>Notify customer</desc>
-  </activity>
-</workflow>
-```
-
-Multi-workflow YAML example:
-
-```yaml
-workflows:
-  - name: sampleOrderWorkflow
-    activities:
-      - name: createOrder
-        handler: createOrderHandler
-        retryInterval: PT5S
-        maxRetryTimes: 2
-      - name: notifyCustomer
-        handler: notifyCustomerHandler
-        retryInterval: PT10S
-        maxRetryTimes: 1
-  - name: sampleFastTrackWorkflow
-    activities:
-      - name: createOrder
-        handler: createOrderHandler
-        retryInterval: PT1S
-        maxRetryTimes: 0
-      - name: notifyCustomer
-        handler: notifyCustomerHandler
-        retryInterval: PT1S
-        maxRetryTimes: 0
-```
-
-Multi-workflow XML example:
-
-```xml
-<workflows>
-  <workflow name="sampleOrderWorkflow">
-    <activity name="createOrder" handler="createOrderHandler" retryInterval="PT5S" maxRetryTimes="2"/>
-    <activity name="notifyCustomer" handler="notifyCustomerHandler" retryInterval="PT10S" maxRetryTimes="1"/>
-  </workflow>
-  <workflow name="sampleFastTrackWorkflow">
-    <activity name="createOrder" handler="createOrderHandler" retryInterval="PT1S" maxRetryTimes="0"/>
-    <activity name="notifyCustomer" handler="notifyCustomerHandler" retryInterval="PT1S" maxRetryTimes="0"/>
-  </workflow>
-</workflows>
-```
-
-Multiple-file mixed loading example:
-
-```yaml
-featherflow:
-  definition-locations:
-    - classpath:/workflows/order/*.yml
-    - classpath:/workflows/payment/*.xml
-    - classpath:/workflows/common/*.yaml
-```
-
-Field notes:
-
-- `name`: workflow or activity name.
-- `handler`: the Activity Handler bean name in the Spring container.
-- `desc`: optional activity description. YAML uses the `desc` field; XML supports both the `desc="..."` attribute and a `<desc>...</desc>` child element.
-- `retryInterval`: retry interval after failure, using `Duration` format.
-- `maxRetryTimes`: maximum retry count before entering manual processing.
-- Both `workflow:` and `workflows:` are supported at the top level. When `workflows:` is used, every workflow `name` inside the file must still be unique.
-
-## Definition Step Query
-
-The starter automatically provides `WorkflowDefinitionQueryService`, which can return the declared activity steps for a workflow definition:
-
-```java
-List<WorkflowDefinitionStepView> steps =
-    workflowDefinitionQueryService.listActivitySteps("sampleOrderWorkflow");
-```
-
-Each item includes `workflowName`, `activityName`, `desc`, `handler`, `retryInterval`, `maxRetryTimes`, and `sequence`. Ops Console loads the same `definition-locations` and exposes:
-
-```text
-GET /workflow-definitions/{workflowName}/steps
-```
-
-## Activity Handler
+### 2. Implement an activity handler
 
 ```java
 @Component("createOrderHandler")
 public class CreateOrderHandler implements WorkflowActivityHandler {
 
+    private static final Logger log = LoggerFactory.getLogger(CreateOrderHandler.class);
+
     @Override
     public Map<String, Object> handle(Map<String, Object> context) {
-        context.put("created", true);
+        log.info("Create order activity started");
+        context.put("orderCreated", true);
         return context;
     }
 }
 ```
 
-Notes:
+The handler receives the current workflow context. Its return value is serialized into the current activity `output` and becomes the input context of the next activity.
 
-- The handler input and output are both context maps of type `Map<String, Object>`.
-- The return value is serialized into the current activity `output` and becomes the base context for subsequent activities.
-- `activity_instance` is written only after an activity finishes, with `SUCCESSFUL` on success and `FAILED` on failure.
-- Whether the handler throws an `Exception` or an `Error`, the engine treats it as an activity failure, persists the failure output, and then applies retry or `HUMAN_PROCESSING` rules.
-- FeatherFlow automatically injects `workflowId` and `bizId` into `MDC` for daemon threads and workflow execution threads, so business handler logs can reuse the same correlation fields directly.
+### 3. Start a workflow
 
-## Logging Correlation
+```java
+WorkflowInstance workflow = workflowCommandService.startWorkflow(
+    "sampleOrderWorkflow",
+    "biz-order-10001",
+    "order-10001",
+    "{\"orderId\":\"order-10001\",\"amount\":100}"
+);
+```
 
-To correlate the full workflow chain through logs, include `workflowId` and `bizId` in your logging pattern.
+Parameter semantics:
 
-Spring Boot `application.yml` example:
+| Parameter | Description |
+| --- | --- |
+| `definitionName` | Workflow definition name, matching `workflow.name` in YAML/XML. |
+| `bizId` | Business tracking token for this workflow run. Defaults to workflowId if omitted. |
+| `bizKey` | Business object operated by the workflow, such as order ID, resource ID, or worker name. Optional and not unique. |
+| `input` | Initial workflow context, typically a JSON string. |
+
+Backward-compatible API:
+
+```java
+startWorkflow(String definitionName, String bizId, String input)
+```
+
+## Spring Boot Configuration
 
 ```yaml
-logging:
-  pattern:
-    level: "%5p [workflowId:%X{workflowId:-}] [bizId:%X{bizId:-}]"
+featherflow:
+  enabled: true
+  definition-locations:
+    - classpath:/workflows/*.yml
+    - classpath:/workflows/*.yaml
+    - classpath:/workflows/*.xml
+
+  core-pool-size: 4
+  max-pool-size: 8
+  queue-capacity: 200
+
+  auto-start-daemon: true
+  poll-interval-millis: 1000
+
+  auto-recover-running-workflows: true
+  running-workflow-recovery-delay-millis: 30000
+  running-workflow-recovery-interval-millis: 30000
+  running-workflow-recovery-window-millis: 600000
+  running-workflow-recovery-stale-millis: 300000
+  running-workflow-recovery-batch-size: 100
+
+  persistence-write-retry-max-attempts: 4
+  persistence-write-retry-initial-delay-millis: 100
+  persistence-write-retry-max-delay-millis: 1000
+
+  instance-id: 10.9.8.7:workflow-engine-a
 ```
 
-If you want the current business thread to continue logging on the same trace after `startWorkflow()` returns, open the workflow log context explicitly:
+Key properties:
 
-```java
-WorkflowInstance workflow = workflowCommandService.startWorkflow(
-    "sampleOrderWorkflow",
-    "biz-token-001",
-    "order:10001",
-    "{\"amount\":100}"
-);
+| Property | Default | Description |
+| --- | --- | --- |
+| `definition-locations` | `classpath:/workflows/*.yml`, etc. | Workflow definition locations. Multiple paths and wildcards are supported. |
+| `auto-start-daemon` | `true` | Starts the daemon that consumes externally written `workflow_operation` commands. |
+| `auto-recover-running-workflows` | `true` | Enables startup recovery for stale `RUNNING` workflows. |
+| `running-workflow-recovery-window-millis` | `600000` | Scans for up to 10 minutes after startup, then stops the recovery scheduler. |
+| `running-workflow-recovery-stale-millis` | `300000` | A `RUNNING` workflow is recoverable only after 5 minutes without modification. |
+| `running-workflow-recovery-batch-size` | `100` | Maximum workflows resubmitted in one scan. |
+| `persistence-write-retry-*` | See YAML | Bounded retry and exponential backoff for framework-owned critical persistence writes. |
+| `instance-id` | Generated | Node identity. A readable value such as `IP:service-name` is recommended. |
 
-try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflow)) {
-    log.info("workflow accepted by business service");
-}
+## Workflow Definition
+
+### Multi-workflow YAML
+
+```yaml
+workflows:
+  - name: orderWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        desc: Create order
+        retryInterval: PT5S
+        maxRetryTimes: 2
+      - name: notifyCustomer
+        handler: notifyCustomerHandler
+        desc: Notify customer
+        retryInterval: PT10S
+        maxRetryTimes: 1
+
+  - name: fastTrackWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        desc: Fast-track order creation
+        retryInterval: PT1S
+        maxRetryTimes: 0
 ```
 
-## Command Service Usage
+### XML definition
 
-```java
-WorkflowInstance workflow = workflowCommandService.startWorkflow(
-    "sampleOrderWorkflow",
-    "biz-token-001",
-    "{\"amount\":100}"
-);
-
-workflowCommandService.terminateWorkflow(workflow.getWorkflowId(), "{\"reason\":\"manual-stop\"}");
-workflowCommandService.retryWorkflow(workflow.getWorkflowId());
-workflowCommandService.skipActivity(workflow.getWorkflowId(), "{\"manual\":true}");
+```xml
+<workflows>
+  <workflow name="orderWorkflow">
+    <activity
+        name="createOrder"
+        handler="createOrderHandler"
+        desc="Create order"
+        retryInterval="PT5S"
+        maxRetryTimes="2"/>
+    <activity
+        name="notifyCustomer"
+        handler="notifyCustomerHandler"
+        retryInterval="PT10S"
+        maxRetryTimes="1">
+      <desc>Notify customer</desc>
+    </activity>
+  </workflow>
+</workflows>
 ```
 
-Command semantics:
+Notes:
 
-- `startWorkflow`: synchronously persists the workflow instance and immediately submits it into the execution scheduler; submission failure is raised to the caller.
-- `startWorkflow(definitionName, bizId, bizKey, input)`: the four-argument overload records the business object key operated by the workflow. The existing three-argument API remains compatible and writes `null` as `bizKey`.
-- `terminateWorkflow`: the local API directly moves the workflow to `TERMINATED`; the engine stops before the next activity. External operations systems can also write a `TERMINATE` operation, which the daemon consumes and forwards to the same runtime logic.
-- `retryWorkflow`: allowed only when the workflow is `HUMAN_PROCESSING` or `TERMINATED`; the local API reopens the workflow to `RUNNING` and submits it into the unified execution pool. The resumed context is derived from the latest persisted activity snapshot, reusing `output` after success and `input` after failure. External operations systems can also write a `RETRY` operation, which the daemon consumes and forwards to the same runtime logic.
-- `skipActivity`: skips the latest recorded activity, allowed only when the workflow is `TERMINATED`.
-- `workflow_operation.status`: `PENDING -> PROCESSING -> SUCCESSFUL/FAILED`, which represents only external command-consumption state rather than overall workflow success.
-- When an external `START` operation input contains `bizKey`, the daemon writes it back to `workflow_instance.biz_key` before dispatching the workflow.
+- `name` is the unique workflow definition identifier. Duplicate names fail fast at startup.
+- `activity.name` participates in idempotency checks and lock key construction. Keep it stable after release.
+- `handler` maps to a Spring bean name.
+- `desc` is used by ops views and supports both XML attributes and child nodes.
+- `retryInterval` uses Java `Duration` syntax, such as `PT5S` or `PT1M`.
+- `maxRetryTimes` is the number of automatic retries after failure. Manual retry does not clear failure history.
 
-## Compressed Activity Flow
+## Runtime Semantics
 
-The raw append-only `activity_instance` timeline is still preserved. Query-side views can also aggregate by `workflow_id + activity_name`, returning only the latest result per activity together with:
+### State machines
 
-- `totalAttempts`: total attempt count.
-- `failedTimes`: failed attempt count.
-- `retryTimes`: `max(totalAttempts - 1, 0)`.
-- `successfulTimes`: successful attempt count.
+| Object | States |
+| --- | --- |
+| workflow | `RUNNING`, `HUMAN_PROCESSING`, `TERMINATED`, `COMPLETED` |
+| activity | `SUCCESSFUL`, `FAILED` |
+| operation | `PENDING`, `PROCESSING`, `SUCCESSFUL`, `FAILED` |
 
-This compressed view is intended for an operations-friendly chain overview, while the raw activity timeline remains available for detailed troubleshooting.
+### Activity execution model
 
-## Build
+```text
+Read latest workflow state
+  -> verify workflow is RUNNING
+  -> find latest attempt for the activity
+  -> if already SUCCESSFUL, reuse output and move forward
+  -> acquire DB lock workflow_id + activity_name
+  -> re-check idempotency and workflow state
+  -> run business handler
+  -> on success, insert SUCCESSFUL activity_instance with output
+  -> on failure, insert FAILED activity_instance with exception output
+  -> decide retry, human processing, or next activity
+```
+
+Key semantics:
+
+- Activity rows are inserted only after one execution attempt finishes.
+- Both successful and failed attempts are persisted.
+- Failure output contains exception type, message, and stack trace summary.
+- Retrying a failed activity uses the previous failed attempt `input`.
+- The next activity after a successful step uses the previous successful `output`.
+- If a workflow is terminated, the engine stops before starting the next activity.
+
+### Automatic and manual retry
+
+Automatic retry is internal and does not write `workflow_operation`.
+
+Manual retry requires the workflow to be `TERMINATED` or `HUMAN_PROCESSING`:
+
+- If the latest activity is `FAILED`, retry uses that failed attempt `input`.
+- If the latest activity is `SUCCESSFUL`, retry continues from that successful attempt `output`.
+- Failure history is not reset. Retry budget is still derived from persisted failed attempts.
+
+### Skip latest activity
+
+Skip does not require the caller to pass an activityId. It always targets the latest activity:
+
+- The workflow must be `TERMINATED`.
+- The engine appends a new `SUCCESSFUL` attempt for the latest activity.
+- The skip marker and skip input are written into `output`.
+- Retry then lets the engine continue from the next step.
+
+## Data Model
+
+Reference SQL:
+
+- `featherflow-core/src/main/resources/db/featherflow-mysql.sql`
+- `featherflow-core/src/main/resources/db/featherflow-h2.sql`
+
+Core tables:
+
+| Table | Description |
+| --- | --- |
+| `workflow_instance` | Workflow runtime instance: workflowId, bizId, bizKey, workflowName, startNode, input, status. |
+| `activity_instance` | Append-only activity attempt history: input, output, status, executedNode. |
+| `workflow_operation` | External operational command table for start, retry, terminate, and skip. |
+| `workflow_lock` | DB distributed lock table used to prevent concurrent activity execution. |
+
+Important fields:
+
+| Field | Description |
+| --- | --- |
+| `workflow_id` | Workflow instance ID. Full UUID by default. |
+| `biz_id` | Business tracking token for one workflow run. |
+| `biz_key` | Business object key for operations searches, such as order ID, resource ID, or worker name. |
+| `workflow_name` | Workflow definition name. |
+| `start_node` | Node that started the workflow. |
+| `executed_node` | Node that executed an activity attempt. |
+| `input` / `output` | Workflow and activity context snapshots. |
+
+## Distributed Safety
+
+FeatherFlow intentionally avoids introducing an external coordinator. The database is the lightweight coordination point.
+
+### Activity DB lock
+
+Before running a handler, the engine acquires:
+
+```text
+lock_key = workflow_id + ":" + activity_name
+owner = instance_id + ":" + thread_id
+```
+
+If multiple nodes retry or recover the same workflow concurrently, only the node that obtains the lock enters the handler. Other nodes stop the current dispatch.
+
+### Idempotency
+
+Before and after lock acquisition, the engine checks whether `workflow_id + activity_name` already has a `SUCCESSFUL` attempt:
+
+- If yes, it reuses the output.
+- If no, it runs the handler.
+
+This prevents duplicate activity records caused by duplicate dispatch, manual retry races, or startup recovery races.
+
+### Boundary
+
+DB locks and framework idempotency prevent concurrent duplicate execution at the framework layer. They cannot prove whether an external side effect succeeded if the process dies after the side effect but before `activity_instance` is written. Critical handlers should still use business idempotency keys, such as `workflowId + activityName + attempt` or a business-unique order number.
+
+## Startup Recovery for Stale RUNNING Workflows
+
+When a service or Pod restarts, in-memory workflow threads disappear. Some database rows may remain `RUNNING`. The starter uses Spring `SmartLifecycle` for bounded recovery:
+
+```text
+Spring context is ready
+  -> WorkflowRecoveryLifecycle.start()
+  -> wait 30 seconds
+  -> scan every 30 seconds for up to 10 minutes
+  -> find RUNNING workflows not modified for 5 minutes
+  -> resubmit them into the local execution pool
+  -> DB lock and idempotency decide whether activity actually runs
+```
+
+Recovery properties:
+
+- No new table.
+- No heartbeat.
+- No lease protocol.
+- It does not directly mutate workflow status.
+- Multiple nodes may scan concurrently; DB locks and idempotency absorb duplicates.
+- A failed scan is caught and logged; later scans continue within the startup window.
+- The scheduler stops automatically after the startup window to avoid permanent background load.
+
+Recovery logs include:
+
+- scheduler startup configuration
+- each scan's `modifiedBefore`, `staleTimeoutMillis`, and `batchSize`
+- each recovered workflow's `workflowId`, `bizId`, `bizKey`, `workflowName`, `startNode`, and `gmtModified`
+- submission failures
+- startup window expiration and scheduler stop events
+
+## Logging and Observability
+
+The engine opens `WorkflowLogContext` at key runtime points and writes workflow metadata into MDC. Logs written inside activity handlers with ordinary SLF4J loggers inherit the same workflow context.
+
+Recommended log pattern fields:
+
+```text
+%X{workflowId} %X{bizId} %X{bizKey}
+```
+
+Observable fields:
+
+| Field | Purpose |
+| --- | --- |
+| `workflowId` | Locate one exact workflow instance. |
+| `bizId` | Correlate the business request, user action, or upstream trace. |
+| `bizKey` | Search by business object, such as order ID, resource ID, or worker name. |
+| `workflowName` | Identify the workflow definition type. |
+| `startNode` / `executedNode` | Locate where the workflow started and where each activity ran. |
+
+## Ops Console
+
+`featherflow-ops-console` is a lightweight, non-SPA operations console that connects directly to the workflow database.
+
+Run:
+
+```bash
+mvn -q -pl featherflow-ops-console -am spring-boot:run
+```
+
+Open:
+
+```text
+http://localhost:8080/workflows
+```
+
+With a context path:
+
+```text
+http://localhost:8080/featherflow/workflows
+```
+
+Pages:
+
+| Page | Description |
+| --- | --- |
+| `/workflows` | Paginated workflow list with filters for workflowId, bizId, bizKey, status, workflowName, and time ranges. |
+| `/workflows/{workflowId}` | Workflow detail page with base info, input, activity timeline, compressed execution path, and available operations. |
+| `/operations` | Operation history for externally submitted commands. |
+| `/health` | Health check endpoint. |
+
+Operations:
+
+- `terminate`: terminates unfinished workflows such as `RUNNING` or `HUMAN_PROCESSING`.
+- `retry`: retries `TERMINATED` or `HUMAN_PROCESSING` workflows.
+- `skip`: skips the latest activity only when the workflow is `TERMINATED`, then continues execution.
+
+Console operations write `workflow_operation` rows. Business nodes claim operations and delegate to the local runtime service.
+
+## Workflow Query Views
+
+FeatherFlow exposes two activity views:
+
+| View | Description |
+| --- | --- |
+| Full timeline | Returns every activity attempt, including repeated failures and eventual success. Best for audit and incident review. |
+| Compressed execution path | Groups by `workflow_id + activity_name`, returns only the latest result and includes `totalAttempts`, `failedTimes`, `retryTimes`, and `successfulTimes`. Best for operational overview. |
+
+It can also query workflow definition steps by `workflowName`, returning `sequence`, `activityName`, `desc`, `handler`, `retryInterval`, and `maxRetryTimes`.
+
+## Demo
+
+Run:
+
+```bash
+mvn -q -pl featherflow-spring-boot-demo -am spring-boot:run
+```
+
+Start:
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoOrderWorkflow","bizId":"demo-biz-001","bizKey":"order-001","amount":100,"customerName":"Alice"}'
+```
+
+Query:
+
+```bash
+curl http://localhost:8080/demo/workflows/{workflowId}
+```
+
+Terminate, retry, and skip:
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/{workflowId}/terminate
+curl -X POST http://localhost:8080/demo/workflows/{workflowId}/retry
+curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip
+```
+
+## Test Coverage
+
+Current tests cover:
+
+- YAML/XML parsing for single and multiple workflow definitions.
+- Duplicate workflow name startup failure.
+- Activity `desc` parsing.
+- start, retry, terminate, and skip semantics.
+- Activity failure, automatic retry, and manual retry.
+- Append-only activity history and failure counting.
+- DB distributed lock behavior under concurrent dispatch.
+- Idempotent reuse of successful activity output.
+- Two-node concurrent retry and startup recovery split-brain prevention.
+- Spring Boot starter auto-configuration.
+- SmartLifecycle startup recovery window, exception handling, and recovery logs.
+- Ops Console pages, queries, pagination, JSON display, and health check.
+
+Run:
 
 ```bash
 mvn test
 ```
 
-If Maven is not installed globally, you can run the build with the project settings file and a local Maven binary.
+## Release
+
+Deploy the starter and required upstream modules:
+
+```bash
+mvn clean deploy -pl featherflow-spring-boot-starter -am -Dmaven.test.skip=true
+```
+
+Build Ops Console:
+
+```bash
+mvn clean package -pl featherflow-ops-console -am -Dmaven.test.skip=true
+```
+
+## Best Practices
+
+- Keep activity names stable after release because they participate in idempotency and lock keys.
+- Use business idempotency for critical external side effects such as payment, publishing, and resource deletion.
+- Use `bizId` for one workflow trace and `bizKey` for business-object searches. Do not mix their meanings.
+- Use ordinary SLF4J logs inside handlers; the framework injects workflow MDC into the execution thread.
+- Split long flows into clear activities and provide `desc` for each step.
+- Do not write automatic retries into `workflow_operation`; that table is for external operational commands.
+- Configure `instance-id` explicitly in production to identify start and execution nodes.
+- Treat startup recovery as lightweight failover, not as an exactly-once transaction protocol.
+
+## Design Boundaries
+
+FeatherFlow intentionally remains lightweight. It does not introduce a central scheduler, distributed transaction coordinator, or external state-machine service.
+
+The design prioritizes:
+
+- persistent workflow state
+- auditable execution history
+- retry and manual intervention
+- non-concurrent activity execution under multi-node dispatch
+- automatic recovery for stale `RUNNING` workflows after Pod restarts
+
+It does not by itself solve exactly-once external side effects. Business handlers must still provide idempotency for critical external operations.

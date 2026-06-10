@@ -1,0 +1,111 @@
+<svg width="1200" height="420" viewBox="0 0 1200 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">FeatherFlow architecture overview</title>
+  <desc id="desc">A polished architecture illustration showing FeatherFlow as a DB-backed workflow runtime with activity execution, operation commands, distributed locks, and startup recovery.</desc>
+  <defs>
+    <linearGradient id="bg" x1="80" y1="16" x2="1100" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#071B2A"/>
+      <stop offset="0.52" stop-color="#0E3A3A"/>
+      <stop offset="1" stop-color="#10243A"/>
+    </linearGradient>
+    <linearGradient id="aqua" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#79FFE1"/>
+      <stop offset="1" stop-color="#32A6FF"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFE8A3"/>
+      <stop offset="1" stop-color="#FFB84D"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="50%" r="50%">
+      <stop stop-color="#82FFE8" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#82FFE8" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="shadow" x="-30%" y="-40%" width="160%" height="180%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#00131D" flood-opacity="0.45"/>
+    </filter>
+    <filter id="glow" x="-70%" y="-70%" width="240%" height="240%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="grid" width="28" height="28" patternUnits="userSpaceOnUse">
+      <path d="M28 0H0V28" stroke="#A7F3D0" stroke-opacity="0.08" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="420" rx="34" fill="url(#bg)"/>
+  <rect width="1200" height="420" rx="34" fill="url(#grid)"/>
+  <circle cx="930" cy="88" r="210" fill="url(#halo)"/>
+  <circle cx="185" cy="340" r="180" fill="#32A6FF" fill-opacity="0.10"/>
+  <path d="M52 338C230 248 354 384 523 283C691 182 773 245 938 148C1021 99 1080 88 1148 104" stroke="url(#aqua)" stroke-width="2" stroke-opacity="0.38"/>
+  <path d="M60 355C229 289 347 327 496 247C657 160 796 188 929 104C1031 39 1092 54 1154 72" stroke="#FFE8A3" stroke-width="1.3" stroke-opacity="0.25"/>
+
+  <g transform="translate(70 70)">
+    <text x="0" y="0" fill="#BFFCEF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="800" letter-spacing="5">FEATHERFLOW</text>
+    <text x="0" y="52" fill="#FFFFFF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="48" font-weight="850">DB-backed Workflow Runtime</text>
+    <text x="0" y="88" fill="#C9E7EF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="18">Persistent state, append-only audit, idempotent execution.</text>
+
+    <g transform="translate(0 136)">
+      <rect x="0" y="0" width="185" height="44" rx="22" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.18"/>
+      <circle cx="24" cy="22" r="8" fill="url(#aqua)" filter="url(#glow)"/>
+      <text x="42" y="28" fill="#E7FFFA" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700">DB Source of Truth</text>
+    </g>
+    <g transform="translate(200 136)">
+      <rect x="0" y="0" width="182" height="44" rx="22" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.18"/>
+      <circle cx="24" cy="22" r="8" fill="url(#gold)" filter="url(#glow)"/>
+      <text x="42" y="28" fill="#FFF9DF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700">Append-only Audit</text>
+    </g>
+    <g transform="translate(397 136)">
+      <rect x="0" y="0" width="164" height="44" rx="22" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.18"/>
+      <circle cx="24" cy="22" r="8" fill="#A7F3D0" filter="url(#glow)"/>
+      <text x="42" y="28" fill="#ECFFF6" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="700">Startup Recovery</text>
+    </g>
+  </g>
+
+  <g filter="url(#shadow)" transform="translate(20 72)">
+    <rect x="645" y="82" width="430" height="254" rx="28" fill="#06202D" fill-opacity="0.88" stroke="#9DF9E7" stroke-opacity="0.22"/>
+    <rect x="673" y="112" width="126" height="156" rx="20" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.14"/>
+    <ellipse cx="736" cy="112" rx="62" ry="18" fill="#12394A" stroke="#7CF8E1" stroke-opacity="0.6"/>
+    <path d="M674 112V242C674 252 702 268 736 268C770 268 798 252 798 242V112" stroke="#7CF8E1" stroke-opacity="0.55"/>
+    <ellipse cx="736" cy="242" rx="62" ry="18" fill="#0E2F3F" stroke="#7CF8E1" stroke-opacity="0.42"/>
+    <text x="706" y="177" fill="#E8FFFA" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="15" font-weight="800">MySQL</text>
+    <text x="698" y="204" fill="#A7D7DE" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="12">workflow state</text>
+
+    <g transform="translate(842 110)">
+      <rect x="0" y="0" width="185" height="44" rx="14" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.18"/>
+      <circle cx="24" cy="22" r="8" fill="#79FFE1"/>
+      <text x="44" y="27" fill="#F5FFFD" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="14" font-weight="800">Workflow API</text>
+    </g>
+    <g transform="translate(842 172)">
+      <rect x="0" y="0" width="185" height="44" rx="14" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.18"/>
+      <circle cx="24" cy="22" r="8" fill="#FFE08A"/>
+      <text x="44" y="27" fill="#FFF9DF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="14" font-weight="800">Activity Engine</text>
+    </g>
+    <g transform="translate(842 234)">
+      <rect x="0" y="0" width="185" height="44" rx="14" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.18"/>
+      <circle cx="24" cy="22" r="8" fill="#99D5FF"/>
+      <text x="44" y="27" fill="#ECF8FF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="14" font-weight="800">Ops Console</text>
+    </g>
+
+    <path d="M800 142H840" stroke="#80FFE7" stroke-width="2" stroke-opacity="0.75"/>
+    <path d="M800 204H840" stroke="#FFE08A" stroke-width="2" stroke-opacity="0.75"/>
+    <path d="M800 266H840" stroke="#99D5FF" stroke-width="2" stroke-opacity="0.75"/>
+  </g>
+
+  <g transform="translate(132 284)">
+    <path d="M0 30H430" stroke="#BFFCEF" stroke-width="2" stroke-opacity="0.35"/>
+    <g filter="url(#glow)">
+      <circle cx="0" cy="30" r="13" fill="#79FFE1"/>
+      <circle cx="108" cy="30" r="13" fill="#79FFE1"/>
+      <circle cx="216" cy="30" r="13" fill="#FFCF6E"/>
+      <circle cx="324" cy="30" r="13" fill="#79FFE1"/>
+      <circle cx="430" cy="30" r="13" fill="#99D5FF"/>
+    </g>
+    <text x="-42" y="72" fill="#DDFDF7" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="13" font-weight="700">START</text>
+    <text x="68" y="72" fill="#DDFDF7" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="13" font-weight="700">LOCK</text>
+    <text x="178" y="72" fill="#FFF0BF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="13" font-weight="700">RETRY</text>
+    <text x="279" y="72" fill="#DDFDF7" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="13" font-weight="700">AUDIT</text>
+    <text x="394" y="72" fill="#E5F6FF" font-family="Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif" font-size="13" font-weight="700">DONE</text>
+  </g>
+</svg>
