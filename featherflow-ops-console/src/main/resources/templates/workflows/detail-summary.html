@@ -73,6 +73,18 @@
                     </td>
                 </tr>
                 <tr>
+                    <th>当前/最近执行节点</th>
+                    <td>
+                        <span class="info-value" th:text="${detail.latestExecutedNode}">latest-executed-node</span>
+                        <button class="copy-value-button" type="button" th:attr="data-copy-value=${detail.latestExecutedNode}" aria-label="复制当前/最近执行节点" title="复制">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <rect x="9" y="9" width="10" height="10" rx="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v1"></path>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+                <tr>
                     <th>状态</th>
                     <td>
                         <span class="status-badge"

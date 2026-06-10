@@ -39,6 +39,15 @@ class WorkflowQueryServiceTest {
     }
 
     @Test
+    void shouldExposeLatestExecutedNodeInWorkflowDetail() {
+        assertThat(workflowQueryService.getWorkflowDetail("wf-graph-0001", 1, 10, "asc"))
+            .isPresent()
+            .get()
+            .extracting("latestExecutedNode")
+            .isEqualTo("10.9.8.13:host-j:1234:seed");
+    }
+
+    @Test
     void shouldReturnCompressedActivityFlowWithLatestAttemptAndCounters() {
         Optional<List<ActivityFlowNodeView>> compressedFlow =
             workflowQueryService.getCompressedWorkflowActivityFlow("wf-graph-0001");

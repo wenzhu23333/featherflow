@@ -103,6 +103,7 @@ public class WorkflowQueryService {
                 blankToDash(detailRow.bizKey()),
                 blankToDash(detailRow.workflowName()),
                 blankToDash(detailRow.startNode()),
+                blankToDash(detailRow.latestExecutedNode()),
                 detailRow.workflowStatus(),
                 blankToDash(detailRow.workflowInput()),
                 "",
@@ -131,6 +132,7 @@ public class WorkflowQueryService {
                 blankToDash(detailRow.bizKey()),
                 blankToDash(detailRow.workflowName()),
                 blankToDash(detailRow.startNode()),
+                blankToDash(detailRow.latestExecutedNode()),
                 detailRow.workflowStatus(),
                 blankToDash(detailRow.workflowInput()),
                 "",
@@ -218,6 +220,7 @@ public class WorkflowQueryService {
             row.workflowStatus(),
             row.latestActivityId(),
             buildLatestActivitySummary(row.latestActivityName(), row.latestActivityStatus()),
+            blankToDash(row.latestExecutedNode()),
             summarizeFailure(row.latestFailureOutput()),
             formatTime(row.gmtModified()),
             buildAllowedActions(row.workflowStatus(), row.latestActivityId())

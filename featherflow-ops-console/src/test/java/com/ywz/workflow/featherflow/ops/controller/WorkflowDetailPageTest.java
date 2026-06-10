@@ -47,6 +47,7 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("orderId");
         assertThat(page).contains("10001");
         assertThat(page).contains("10.9.8.7:host-d:1234:seed");
+        assertThat(page).contains("当前/最近执行节点");
         assertThat(page).contains("createOrder");
         assertThat(page).contains("notifyCustomer");
         assertThat(page).contains("manual-stop");
@@ -198,6 +199,8 @@ class WorkflowDetailPageTest {
         String fragment = result.getResponse().getContentAsString();
         assertThat(fragment).contains("data-latest-activity-id=\"act-500\"");
         assertThat(fragment).contains("wf-detail-0001");
+        assertThat(fragment).contains("当前/最近执行节点");
+        assertThat(fragment).contains("10.9.8.9:host-f:1234:seed");
         assertThat(fragment).contains("日志中心");
         assertThat(fragment).contains("暂无链接");
         assertThat(fragment).contains("copy-value-button");

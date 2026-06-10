@@ -9,6 +9,7 @@ public class WorkflowListItemView {
     private final String workflowStatus;
     private final String latestActivityId;
     private final String latestActivitySummary;
+    private final String latestExecutedNode;
     private final String latestFailureSummary;
     private final String gmtModifiedDisplay;
     private final AllowedActionsView allowedActions;
@@ -21,6 +22,7 @@ public class WorkflowListItemView {
         String workflowStatus,
         String latestActivityId,
         String latestActivitySummary,
+        String latestExecutedNode,
         String latestFailureSummary,
         String gmtModifiedDisplay,
         AllowedActionsView allowedActions
@@ -32,6 +34,7 @@ public class WorkflowListItemView {
         this.workflowStatus = workflowStatus;
         this.latestActivityId = latestActivityId;
         this.latestActivitySummary = latestActivitySummary;
+        this.latestExecutedNode = latestExecutedNode;
         this.latestFailureSummary = latestFailureSummary;
         this.gmtModifiedDisplay = gmtModifiedDisplay;
         this.allowedActions = allowedActions;
@@ -63,6 +66,10 @@ public class WorkflowListItemView {
 
     public String getLatestActivitySummary() {
         return latestActivitySummary;
+    }
+
+    public String getLatestExecutedNode() {
+        return latestExecutedNode;
     }
 
     public String getLatestFailureSummary() {

@@ -9,6 +9,7 @@ public class WorkflowDetailView {
     private final String bizKey;
     private final String workflowName;
     private final String startNode;
+    private final String latestExecutedNode;
     private final String workflowStatus;
     private final String workflowInput;
     private final String logCenterUrl;
@@ -26,6 +27,7 @@ public class WorkflowDetailView {
         String bizKey,
         String workflowName,
         String startNode,
+        String latestExecutedNode,
         String workflowStatus,
         String workflowInput,
         String logCenterUrl,
@@ -42,6 +44,7 @@ public class WorkflowDetailView {
         this.bizKey = bizKey;
         this.workflowName = workflowName;
         this.startNode = startNode;
+        this.latestExecutedNode = latestExecutedNode;
         this.workflowStatus = workflowStatus;
         this.workflowInput = workflowInput;
         this.logCenterUrl = logCenterUrl;
@@ -72,6 +75,10 @@ public class WorkflowDetailView {
 
     public String getStartNode() {
         return startNode;
+    }
+
+    public String getLatestExecutedNode() {
+        return latestExecutedNode;
     }
 
     public String getWorkflowStatus() {

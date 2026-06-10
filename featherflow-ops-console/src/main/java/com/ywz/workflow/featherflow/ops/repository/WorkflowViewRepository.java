@@ -20,6 +20,7 @@ public class WorkflowViewRepository {
             + "     w.gmt_modified,"
             + "     la.activity_id as latest_activity_id,"
             + "     la.activity_name as latest_activity_name,"
+            + "     la.executed_node as latest_executed_node,"
             + "     la.status as latest_activity_status,"
             + "     lf.output as latest_failure_output"
             + " from workflow_instance w"
@@ -56,11 +57,23 @@ public class WorkflowViewRepository {
             + " w.biz_key,"
             + " w.workflow_name,"
             + " w.start_node,"
+            + " la.executed_node as latest_executed_node,"
             + " w.status as workflow_status,"
             + " w.input as workflow_input,"
             + " w.gmt_created,"
             + " w.gmt_modified"
             + " from workflow_instance w"
+            + " left join activity_instance la on la.workflow_id = w.workflow_id"
+            + "     and not exists ("
+            + "         select 1"
+            + "         from activity_instance nla"
+            + "         where nla.workflow_id = la.workflow_id"
+            + "           and ("
+            + "               nla.gmt_created > la.gmt_created"
+            + "               or (nla.gmt_created = la.gmt_created and nla.gmt_modified > la.gmt_modified)"
+            + "               or (nla.gmt_created = la.gmt_created and nla.gmt_modified = la.gmt_modified and nla.activity_id > la.activity_id)"
+            + "           )"
+            + "     )"
             + " where w.workflow_id = ?";
 
     private static final String ACTIVITY_SQL =
@@ -129,6 +142,7 @@ public class WorkflowViewRepository {
                 rs.getObject("gmt_modified", LocalDateTime.class),
                 rs.getString("latest_activity_id"),
                 rs.getString("latest_activity_name"),
+                rs.getString("latest_executed_node"),
                 rs.getString("latest_activity_status"),
                 rs.getString("latest_failure_output")
             )
@@ -144,6 +158,7 @@ public class WorkflowViewRepository {
                 rs.getString("biz_key"),
                 rs.getString("workflow_name"),
                 rs.getString("start_node"),
+                rs.getString("latest_executed_node"),
                 rs.getString("workflow_status"),
                 rs.getString("workflow_input"),
                 rs.getObject("gmt_created", LocalDateTime.class),
@@ -228,6 +243,7 @@ public class WorkflowViewRepository {
         private final LocalDateTime gmtModified;
         private final String latestActivityId;
         private final String latestActivityName;
+        private final String latestExecutedNode;
         private final String latestActivityStatus;
         private final String latestFailureOutput;
 
@@ -241,6 +257,7 @@ public class WorkflowViewRepository {
             LocalDateTime gmtModified,
             String latestActivityId,
             String latestActivityName,
+            String latestExecutedNode,
             String latestActivityStatus,
             String latestFailureOutput
         ) {
@@ -253,6 +270,7 @@ public class WorkflowViewRepository {
             this.gmtModified = gmtModified;
             this.latestActivityId = latestActivityId;
             this.latestActivityName = latestActivityName;
+            this.latestExecutedNode = latestExecutedNode;
             this.latestActivityStatus = latestActivityStatus;
             this.latestFailureOutput = latestFailureOutput;
         }
@@ -293,6 +311,10 @@ public class WorkflowViewRepository {
             return latestActivityName;
         }
 
+        public String latestExecutedNode() {
+            return latestExecutedNode;
+        }
+
         public String latestActivityStatus() {
             return latestActivityStatus;
         }
@@ -309,6 +331,7 @@ public class WorkflowViewRepository {
         private final String bizKey;
         private final String workflowName;
         private final String startNode;
+        private final String latestExecutedNode;
         private final String workflowStatus;
         private final String workflowInput;
         private final LocalDateTime gmtCreated;
@@ -320,6 +343,7 @@ public class WorkflowViewRepository {
             String bizKey,
             String workflowName,
             String startNode,
+            String latestExecutedNode,
             String workflowStatus,
             String workflowInput,
             LocalDateTime gmtCreated,
@@ -330,6 +354,7 @@ public class WorkflowViewRepository {
             this.bizKey = bizKey;
             this.workflowName = workflowName;
             this.startNode = startNode;
+            this.latestExecutedNode = latestExecutedNode;
             this.workflowStatus = workflowStatus;
             this.workflowInput = workflowInput;
             this.gmtCreated = gmtCreated;
@@ -350,6 +375,10 @@ public class WorkflowViewRepository {
 
         public String startNode() {
             return startNode;
+        }
+
+        public String latestExecutedNode() {
+            return latestExecutedNode;
         }
 
         public String workflowName() {
