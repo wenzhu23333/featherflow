@@ -31,6 +31,7 @@ public class WorkflowRecoveryLifecycle implements SmartLifecycle {
     @Override
     public void start() {
         if (!properties.isAutoRecoverRunningWorkflows()) {
+            log.info("Startup workflow recovery scheduler is disabled");
             return;
         }
         scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
@@ -39,6 +40,15 @@ public class WorkflowRecoveryLifecycle implements SmartLifecycle {
             return thread;
         });
         stopAt = Instant.now().plusMillis(properties.getRunningWorkflowRecoveryWindowMillis());
+        log.info(
+            "Start startup workflow recovery scheduler, delayMillis={}, intervalMillis={}, windowMillis={}, staleMillis={}, batchSize={}, stopAt={}",
+            Long.valueOf(properties.getRunningWorkflowRecoveryDelayMillis()),
+            Long.valueOf(properties.getRunningWorkflowRecoveryIntervalMillis()),
+            Long.valueOf(properties.getRunningWorkflowRecoveryWindowMillis()),
+            Long.valueOf(properties.getRunningWorkflowRecoveryStaleMillis()),
+            Integer.valueOf(properties.getRunningWorkflowRecoveryBatchSize()),
+            stopAt
+        );
         scheduler.scheduleWithFixedDelay(
             this::recoverOnceWithinStartupWindowSafely,
             properties.getRunningWorkflowRecoveryDelayMillis(),
@@ -52,6 +62,7 @@ public class WorkflowRecoveryLifecycle implements SmartLifecycle {
     public void stop() {
         if (scheduler != null) {
             scheduler.shutdownNow();
+            log.info("Stop startup workflow recovery scheduler");
         }
         running = false;
     }
@@ -79,6 +90,7 @@ public class WorkflowRecoveryLifecycle implements SmartLifecycle {
 
     private void recoverOnceWithinStartupWindow() {
         if (Instant.now().isAfter(stopAt)) {
+            log.info("Stop startup workflow recovery scheduler because startup window elapsed, stopAt={}", stopAt);
             stop();
             return;
         }

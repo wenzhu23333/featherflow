@@ -10,11 +10,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 
+@ExtendWith(OutputCaptureExtension.class)
 class WorkflowRecoveryLifecycleTest {
 
     @Test
-    void shouldRunRecoveryOnlyWithinStartupWindow() throws Exception {
+    void shouldRunRecoveryOnlyWithinStartupWindow(CapturedOutput output) throws Exception {
         RecordingRecoveryService recoveryService = new RecordingRecoveryService();
         FeatherFlowProperties properties = new FeatherFlowProperties();
         properties.setRunningWorkflowRecoveryDelayMillis(1L);
@@ -36,6 +40,8 @@ class WorkflowRecoveryLifecycleTest {
         assertThat(lifecycle.isRunning()).isFalse();
         assertThat(callsAfterWindow).isGreaterThanOrEqualTo(1);
         assertThat(recoveryService.calls.get()).isEqualTo(callsAfterWindow);
+        assertThat(output).contains("Start startup workflow recovery scheduler");
+        assertThat(output).contains("Stop startup workflow recovery scheduler because startup window elapsed");
     }
 
     @Test

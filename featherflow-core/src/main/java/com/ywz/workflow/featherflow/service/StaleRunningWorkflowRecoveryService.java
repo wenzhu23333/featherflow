@@ -44,23 +44,53 @@ public class StaleRunningWorkflowRecoveryService {
         }
 
         Instant modifiedBefore = clock.instant().minus(staleTimeout);
+        log.info(
+            "Scan stale RUNNING workflows for startup recovery, modifiedBefore={}, staleTimeoutMillis={}, batchSize={}",
+            modifiedBefore,
+            Long.valueOf(staleTimeout.toMillis()),
+            Integer.valueOf(batchSize)
+        );
         List<WorkflowInstance> workflows = workflowRepository.findRunningModifiedBefore(modifiedBefore, batchSize);
         if (workflows.isEmpty()) {
-            log.info("No stale RUNNING workflows found for recovery, modifiedBefore={}", modifiedBefore);
+            log.info("No stale RUNNING workflows found for recovery, modifiedBefore={}, batchSize={}", modifiedBefore, Integer.valueOf(batchSize));
             return 0;
         }
 
         int submitted = 0;
         for (WorkflowInstance workflow : workflows) {
             try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflow)) {
-                log.info("Recover stale RUNNING workflow by resubmitting execution, modifiedBefore={}", modifiedBefore);
+                log.info(
+                    "Recover stale RUNNING workflow by resubmitting execution, workflowId={}, bizId={}, bizKey={}, workflowName={}, startNode={}, gmtModified={}, modifiedBefore={}",
+                    workflow.getWorkflowId(),
+                    workflow.getBizId(),
+                    workflow.getBizKey(),
+                    workflow.getWorkflowName(),
+                    workflow.getStartNode(),
+                    workflow.getGmtModified(),
+                    modifiedBefore
+                );
                 workflowRuntimeService.dispatchWorkflow(workflow.getWorkflowId());
                 submitted++;
             } catch (RuntimeException runtimeException) {
-                log.error("Failed to submit stale RUNNING workflow for recovery", runtimeException);
+                log.error(
+                    "Failed to submit stale RUNNING workflow for recovery, workflowId={}, bizId={}, bizKey={}, workflowName={}, startNode={}, gmtModified={}",
+                    workflow.getWorkflowId(),
+                    workflow.getBizId(),
+                    workflow.getBizKey(),
+                    workflow.getWorkflowName(),
+                    workflow.getStartNode(),
+                    workflow.getGmtModified(),
+                    runtimeException
+                );
             }
         }
-        log.info("Submitted stale RUNNING workflows for recovery, submitted={}, scanned={}", submitted, workflows.size());
+        log.info(
+            "Submitted stale RUNNING workflows for recovery, submitted={}, scanned={}, modifiedBefore={}, batchSize={}",
+            Integer.valueOf(submitted),
+            Integer.valueOf(workflows.size()),
+            modifiedBefore,
+            Integer.valueOf(batchSize)
+        );
         return submitted;
     }
 }
