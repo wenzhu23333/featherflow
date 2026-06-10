@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.util.StreamUtils;
@@ -62,8 +63,26 @@ class WorkflowListStyleTest {
         assertThat(css).contains(".activity-timeline .json-preview-widget,\n.activity-timeline .cell-block {\n    min-width: 0;\n    max-width: 100%;");
     }
 
+    @Test
+    void shouldVersionStaticStylesheetLinksToAvoidStaleBrowserCache() throws IOException {
+        for (String template : Arrays.asList(
+            "templates/workflows/list.html",
+            "templates/workflows/detail.html",
+            "templates/operations/list.html"
+        )) {
+            String html = readResource(template);
+
+            assertThat(html).contains("@{/css/app.css(v=");
+            assertThat(html).doesNotContain("@{/css/app.css}\"");
+        }
+    }
+
     private String readCss() throws IOException {
-        ClassPathResource resource = new ClassPathResource("static/css/app.css");
+        return readResource("static/css/app.css");
+    }
+
+    private String readResource(String path) throws IOException {
+        ClassPathResource resource = new ClassPathResource(path);
         return StreamUtils.copyToString(resource.getInputStream(), StandardCharsets.UTF_8);
     }
 }
