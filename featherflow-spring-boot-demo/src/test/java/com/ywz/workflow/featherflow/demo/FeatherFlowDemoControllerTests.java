@@ -59,4 +59,15 @@ class FeatherFlowDemoControllerTests {
         assertThat(latest).isNotNull();
         assertThat(latest.getStatus()).isEqualTo("COMPLETED");
     }
+
+    @Test
+    void shouldListRunnableDemoScenarios() {
+        ResponseEntity<String> response = restTemplate.getForEntity("/demo/workflows/scenarios", String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).contains("demoSuccessWorkflow");
+        assertThat(response.getBody()).contains("demoRetryThenSuccessWorkflow");
+        assertThat(response.getBody()).contains("terminate");
+        assertThat(response.getBody()).contains("skip");
+    }
 }

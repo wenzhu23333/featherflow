@@ -541,6 +541,14 @@ Run:
 mvn -q -pl featherflow-spring-boot-demo -am spring-boot:run
 ```
 
+List runnable scenarios:
+
+```bash
+curl http://localhost:8080/demo/workflows/scenarios
+```
+
+The endpoint returns each demo `workflowName`, sample `bizId`, sample `bizKey`, expected final state, and suggested operations. Operators can discover runnable samples without reading source code.
+
 Start the success sample:
 
 ```bash
@@ -563,6 +571,14 @@ Start the human-processing sample:
 curl -X POST http://localhost:8080/demo/workflows/start \
   -H 'Content-Type: application/json' \
   -d '{"workflowName":"demoHumanProcessingWorkflow","bizId":"demo-biz-human","bizKey":"order-human-001","amount":100,"customerName":"Human Alice"}'
+```
+
+Start the terminate-and-skip sample:
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoTerminateSkipWorkflow","bizId":"demo-biz-skip","bizKey":"order-skip-001","amount":100,"customerName":"Skip Alice"}'
 ```
 
 Start the async-job sample:
@@ -588,6 +604,14 @@ curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip
 ```
 
 Recommended sequence for `demoTerminateSkipWorkflow`: start the workflow, wait until it reaches `HUMAN_PROCESSING`, call `terminate`, then call `skip`. The current `skip` operation resubmits the workflow automatically and continues with the next activity.
+
+Recommended local smoke test:
+
+1. Call `/demo/workflows/scenarios` and choose a scenario.
+2. Start it with `/demo/workflows/start` and keep the returned `workflowId`.
+3. Query `/demo/workflows/{workflowId}` and verify `bizId`, `bizKey`, `workflowName`, and the latest activity.
+4. For `demoRetryThenSuccessWorkflow` or `demoAsyncJobWorkflow`, wait at least one second and observe the failed attempt followed by successful retry.
+5. For `demoTerminateSkipWorkflow`, wait for `HUMAN_PROCESSING`, call `terminate`, then call `skip`, and verify the appended skip record plus final `COMPLETED` status.
 
 ## Test Coverage
 

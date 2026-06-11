@@ -1,7 +1,9 @@
 package com.ywz.workflow.featherflow.demo.web;
 
 import com.ywz.workflow.featherflow.demo.service.DemoWorkflowFacade;
+import com.ywz.workflow.featherflow.demo.service.DemoWorkflowScenario;
 import com.ywz.workflow.featherflow.model.WorkflowInstance;
+import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -45,6 +47,11 @@ public class DemoWorkflowController {
     @PostMapping("/{workflowId}/skip")
     public void skip(@PathVariable("workflowId") String workflowId) {
         demoWorkflowFacade.skip(workflowId);
+    }
+
+    @GetMapping("/scenarios")
+    public List<DemoWorkflowScenario> listScenarios() {
+        return demoWorkflowFacade.listScenarios();
     }
 
     @GetMapping("/{workflowId}")

@@ -7,6 +7,8 @@ import com.ywz.workflow.featherflow.model.WorkflowInstance;
 import com.ywz.workflow.featherflow.repository.ActivityRepository;
 import com.ywz.workflow.featherflow.repository.WorkflowRepository;
 import com.ywz.workflow.featherflow.service.WorkflowCommandService;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,6 +86,71 @@ public class DemoWorkflowFacade {
 
     public void skip(String workflowId) {
         workflowCommandService.skipActivity(workflowId, "{\"manualSkip\":true}");
+    }
+
+    public List<DemoWorkflowScenario> listScenarios() {
+        return Collections.unmodifiableList(Arrays.asList(
+            new DemoWorkflowScenario(
+                "demoSuccessWorkflow",
+                "Success path",
+                "Create an order, notify the customer, and complete with two successful activities.",
+                "demo-biz-001",
+                "order-001",
+                Integer.valueOf(100),
+                "Alice",
+                "COMPLETED",
+                "workflow_instance.status=COMPLETED and activity_instance contains two SUCCESSFUL rows.",
+                Collections.<String>emptyList()
+            ),
+            new DemoWorkflowScenario(
+                "demoRetryThenSuccessWorkflow",
+                "Retry then success",
+                "The first notification attempt fails, then the engine records FAILED and retries automatically.",
+                "demo-biz-retry",
+                "order-retry-001",
+                Integer.valueOf(100),
+                "Retry Alice",
+                "COMPLETED",
+                "The same activityName appears twice: first FAILED, then SUCCESSFUL.",
+                Collections.singletonList("wait for automatic retry")
+            ),
+            new DemoWorkflowScenario(
+                "demoHumanProcessingWorkflow",
+                "Human processing",
+                "Risk review always fails and the workflow enters HUMAN_PROCESSING after retries are exhausted.",
+                "demo-biz-human",
+                "order-human-001",
+                Integer.valueOf(100),
+                "Human Alice",
+                "HUMAN_PROCESSING",
+                "Failure details are written to activity output for operations troubleshooting.",
+                Collections.singletonList("retry")
+            ),
+            new DemoWorkflowScenario(
+                "demoTerminateSkipWorkflow",
+                "Terminate and skip",
+                "Manual review fails, then the sample demonstrates terminate, skip latest failed activity, and continue.",
+                "demo-biz-skip",
+                "order-skip-001",
+                Integer.valueOf(100),
+                "Skip Alice",
+                "COMPLETED after terminate and skip",
+                "skip appends a SUCCESSFUL manual-skip row, then finalizeOrder runs.",
+                Arrays.asList("terminate", "skip")
+            ),
+            new DemoWorkflowScenario(
+                "demoAsyncJobWorkflow",
+                "Async job pattern",
+                "Split a long-running job into submit and poll activities so handlers do not block for a long time.",
+                "demo-biz-async",
+                "order-async-001",
+                Integer.valueOf(100),
+                "Async Alice",
+                "COMPLETED",
+                "pollAsyncJob fails once and becomes SUCCESSFUL after automatic retry.",
+                Collections.singletonList("wait for automatic retry")
+            )
+        ));
     }
 
     public DemoWorkflowView getWorkflow(String workflowId) {

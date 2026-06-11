@@ -538,6 +538,14 @@ Demo 模块内置了多组可直接运行的样例，定义文件在 `featherflo
 mvn -q -pl featherflow-spring-boot-demo -am spring-boot:run
 ```
 
+查看可运行场景目录：
+
+```bash
+curl http://localhost:8080/demo/workflows/scenarios
+```
+
+这个接口会返回每个 demo 的 `workflowName`、样例 `bizId`、样例 `bizKey`、预期终态和建议操作。运维同学不需要翻源码，也能直接知道哪些场景可以启动。
+
 启动正常成功样例：
 
 ```bash
@@ -560,6 +568,14 @@ curl -X POST http://localhost:8080/demo/workflows/start \
 curl -X POST http://localhost:8080/demo/workflows/start \
   -H 'Content-Type: application/json' \
   -d '{"workflowName":"demoHumanProcessingWorkflow","bizId":"demo-biz-human","bizKey":"order-human-001","amount":100,"customerName":"Human Alice"}'
+```
+
+启动 terminate + skip 样例：
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoTerminateSkipWorkflow","bizId":"demo-biz-skip","bizKey":"order-skip-001","amount":100,"customerName":"Skip Alice"}'
 ```
 
 启动异步任务样例：
@@ -585,6 +601,14 @@ curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip
 ```
 
 `demoTerminateSkipWorkflow` 推荐操作顺序是：启动 workflow，等待进入 `HUMAN_PROCESSING`，调用 `terminate`，再调用 `skip`。当前 `skip` 会自动重新投递 workflow 并继续执行后续 activity。
+
+推荐的本地 smoke test 路径：
+
+1. 调用 `/demo/workflows/scenarios` 选择一个场景。
+2. 使用 `/demo/workflows/start` 启动，并记录返回的 `workflowId`。
+3. 使用 `/demo/workflows/{workflowId}` 查询状态，确认 `bizId`、`bizKey`、`workflowName` 和最新 activity。
+4. 对 `demoRetryThenSuccessWorkflow` 或 `demoAsyncJobWorkflow` 等待 1 秒以上，观察失败记录后自动重试成功。
+5. 对 `demoTerminateSkipWorkflow` 等待 `HUMAN_PROCESSING` 后依次调用 `terminate`、`skip`，观察跳过记录和最终 `COMPLETED`。
 
 ## 测试覆盖
 
