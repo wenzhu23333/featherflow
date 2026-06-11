@@ -6,6 +6,8 @@ public class WorkflowViewResponse {
 
     private String workflowId;
     private String bizId;
+    private String bizKey;
+    private String workflowName;
     private String status;
     private String latestActivityId;
     private String latestActivityName;
@@ -14,6 +16,8 @@ public class WorkflowViewResponse {
         WorkflowViewResponse response = new WorkflowViewResponse();
         response.setWorkflowId(view.getWorkflowId());
         response.setBizId(view.getBizId());
+        response.setBizKey(view.getBizKey());
+        response.setWorkflowName(view.getWorkflowName());
         response.setStatus(view.getStatus());
         response.setLatestActivityId(view.getLatestActivityId());
         response.setLatestActivityName(view.getLatestActivityName());
@@ -34,6 +38,22 @@ public class WorkflowViewResponse {
 
     public void setBizId(String bizId) {
         this.bizId = bizId;
+    }
+
+    public String getBizKey() {
+        return bizKey;
+    }
+
+    public void setBizKey(String bizKey) {
+        this.bizKey = bizKey;
+    }
+
+    public String getWorkflowName() {
+        return workflowName;
+    }
+
+    public void setWorkflowName(String workflowName) {
+        this.workflowName = workflowName;
     }
 
     public String getStatus() {

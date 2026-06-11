@@ -522,18 +522,52 @@ http://localhost:8080/featherflow/workflows
 
 ## Demo
 
+Demo 模块内置了多组可直接运行的样例，定义文件在 `featherflow-spring-boot-demo/src/main/resources/workflows/demo-order-workflow.yml`。
+
+| workflowName | 场景 | 观察重点 |
+| --- | --- | --- |
+| `demoSuccessWorkflow` | 正常成功流程 | 两个 activity 成功，workflow 最终 `COMPLETED`。 |
+| `demoRetryThenSuccessWorkflow` | 第一次通知失败，自动重试后成功 | `activity_instance` 中同一 activity 先 `FAILED` 后 `SUCCESSFUL`。 |
+| `demoHumanProcessingWorkflow` | 重试次数耗尽进入人工处理 | workflow 进入 `HUMAN_PROCESSING`，方便在运维台观察失败输出。 |
+| `demoTerminateSkipWorkflow` | 先失败进入人工处理，再 terminate + skip 最新 activity | skip 会插入一条成功记录并继续推进到下一步。 |
+| `demoAsyncJobWorkflow` | 长任务拆成“提交异步任务”和“轮询结果” | handler 不长时间阻塞，通过重试表达异步任务未完成。 |
+
 启动 demo：
 
 ```bash
 mvn -q -pl featherflow-spring-boot-demo -am spring-boot:run
 ```
 
-启动 workflow：
+启动正常成功样例：
 
 ```bash
 curl -X POST http://localhost:8080/demo/workflows/start \
   -H 'Content-Type: application/json' \
-  -d '{"workflowName":"demoOrderWorkflow","bizId":"demo-biz-001","bizKey":"order-001","amount":100,"customerName":"Alice"}'
+  -d '{"workflowName":"demoSuccessWorkflow","bizId":"demo-biz-001","bizKey":"order-001","amount":100,"customerName":"Alice"}'
+```
+
+启动自动重试样例：
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoRetryThenSuccessWorkflow","bizId":"demo-biz-retry","bizKey":"order-retry-001","amount":100,"customerName":"Retry Alice"}'
+```
+
+启动人工处理样例：
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoHumanProcessingWorkflow","bizId":"demo-biz-human","bizKey":"order-human-001","amount":100,"customerName":"Human Alice"}'
+```
+
+启动异步任务样例：
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoAsyncJobWorkflow","bizId":"demo-biz-async","bizKey":"order-async-001","amount":100,"customerName":"Async Alice"}'
 ```
 
 查询：
@@ -542,13 +576,15 @@ curl -X POST http://localhost:8080/demo/workflows/start \
 curl http://localhost:8080/demo/workflows/{workflowId}
 ```
 
-终止、重试、跳过：
+终止、重试、跳过最新 activity：
 
 ```bash
 curl -X POST http://localhost:8080/demo/workflows/{workflowId}/terminate
 curl -X POST http://localhost:8080/demo/workflows/{workflowId}/retry
 curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip
 ```
+
+`demoTerminateSkipWorkflow` 推荐操作顺序是：启动 workflow，等待进入 `HUMAN_PROCESSING`，调用 `terminate`，再调用 `skip`。当前 `skip` 会自动重新投递 workflow 并继续执行后续 activity。
 
 ## 测试覆盖
 

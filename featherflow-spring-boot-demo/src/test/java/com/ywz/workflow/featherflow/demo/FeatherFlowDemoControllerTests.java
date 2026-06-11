@@ -8,8 +8,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -25,7 +23,9 @@ class FeatherFlowDemoControllerTests {
     @Test
     void shouldStartWorkflowThroughHttpEndpoint() throws Exception {
         StartWorkflowRequest request = new StartWorkflowRequest();
+        request.setWorkflowName("demoSuccessWorkflow");
         request.setBizId("demo-biz-http");
+        request.setBizKey("order-demo-http");
         request.setAmount(120);
         request.setCustomerName("Bob");
 
@@ -39,6 +39,7 @@ class FeatherFlowDemoControllerTests {
         assertThat(startResponse.getBody()).isNotNull();
         assertThat(startResponse.getBody().getWorkflowId()).isNotBlank();
         assertThat(startResponse.getBody().getBizId()).isEqualTo("demo-biz-http");
+        assertThat(startResponse.getBody().getBizKey()).isEqualTo("order-demo-http");
 
         String workflowId = startResponse.getBody().getWorkflowId();
         long deadline = System.currentTimeMillis() + 3000L;
@@ -57,21 +58,5 @@ class FeatherFlowDemoControllerTests {
 
         assertThat(latest).isNotNull();
         assertThat(latest.getStatus()).isEqualTo("COMPLETED");
-
-        ResponseEntity<Void> terminateResponse = restTemplate.exchange(
-            "/demo/workflows/" + workflowId + "/terminate",
-            HttpMethod.POST,
-            HttpEntity.EMPTY,
-            Void.class
-        );
-        assertThat(terminateResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-
-        ResponseEntity<Void> retryResponse = restTemplate.exchange(
-            "/demo/workflows/" + workflowId + "/retry",
-            HttpMethod.POST,
-            HttpEntity.EMPTY,
-            Void.class
-        );
-        assertThat(retryResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 }

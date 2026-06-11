@@ -3,19 +3,88 @@ workflows:
     activities:
       - name: createOrder
         handler: createOrderHandler
+        desc: 创建订单 / Create order
         retryInterval: PT1S
         maxRetryTimes: 1
       - name: notifyCustomer
         handler: notifyCustomerHandler
+        desc: 通知客户 / Notify customer
+        retryInterval: PT1S
+        maxRetryTimes: 1
+  - name: demoSuccessWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        desc: 正常创建订单 / Create order successfully
+        retryInterval: PT1S
+        maxRetryTimes: 1
+      - name: notifyCustomer
+        handler: notifyCustomerHandler
+        desc: 正常通知客户 / Notify customer successfully
+        retryInterval: PT1S
+        maxRetryTimes: 1
+  - name: demoRetryThenSuccessWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        desc: 先创建订单 / Create order first
+        retryInterval: PT1S
+        maxRetryTimes: 1
+      - name: transientNotifyCustomer
+        handler: transientNotifyCustomerHandler
+        desc: 第一次通知失败，自动重试后成功 / Fail once, then retry successfully
+        retryInterval: PT1S
+        maxRetryTimes: 1
+  - name: demoHumanProcessingWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        desc: 先创建订单 / Create order first
+        retryInterval: PT1S
+        maxRetryTimes: 1
+      - name: riskReview
+        handler: manualInterventionRequiredHandler
+        desc: 风控审核失败并进入人工处理 / Fail and enter human processing
+        retryInterval: PT1S
+        maxRetryTimes: 0
+  - name: demoTerminateSkipWorkflow
+    activities:
+      - name: createOrder
+        handler: createOrderHandler
+        desc: 先创建订单 / Create order first
+        retryInterval: PT1S
+        maxRetryTimes: 1
+      - name: manualReview
+        handler: manualInterventionRequiredHandler
+        desc: 人工审核失败，演示 terminate + skip + retry / Demonstrate terminate, skip and retry
+        retryInterval: PT0S
+        maxRetryTimes: 0
+      - name: finalizeOrder
+        handler: finalizeOrderHandler
+        desc: 跳过人工审核后完成订单 / Finalize order after skip
+        retryInterval: PT0S
+        maxRetryTimes: 0
+  - name: demoAsyncJobWorkflow
+    activities:
+      - name: submitAsyncJob
+        handler: submitAsyncJobHandler
+        desc: 提交异步任务，不在 handler 中长时间阻塞 / Submit async job without long blocking
+        retryInterval: PT0S
+        maxRetryTimes: 0
+      - name: pollAsyncJob
+        handler: pollAsyncJobHandler
+        desc: 轮询异步任务结果，未完成时通过重试继续 / Poll async job result through retry
         retryInterval: PT1S
         maxRetryTimes: 1
   - name: demoFastTrackWorkflow
     activities:
       - name: createOrder
         handler: createOrderHandler
-        retryInterval: PT1S
+        desc: 快速创建订单 / Fast-track order creation
+        retryInterval: PT0S
         maxRetryTimes: 0
       - name: notifyCustomer
         handler: notifyCustomerHandler
-        retryInterval: PT1S
+        desc: 快速通知客户 / Fast-track notification
+        retryInterval: PT0S
         maxRetryTimes: 0

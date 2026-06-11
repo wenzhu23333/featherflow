@@ -4,6 +4,7 @@ public class StartWorkflowRequest {
 
     private String workflowName;
     private String bizId;
+    private String bizKey;
     private Integer amount;
     private String customerName;
     private Boolean forceNotifyFailure;
@@ -22,6 +23,14 @@ public class StartWorkflowRequest {
 
     public void setBizId(String bizId) {
         this.bizId = bizId;
+    }
+
+    public String getBizKey() {
+        return bizKey;
+    }
+
+    public void setBizKey(String bizKey) {
+        this.bizKey = bizKey;
     }
 
     public Integer getAmount() {

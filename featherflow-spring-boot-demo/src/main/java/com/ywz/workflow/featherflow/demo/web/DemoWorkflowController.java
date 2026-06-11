@@ -24,6 +24,7 @@ public class DemoWorkflowController {
         WorkflowInstance workflowInstance = demoWorkflowFacade.start(
             request.getWorkflowName(),
             request.getBizId(),
+            request.getBizKey(),
             request.getAmount(),
             request.getCustomerName(),
             request.getForceNotifyFailure()

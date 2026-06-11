@@ -525,18 +525,52 @@ It can also query workflow definition steps by `workflowName`, returning `sequen
 
 ## Demo
 
+The demo module includes several runnable workflows. Definitions live in `featherflow-spring-boot-demo/src/main/resources/workflows/demo-order-workflow.yml`.
+
+| workflowName | Scenario | What To Observe |
+| --- | --- | --- |
+| `demoSuccessWorkflow` | Normal successful flow | Two successful activities and final workflow status `COMPLETED`. |
+| `demoRetryThenSuccessWorkflow` | First notification attempt fails, automatic retry succeeds | The same activity has one `FAILED` attempt followed by one `SUCCESSFUL` attempt. |
+| `demoHumanProcessingWorkflow` | Retry budget is exhausted | The workflow moves to `HUMAN_PROCESSING` and exposes failure output for operations. |
+| `demoTerminateSkipWorkflow` | Fail, terminate, then skip the latest activity | Skip appends a successful attempt and continues to the next step. |
+| `demoAsyncJobWorkflow` | Split a long task into "submit async job" and "poll result" | The handler avoids long blocking and uses retry to represent "not ready yet". |
+
 Run:
 
 ```bash
 mvn -q -pl featherflow-spring-boot-demo -am spring-boot:run
 ```
 
-Start:
+Start the success sample:
 
 ```bash
 curl -X POST http://localhost:8080/demo/workflows/start \
   -H 'Content-Type: application/json' \
-  -d '{"workflowName":"demoOrderWorkflow","bizId":"demo-biz-001","bizKey":"order-001","amount":100,"customerName":"Alice"}'
+  -d '{"workflowName":"demoSuccessWorkflow","bizId":"demo-biz-001","bizKey":"order-001","amount":100,"customerName":"Alice"}'
+```
+
+Start the automatic retry sample:
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoRetryThenSuccessWorkflow","bizId":"demo-biz-retry","bizKey":"order-retry-001","amount":100,"customerName":"Retry Alice"}'
+```
+
+Start the human-processing sample:
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoHumanProcessingWorkflow","bizId":"demo-biz-human","bizKey":"order-human-001","amount":100,"customerName":"Human Alice"}'
+```
+
+Start the async-job sample:
+
+```bash
+curl -X POST http://localhost:8080/demo/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{"workflowName":"demoAsyncJobWorkflow","bizId":"demo-biz-async","bizKey":"order-async-001","amount":100,"customerName":"Async Alice"}'
 ```
 
 Query:
@@ -552,6 +586,8 @@ curl -X POST http://localhost:8080/demo/workflows/{workflowId}/terminate
 curl -X POST http://localhost:8080/demo/workflows/{workflowId}/retry
 curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip
 ```
+
+Recommended sequence for `demoTerminateSkipWorkflow`: start the workflow, wait until it reaches `HUMAN_PROCESSING`, call `terminate`, then call `skip`. The current `skip` operation resubmits the workflow automatically and continues with the next activity.
 
 ## Test Coverage
 

@@ -38,7 +38,11 @@ public class DemoWorkflowFacade {
     }
 
     public WorkflowInstance start(String workflowName, String bizId, String input) {
-        return workflowCommandService.startWorkflow(resolveWorkflowName(workflowName), bizId, input);
+        return start(workflowName, bizId, null, input);
+    }
+
+    public WorkflowInstance start(String workflowName, String bizId, String bizKey, String input) {
+        return workflowCommandService.startWorkflow(resolveWorkflowName(workflowName), bizId, bizKey, input);
     }
 
     public WorkflowInstance start(String bizId, String input) {
@@ -48,11 +52,22 @@ public class DemoWorkflowFacade {
     public WorkflowInstance start(
         String workflowName,
         String bizId,
+        String bizKey,
         Integer amount,
         String customerName,
         Boolean forceNotifyFailure
     ) {
-        return start(workflowName, bizId, buildInputJson(amount, customerName, forceNotifyFailure));
+        return start(workflowName, bizId, bizKey, buildInputJson(amount, customerName, forceNotifyFailure));
+    }
+
+    public WorkflowInstance start(
+        String workflowName,
+        String bizId,
+        Integer amount,
+        String customerName,
+        Boolean forceNotifyFailure
+    ) {
+        return start(workflowName, bizId, null, amount, customerName, forceNotifyFailure);
     }
 
     public WorkflowInstance start(String bizId, Integer amount, String customerName, Boolean forceNotifyFailure) {
@@ -78,6 +93,8 @@ public class DemoWorkflowFacade {
         return new DemoWorkflowView(
             workflowInstance.getWorkflowId(),
             workflowInstance.getBizId(),
+            workflowInstance.getBizKey(),
+            workflowInstance.getWorkflowName(),
             workflowInstance.getStatus().name(),
             latestActivity == null ? null : latestActivity.getActivityId(),
             latestActivity == null ? null : latestActivity.getActivityName()
