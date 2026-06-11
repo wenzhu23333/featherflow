@@ -31,6 +31,91 @@ FeatherFlow 是一个面向 Java / Spring Boot 服务的轻量级工作流引擎
 | 全链路日志 | workflowId、bizId、bizKey、节点信息进入日志上下文，activity 内业务日志也能串联排查。 |
 | 运维控制台 | 内置轻量级 Ops Console，直连数据库展示列表、详情、activity 时间线、压缩执行链路和操作历史。 |
 
+## 文档导航
+
+| 阅读目标 | 建议入口 |
+| --- | --- |
+| 快速接入业务系统 | 先看“快速开始”和“Spring Boot 配置”。 |
+| 理解框架基本原理 | 先看“架构总览”和“Activity 执行时序”，再看“运行时语义”。 |
+| 排查失败和重试问题 | 重点看“Activity 执行模型”、“自动重试和人工 retry”、“日志与可观测性”。 |
+| 评估分布式部署风险 | 重点看“分布式安全设计”和“启动恢复 stale RUNNING workflow”。 |
+| 使用运维控制台 | 先看本 README 的“Ops Console”，详细部署和页面说明见 [`featherflow-ops-console/README.md`](./featherflow-ops-console/README.md)。 |
+
+## 架构总览
+
+FeatherFlow 的核心设计是“业务线程触发、框架线程推进、数据库保存事实、运维命令异步认领”。workflow 的运行上下文只通过 `input/output` 快照流转，activity 历史采用 append-only 模型，方便审计、恢复和运维排查。
+
+```mermaid
+flowchart LR
+    App[业务服务 / Spring Boot App] -->|startWorkflow| CommandService[WorkflowCommandService]
+    CommandService -->|save RUNNING| WI[(workflow_instance)]
+    CommandService -->|submit| Pool[Workflow 执行线程池]
+    Pool --> Engine[WorkflowEngine]
+    Engine -->|load definition| Registry[YAML/XML Definition Registry]
+    Engine -->|try lock| WL[(workflow_lock)]
+    Engine -->|read latest attempt| AI[(activity_instance)]
+    Engine -->|execute| Handler[Activity Handler]
+    Handler -->|context output| Engine
+    Engine -->|append SUCCESSFUL / FAILED| AI
+    Engine -->|update status| WI
+    Engine -->|internal retry| RetryScheduler[Internal Retry Scheduler]
+    RetryScheduler --> Pool
+
+    Ops[Ops Console / 外部运维系统] -->|insert command| WO[(workflow_operation)]
+    Daemon[Operation Daemon] -->|claim PENDING| WO
+    Daemon -->|retry / terminate / skip| Runtime[WorkflowRuntimeService]
+    Runtime --> Pool
+
+    Lifecycle[Startup Recovery Lifecycle] -->|clean expired locks| WL
+    Lifecycle -->|scan stale RUNNING| WI
+    Lifecycle -->|resubmit| Runtime
+```
+
+## Activity 执行时序
+
+```mermaid
+sequenceDiagram
+    participant Scheduler as 执行线程池
+    participant Engine as WorkflowEngine
+    participant WorkflowDB as workflow_instance
+    participant ActivityDB as activity_instance
+    participant LockDB as workflow_lock
+    participant Handler as Activity Handler
+    participant Retry as RetryScheduler
+
+    Scheduler->>Engine: continueWorkflow(workflowId)
+    Engine->>WorkflowDB: 读取 workflow 状态
+    Engine->>ActivityDB: 查询当前 activity 最新记录
+    alt 已有 SUCCESSFUL 记录
+        ActivityDB-->>Engine: 返回 output
+        Engine->>Engine: 复用 output 进入下一步
+    else 需要执行
+        Engine->>LockDB: insert lock_key = workflowId:activityName
+        alt 获取锁失败
+            LockDB-->>Engine: duplicate key
+            Engine-->>Scheduler: 停止本轮调度
+        else 获取锁成功
+            Engine->>WorkflowDB: 二次确认 workflow 仍为 RUNNING
+            Engine->>ActivityDB: 二次幂等检查
+            Engine->>Handler: handle(context)
+            alt handler 成功
+                Handler-->>Engine: output context
+                Engine->>ActivityDB: append SUCCESSFUL attempt
+                Engine->>Engine: 推进下一步或 COMPLETED
+            else handler 抛异常或 Error
+                Handler-->>Engine: Throwable
+                Engine->>ActivityDB: append FAILED attempt + exception output
+                alt 未超过重试次数
+                    Engine->>Retry: schedule internal retry
+                else 重试耗尽
+                    Engine->>WorkflowDB: update HUMAN_PROCESSING
+                end
+            end
+            Engine->>LockDB: delete lock_key by owner
+        end
+    end
+```
+
 ## 模块
 
 | 模块 | 作用 |
@@ -350,6 +435,7 @@ Spring 容器启动完成
 恢复策略特点：
 
 - 不新增表，不引入 lease，不引入心跳。
+- 每轮启动恢复扫描前，会先清理 `workflow_lock.gmt_modified` 早于 stale 阈值的残留锁，默认清理 5 分钟前的锁。
 - 不直接修改 workflow 状态，只重新调度。
 - 多节点同时扫描也允许，DB 锁和幂等会挡住重复执行。
 - 单轮扫描异常会被 catch 并记录 error，后续扫描继续进行。
@@ -359,6 +445,7 @@ Spring 容器启动完成
 
 - recovery scheduler 启动配置。
 - 每轮扫描的 `modifiedBefore`、`staleTimeoutMillis`、`batchSize`。
+- 每轮启动恢复前清理过期 workflow lock 的数量。
 - 每个被恢复 workflow 的 `workflowId`、`bizId`、`bizKey`、`workflowName`、`startNode`、`gmtModified`。
 - 提交失败原因。
 - 启动窗口结束和 scheduler 停止事件。
@@ -476,6 +563,7 @@ curl -X POST http://localhost:8080/demo/workflows/{workflowId}/skip
 - DB 分布式锁防并发执行。
 - 幂等复用成功 activity output。
 - 双节点并发 retry 和启动恢复防脑裂。
+- 启动恢复前清理过期 workflow lock，但 activity 正常执行路径不抢占锁。
 - Spring Boot starter 自动装配。
 - SmartLifecycle 启动恢复窗口、异常兜底和日志输出。
 - Ops Console 页面、查询、分页、JSON 展示和健康检查。
@@ -506,10 +594,12 @@ mvn clean package -pl featherflow-ops-console -am -Dmaven.test.skip=true
 - 关键外部副作用必须有业务幂等，例如支付、发布、删除资源。
 - `bizId` 用于一次 workflow 链路追踪，`bizKey` 用于业务对象维度检索，两者不要混用。
 - handler 内日志使用 SLF4J 即可，框架会在线程上下文中注入 workflow MDC。
+- handler 应保持短执行、可重试、可幂等；建议秒级完成，避免在 activity 锁内做长时间同步等待。
 - 对长流程建议拆分 activity，让每一步都有清晰 `desc`，便于运维台展示。
 - 不要把自动重试写入 `workflow_operation`；operation 表只作为外部运维命令入口。
 - 生产环境建议显式配置 `instance-id`，方便定位启动节点和执行节点。
-- 启动恢复是轻量 failover，不是严格 exactly-once 事务协议；业务侧仍需保证外部副作用幂等。
+- 启动恢复会清理超过 stale 阈值的残留锁并重新投递 `RUNNING` workflow；这是轻量 failover，不是严格 exactly-once 事务协议。
+- 如果某个步骤天然耗时很长，建议拆成“提交异步任务”和“查询任务结果”两个或多个 activity，不要让单个 handler 长时间阻塞。
 
 ## 设计边界
 

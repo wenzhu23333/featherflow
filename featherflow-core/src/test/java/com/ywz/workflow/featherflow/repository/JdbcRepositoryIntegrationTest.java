@@ -16,6 +16,7 @@ import com.ywz.workflow.featherflow.repository.jdbc.JdbcWorkflowOperationReposit
 import com.ywz.workflow.featherflow.repository.jdbc.JdbcWorkflowRepository;
 import java.lang.reflect.Field;
 import java.net.InetAddress;
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Arrays;
 import org.junit.jupiter.api.BeforeEach;
@@ -197,6 +198,21 @@ class JdbcRepositoryIntegrationTest {
     }
 
     @Test
+    void shouldCleanOnlyExpiredWorkflowLocks() {
+        Instant now = Instant.parse("2026-03-30T13:00:00Z");
+        insertWorkflowLock("wf-old:step1", "dead-node", now.minusSeconds(600));
+        insertWorkflowLock("wf-fresh:step1", "active-node", now.minusSeconds(60));
+
+        JdbcWorkflowLockService lockService = new JdbcWorkflowLockService(jdbcTemplate);
+
+        assertThat(lockService.cleanExpiredLocks(now.minusSeconds(300))).isEqualTo(1);
+
+        assertThat(jdbcTemplate.queryForObject("select count(*) from workflow_lock", Long.class)).isEqualTo(1L);
+        assertThat(jdbcTemplate.queryForObject("select owner from workflow_lock where lock_key = ?", String.class, "wf-fresh:step1"))
+            .isEqualTo("active-node");
+    }
+
+    @Test
     void shouldWriteReadableInstanceIdIntoLockOwner() {
         JdbcWorkflowLockService lockService = new JdbcWorkflowLockService(jdbcTemplate, "10.1.2.3:8080");
 
@@ -220,5 +236,15 @@ class JdbcRepositoryIntegrationTest {
         String hostName = InetAddress.getLocalHost().getHostName();
 
         assertThat(instanceId).contains(hostName);
+    }
+
+    private void insertWorkflowLock(String lockKey, String owner, Instant modifiedTime) {
+        jdbcTemplate.update(
+            "insert into workflow_lock (lock_key, owner, gmt_created, gmt_modified) values (?, ?, ?, ?)",
+            lockKey,
+            owner,
+            Timestamp.from(modifiedTime),
+            Timestamp.from(modifiedTime)
+        );
     }
 }

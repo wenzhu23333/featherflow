@@ -33,6 +33,91 @@ Primary goals:
 | Full-chain logs | workflowId, bizId, bizKey, and node information flow through the logging context, including logs written inside activity handlers. |
 | Ops console | A lightweight console shows workflow lists, details, activity timelines, compressed execution paths, and operation history. |
 
+## Documentation Guide
+
+| Goal | Start Here |
+| --- | --- |
+| Integrate the engine into a business service | Read "Quick Start" and "Spring Boot Configuration". |
+| Understand the runtime model | Read "Architecture Overview" and "Activity Execution Sequence", then "Runtime Semantics". |
+| Diagnose failures and retries | Read "Activity execution model", "Automatic and manual retry", and "Logging and Observability". |
+| Review distributed deployment behavior | Read "Distributed Safety" and "Startup Recovery for Stale RUNNING Workflows". |
+| Operate workflows from the console | Read "Ops Console" here, then [`featherflow-ops-console/README.md`](./featherflow-ops-console/README.md) for deployment and page details. |
+
+## Architecture Overview
+
+FeatherFlow follows a simple runtime model: business code starts workflows, framework-owned workers advance them, the database remains the source of truth, and operational commands are claimed asynchronously. Workflow context flows only through `input/output` snapshots. Activity history is append-only, which keeps audit, recovery, and operations queries straightforward.
+
+```mermaid
+flowchart LR
+    App[Business Service / Spring Boot App] -->|startWorkflow| CommandService[WorkflowCommandService]
+    CommandService -->|save RUNNING| WI[(workflow_instance)]
+    CommandService -->|submit| Pool[Workflow Execution Pool]
+    Pool --> Engine[WorkflowEngine]
+    Engine -->|load definition| Registry[YAML/XML Definition Registry]
+    Engine -->|try lock| WL[(workflow_lock)]
+    Engine -->|read latest attempt| AI[(activity_instance)]
+    Engine -->|execute| Handler[Activity Handler]
+    Handler -->|context output| Engine
+    Engine -->|append SUCCESSFUL / FAILED| AI
+    Engine -->|update status| WI
+    Engine -->|internal retry| RetryScheduler[Internal Retry Scheduler]
+    RetryScheduler --> Pool
+
+    Ops[Ops Console / External Ops System] -->|insert command| WO[(workflow_operation)]
+    Daemon[Operation Daemon] -->|claim PENDING| WO
+    Daemon -->|retry / terminate / skip| Runtime[WorkflowRuntimeService]
+    Runtime --> Pool
+
+    Lifecycle[Startup Recovery Lifecycle] -->|clean expired locks| WL
+    Lifecycle -->|scan stale RUNNING| WI
+    Lifecycle -->|resubmit| Runtime
+```
+
+## Activity Execution Sequence
+
+```mermaid
+sequenceDiagram
+    participant Scheduler as Execution Pool
+    participant Engine as WorkflowEngine
+    participant WorkflowDB as workflow_instance
+    participant ActivityDB as activity_instance
+    participant LockDB as workflow_lock
+    participant Handler as Activity Handler
+    participant Retry as RetryScheduler
+
+    Scheduler->>Engine: continueWorkflow(workflowId)
+    Engine->>WorkflowDB: Load workflow state
+    Engine->>ActivityDB: Find latest activity attempt
+    alt Existing SUCCESSFUL attempt
+        ActivityDB-->>Engine: Return output
+        Engine->>Engine: Reuse output and move forward
+    else Execution required
+        Engine->>LockDB: insert lock_key = workflowId:activityName
+        alt Lock acquisition failed
+            LockDB-->>Engine: duplicate key
+            Engine-->>Scheduler: Stop current dispatch
+        else Lock acquired
+            Engine->>WorkflowDB: Re-check workflow is RUNNING
+            Engine->>ActivityDB: Re-check idempotency
+            Engine->>Handler: handle(context)
+            alt Handler succeeds
+                Handler-->>Engine: output context
+                Engine->>ActivityDB: append SUCCESSFUL attempt
+                Engine->>Engine: Move to next activity or COMPLETED
+            else Handler throws Exception or Error
+                Handler-->>Engine: Throwable
+                Engine->>ActivityDB: append FAILED attempt + exception output
+                alt Retry budget remains
+                    Engine->>Retry: schedule internal retry
+                else Retry exhausted
+                    Engine->>WorkflowDB: update HUMAN_PROCESSING
+                end
+            end
+            Engine->>LockDB: delete lock_key by owner
+        end
+    end
+```
+
 ## Modules
 
 | Module | Responsibility |
@@ -353,6 +438,7 @@ Recovery properties:
 - No new table.
 - No heartbeat.
 - No lease protocol.
+- Before each startup recovery scan, locks whose `workflow_lock.gmt_modified` is older than the stale threshold are cleaned. The default threshold is 5 minutes.
 - It does not directly mutate workflow status.
 - Multiple nodes may scan concurrently; DB locks and idempotency absorb duplicates.
 - A failed scan is caught and logged; later scans continue within the startup window.
@@ -362,6 +448,7 @@ Recovery logs include:
 
 - scheduler startup configuration
 - each scan's `modifiedBefore`, `staleTimeoutMillis`, and `batchSize`
+- number of expired workflow locks cleaned before each startup recovery scan
 - each recovered workflow's `workflowId`, `bizId`, `bizKey`, `workflowName`, `startNode`, and `gmtModified`
 - submission failures
 - startup window expiration and scheduler stop events
@@ -479,6 +566,7 @@ Current tests cover:
 - DB distributed lock behavior under concurrent dispatch.
 - Idempotent reuse of successful activity output.
 - Two-node concurrent retry and startup recovery split-brain prevention.
+- Expired workflow lock cleanup before startup recovery without lock stealing during normal activity execution.
 - Spring Boot starter auto-configuration.
 - SmartLifecycle startup recovery window, exception handling, and recovery logs.
 - Ops Console pages, queries, pagination, JSON display, and health check.
@@ -509,10 +597,12 @@ mvn clean package -pl featherflow-ops-console -am -Dmaven.test.skip=true
 - Use business idempotency for critical external side effects such as payment, publishing, and resource deletion.
 - Use `bizId` for one workflow trace and `bizKey` for business-object searches. Do not mix their meanings.
 - Use ordinary SLF4J logs inside handlers; the framework injects workflow MDC into the execution thread.
+- Keep handlers short, retryable, and idempotent. Prefer second-level execution and avoid long synchronous waits while holding an activity lock.
 - Split long flows into clear activities and provide `desc` for each step.
 - Do not write automatic retries into `workflow_operation`; that table is for external operational commands.
 - Configure `instance-id` explicitly in production to identify start and execution nodes.
-- Treat startup recovery as lightweight failover, not as an exactly-once transaction protocol.
+- Startup recovery cleans locks older than the stale threshold and resubmits stale `RUNNING` workflows. Treat it as lightweight failover, not as an exactly-once transaction protocol.
+- If a step is naturally long-running, split it into activities such as "submit async job" and "poll job result" instead of blocking one handler for a long time.
 
 ## Design Boundaries
 

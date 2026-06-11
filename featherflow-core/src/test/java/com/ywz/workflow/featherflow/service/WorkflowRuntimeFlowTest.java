@@ -10,6 +10,7 @@ import com.ywz.workflow.featherflow.engine.WorkflowEngine;
 import com.ywz.workflow.featherflow.engine.WorkflowRetryScheduler;
 import com.ywz.workflow.featherflow.handler.MapBackedWorkflowActivityHandlerRegistry;
 import com.ywz.workflow.featherflow.lock.LocalWorkflowLockService;
+import com.ywz.workflow.featherflow.lock.WorkflowLockService;
 import com.ywz.workflow.featherflow.model.ActivityExecutionStatus;
 import com.ywz.workflow.featherflow.model.ActivityInstance;
 import com.ywz.workflow.featherflow.model.WorkflowInstance;
@@ -347,6 +348,22 @@ class WorkflowRuntimeFlowTest {
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId())).isEmpty();
     }
 
+    @Test
+    void shouldCleanExpiredWorkflowLocksBeforeStartupRecoveryScan() {
+        RecordingWorkflowLockService lockService = new RecordingWorkflowLockService();
+        StaleRunningWorkflowRecoveryService recoveryService = new StaleRunningWorkflowRecoveryService(
+            workflowRepository,
+            createRuntimeService(),
+            clock,
+            lockService
+        );
+
+        assertThat(recoveryService.recover(Duration.ofMinutes(5), 10)).isZero();
+
+        assertThat(lockService.cleanCallCount.get()).isEqualTo(1);
+        assertThat(lockService.lastModifiedBefore.get()).isEqualTo(clock.instant().minus(Duration.ofMinutes(5)));
+    }
+
     private WorkflowCommandService createTriggeredService() {
         DefaultWorkflowRuntimeService workflowRuntimeService = createRuntimeService();
         return new DefaultWorkflowCommandService(
@@ -397,5 +414,27 @@ class WorkflowRuntimeFlowTest {
             Thread.sleep(20L);
         }
         assertThat(workflowRepository.findRequired(workflowId).getStatus()).isEqualTo(expectedStatus);
+    }
+
+    private static final class RecordingWorkflowLockService implements WorkflowLockService {
+
+        private final AtomicInteger cleanCallCount = new AtomicInteger();
+        private final AtomicReference<Instant> lastModifiedBefore = new AtomicReference<Instant>();
+
+        @Override
+        public boolean tryLock(String key) {
+            return true;
+        }
+
+        @Override
+        public void unlock(String key) {
+        }
+
+        @Override
+        public int cleanExpiredLocks(Instant modifiedBefore) {
+            cleanCallCount.incrementAndGet();
+            lastModifiedBefore.set(modifiedBefore);
+            return 2;
+        }
     }
 }

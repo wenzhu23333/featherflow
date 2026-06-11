@@ -46,6 +46,14 @@ public class JdbcWorkflowLockService implements WorkflowLockService {
         );
     }
 
+    @Override
+    public int cleanExpiredLocks(Instant modifiedBefore) {
+        return jdbcTemplate.update(
+            "delete from workflow_lock where gmt_modified < ?",
+            Timestamp.from(modifiedBefore)
+        );
+    }
+
     private String currentOwner() {
         return instanceId + ":" + Thread.currentThread().getId();
     }

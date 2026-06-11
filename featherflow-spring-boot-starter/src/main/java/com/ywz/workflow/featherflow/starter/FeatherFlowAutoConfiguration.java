@@ -352,9 +352,10 @@ public class FeatherFlowAutoConfiguration {
     public StaleRunningWorkflowRecoveryService staleRunningWorkflowRecoveryService(
         WorkflowRepository workflowRepository,
         WorkflowRuntimeService workflowRuntimeService,
-        Clock featherflowClock
+        Clock featherflowClock,
+        WorkflowLockService workflowLockService
     ) {
-        return new StaleRunningWorkflowRecoveryService(workflowRepository, workflowRuntimeService, featherflowClock);
+        return new StaleRunningWorkflowRecoveryService(workflowRepository, workflowRuntimeService, featherflowClock, workflowLockService);
     }
 
     @Bean

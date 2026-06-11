@@ -18,6 +18,7 @@ import com.ywz.workflow.featherflow.repository.jdbc.JdbcActivityRepository;
 import com.ywz.workflow.featherflow.repository.jdbc.JdbcWorkflowLockService;
 import com.ywz.workflow.featherflow.repository.jdbc.JdbcWorkflowRepository;
 import com.ywz.workflow.featherflow.support.JsonWorkflowContextSerializer;
+import java.sql.Timestamp;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -359,6 +360,64 @@ class WorkflowRetrySafetyIntegrationTest {
         assertThat(workflowRepository.findRequired(workflowId).getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
     }
 
+    @Test
+    void shouldCleanExpiredWorkflowLockBeforeRecoveringStaleRunningWorkflow() throws Exception {
+        definitionRegistry.register(new WorkflowDefinition(
+            "staleLockRecoveryWorkflow",
+            Arrays.asList(new ActivityDefinition("resumeBlockedStep", "resumeBlockedHandler", Duration.ofMillis(10), 0))
+        ));
+        String workflowId = "wf-stale-lock-recovery-0001";
+        workflowRepository.save(new WorkflowInstance(
+            workflowId,
+            "biz-" + workflowId,
+            "staleLockRecoveryWorkflow",
+            "dead-pod",
+            clock.instant().minus(Duration.ofMinutes(20)),
+            clock.instant().minus(Duration.ofMinutes(20)),
+            "{\"resourceId\":\"R-200\"}",
+            WorkflowStatus.RUNNING
+        ));
+        insertWorkflowLock(workflowId + ":resumeBlockedStep", "dead-pod-thread", clock.instant().minus(Duration.ofMinutes(10)));
+
+        CountDownLatch handlerCompleted = new CountDownLatch(1);
+        AtomicInteger handlerCalls = new AtomicInteger();
+        handlerRegistry.register("resumeBlockedHandler", context -> {
+            handlerCalls.incrementAndGet();
+            handlerCompleted.countDown();
+            Map<String, Object> output = new LinkedHashMap<String, Object>(context);
+            output.put("resumed", Boolean.TRUE);
+            return output;
+        });
+
+        ExecutorService workflowExecutor = Executors.newSingleThreadExecutor();
+        try {
+            StaleRunningWorkflowRecoveryService recoveryService = new StaleRunningWorkflowRecoveryService(
+                workflowRepository,
+                createRuntimeService("10.0.0.8:recovery-cleaner", workflowExecutor),
+                clock,
+                new JdbcWorkflowLockService(jdbcTemplate, "10.0.0.8:recovery-cleaner")
+            );
+
+            assertThat(recoveryService.recover(Duration.ofMinutes(5), 10)).isEqualTo(1);
+            assertThat(handlerCompleted.await(2, TimeUnit.SECONDS)).isTrue();
+            workflowExecutor.shutdown();
+            assertThat(workflowExecutor.awaitTermination(2, TimeUnit.SECONDS)).isTrue();
+        } finally {
+            workflowExecutor.shutdownNow();
+        }
+
+        assertThat(handlerCalls.get()).isEqualTo(1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from workflow_lock", Long.class)).isEqualTo(0L);
+        assertThat(workflowRepository.findRequired(workflowId).getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
+        assertThat(activityRepository.findByWorkflowId(workflowId))
+            .singleElement()
+            .satisfies(activity -> {
+                assertThat(activity.getActivityName()).isEqualTo("resumeBlockedStep");
+                assertThat(activity.getStatus()).isEqualTo(ActivityExecutionStatus.SUCCESSFUL);
+                assertThat(activity.getOutput()).contains("\"resumed\":true");
+            });
+    }
+
     private WorkflowEngine createEngine(String nodeIdentity) {
         return new WorkflowEngine(
             definitionRegistry,
@@ -395,6 +454,16 @@ class WorkflowRetrySafetyIntegrationTest {
             input,
             WorkflowStatus.RUNNING
         ));
+    }
+
+    private void insertWorkflowLock(String lockKey, String owner, Instant modifiedTime) {
+        jdbcTemplate.update(
+            "insert into workflow_lock (lock_key, owner, gmt_created, gmt_modified) values (?, ?, ?, ?)",
+            lockKey,
+            owner,
+            Timestamp.from(modifiedTime),
+            Timestamp.from(modifiedTime)
+        );
     }
 
     private static final class NoOpWorkflowRetryScheduler implements WorkflowRetryScheduler {
