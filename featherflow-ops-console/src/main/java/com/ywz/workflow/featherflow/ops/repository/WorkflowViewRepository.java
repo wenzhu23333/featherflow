@@ -1,7 +1,9 @@
 package com.ywz.workflow.featherflow.ops.repository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
@@ -9,7 +11,16 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class WorkflowViewRepository {
 
-    private static final String LIST_SQL =
+    private static final String WORKFLOW_PAGE_COLUMNS =
+        " w.workflow_id,"
+            + " w.biz_id,"
+            + " w.biz_key,"
+            + " w.workflow_name,"
+            + " w.status,"
+            + " w.gmt_created,"
+            + " w.gmt_modified";
+
+    private static final String LIST_PAGE_SELECT =
         "select"
             + "     w.workflow_id,"
             + "     w.biz_id,"
@@ -22,9 +33,10 @@ public class WorkflowViewRepository {
             + "     la.activity_name as latest_activity_name,"
             + "     la.executed_node as latest_executed_node,"
             + "     la.status as latest_activity_status,"
-            + "     lf.output as latest_failure_output"
-            + " from workflow_instance w"
-            + " left join activity_instance la on la.workflow_id = w.workflow_id"
+            + "     substring(lf.output, 1, 512) as latest_failure_output";
+
+    private static final String LIST_ACTIVITY_JOINS =
+        " left join activity_instance la on la.workflow_id = w.workflow_id"
             + "     and not exists ("
             + "         select 1"
             + "         from activity_instance nla"
@@ -47,8 +59,16 @@ public class WorkflowViewRepository {
             + "               or (nlf.gmt_created = lf.gmt_created and nlf.gmt_modified > lf.gmt_modified)"
             + "               or (nlf.gmt_created = lf.gmt_created and nlf.gmt_modified = lf.gmt_modified and nlf.activity_id > lf.activity_id)"
             + "           )"
-            + "     )"
-            + " order by w.gmt_modified desc, w.workflow_id desc";
+            + "     )";
+
+    private static final String LIST_DEFAULT_ORDER_CLAUSE =
+        " order by w.gmt_modified desc, w.workflow_id desc";
+
+    private static final String LIST_SQL =
+        LIST_PAGE_SELECT
+            + " from workflow_instance w"
+            + LIST_ACTIVITY_JOINS
+            + LIST_DEFAULT_ORDER_CLAUSE;
 
     private static final String DETAIL_SQL =
         "select"
@@ -57,6 +77,7 @@ public class WorkflowViewRepository {
             + " w.biz_key,"
             + " w.workflow_name,"
             + " w.start_node,"
+            + " la.activity_id as latest_activity_id,"
             + " la.executed_node as latest_executed_node,"
             + " w.status as workflow_status,"
             + " w.input as workflow_input,"
@@ -75,6 +96,9 @@ public class WorkflowViewRepository {
             + "           )"
             + "     )"
             + " where w.workflow_id = ?";
+
+    private static final String WORKFLOW_EXISTS_SQL =
+        "select count(*) from workflow_instance w where w.workflow_id = ?";
 
     private static final String ACTIVITY_SQL =
         "select"
@@ -129,23 +153,87 @@ public class WorkflowViewRepository {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    public long countWorkflowListRows(
+        String workflowId,
+        String bizId,
+        String bizKey,
+        String status,
+        String workflowName,
+        LocalDateTime createdFrom,
+        LocalDateTime createdTo,
+        LocalDateTime modifiedFrom,
+        LocalDateTime modifiedTo
+    ) {
+        StringBuilder sql = new StringBuilder("select count(*) from workflow_instance w");
+        List<Object> params = new ArrayList<Object>();
+        appendWorkflowListFilters(
+            sql,
+            params,
+            workflowId,
+            bizId,
+            bizKey,
+            status,
+            workflowName,
+            createdFrom,
+            createdTo,
+            modifiedFrom,
+            modifiedTo
+        );
+        Long total = jdbcTemplate.queryForObject(sql.toString(), Long.class, params.toArray());
+        return total == null ? 0L : total;
+    }
+
+    public List<WorkflowListRow> findWorkflowPageRows(
+        String workflowId,
+        String bizId,
+        String bizKey,
+        String status,
+        String workflowName,
+        LocalDateTime createdFrom,
+        LocalDateTime createdTo,
+        LocalDateTime modifiedFrom,
+        LocalDateTime modifiedTo,
+        int limit,
+        int offset,
+        String order
+    ) {
+        String orderClause = workflowListOrderClause(order);
+        StringBuilder innerSql = new StringBuilder("select")
+            .append(WORKFLOW_PAGE_COLUMNS)
+            .append(" from workflow_instance w");
+        List<Object> params = new ArrayList<Object>();
+        appendWorkflowListFilters(
+            innerSql,
+            params,
+            workflowId,
+            bizId,
+            bizKey,
+            status,
+            workflowName,
+            createdFrom,
+            createdTo,
+            modifiedFrom,
+            modifiedTo
+        );
+        innerSql.append(orderClause)
+            .append(" limit ? offset ?");
+        params.add(limit);
+        params.add(offset);
+
+        String sql = LIST_PAGE_SELECT
+            + " from ("
+            + innerSql
+            + " ) w"
+            + LIST_ACTIVITY_JOINS
+            + orderClause;
+
+        return jdbcTemplate.query(sql, this::mapWorkflowListRow, params.toArray());
+    }
+
     public List<WorkflowListRow> findWorkflowListRows() {
         return jdbcTemplate.query(
             LIST_SQL,
-            (rs, rowNum) -> new WorkflowListRow(
-                rs.getString("workflow_id"),
-                rs.getString("biz_id"),
-                rs.getString("biz_key"),
-                rs.getString("workflow_name"),
-                rs.getString("workflow_status"),
-                rs.getObject("gmt_created", LocalDateTime.class),
-                rs.getObject("gmt_modified", LocalDateTime.class),
-                rs.getString("latest_activity_id"),
-                rs.getString("latest_activity_name"),
-                rs.getString("latest_executed_node"),
-                rs.getString("latest_activity_status"),
-                rs.getString("latest_failure_output")
-            )
+            this::mapWorkflowListRow
         );
     }
 
@@ -158,6 +246,7 @@ public class WorkflowViewRepository {
                 rs.getString("biz_key"),
                 rs.getString("workflow_name"),
                 rs.getString("start_node"),
+                rs.getString("latest_activity_id"),
                 rs.getString("latest_executed_node"),
                 rs.getString("workflow_status"),
                 rs.getString("workflow_input"),
@@ -170,6 +259,11 @@ public class WorkflowViewRepository {
             return Optional.empty();
         }
         return Optional.of(rows.get(0));
+    }
+
+    public boolean workflowExists(String workflowId) {
+        Long count = jdbcTemplate.queryForObject(WORKFLOW_EXISTS_SQL, Long.class, workflowId);
+        return count != null && count > 0;
     }
 
     public List<ActivityTimelineRow> findActivityTimelineRows(String workflowId) {
@@ -230,6 +324,133 @@ public class WorkflowViewRepository {
                 rs.getObject("gmt_modified", LocalDateTime.class)
             )
         );
+    }
+
+    private WorkflowListRow mapWorkflowListRow(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new WorkflowListRow(
+            rs.getString("workflow_id"),
+            rs.getString("biz_id"),
+            rs.getString("biz_key"),
+            rs.getString("workflow_name"),
+            rs.getString("workflow_status"),
+            rs.getObject("gmt_created", LocalDateTime.class),
+            rs.getObject("gmt_modified", LocalDateTime.class),
+            rs.getString("latest_activity_id"),
+            rs.getString("latest_activity_name"),
+            rs.getString("latest_executed_node"),
+            rs.getString("latest_activity_status"),
+            rs.getString("latest_failure_output")
+        );
+    }
+
+    private void appendWorkflowListFilters(
+        StringBuilder sql,
+        List<Object> params,
+        String workflowId,
+        String bizId,
+        String bizKey,
+        String status,
+        String workflowName,
+        LocalDateTime createdFrom,
+        LocalDateTime createdTo,
+        LocalDateTime modifiedFrom,
+        LocalDateTime modifiedTo
+    ) {
+        List<String> conditions = new ArrayList<String>();
+        appendContainsFilter(conditions, params, "w.workflow_id", workflowId);
+        appendContainsFilter(conditions, params, "w.biz_id", bizId);
+        appendContainsFilter(conditions, params, "w.biz_key", bizKey);
+        appendStatusFilter(conditions, params, status);
+        appendContainsFilter(conditions, params, "w.workflow_name", workflowName);
+        appendRangeFilter(conditions, params, "w.gmt_created", createdFrom, createdTo);
+        appendRangeFilter(conditions, params, "w.gmt_modified", modifiedFrom, modifiedTo);
+        if (!conditions.isEmpty()) {
+            sql.append(" where ");
+            for (int i = 0; i < conditions.size(); i++) {
+                if (i > 0) {
+                    sql.append(" and ");
+                }
+                sql.append(conditions.get(i));
+            }
+        }
+    }
+
+    private void appendContainsFilter(List<String> conditions, List<Object> params, String column, String value) {
+        if (isBlank(value)) {
+            return;
+        }
+        conditions.add("lower(" + column + ") like ? escape '!'");
+        params.add("%" + escapeLike(value.trim().toLowerCase(Locale.ROOT)) + "%");
+    }
+
+    private void appendStatusFilter(List<String> conditions, List<Object> params, String status) {
+        if (isBlank(status)) {
+            return;
+        }
+        List<String> statuses = splitCsv(status);
+        if (statuses.isEmpty()) {
+            return;
+        }
+        StringBuilder condition = new StringBuilder("lower(w.status) in (");
+        for (int i = 0; i < statuses.size(); i++) {
+            if (i > 0) {
+                condition.append(", ");
+            }
+            condition.append("?");
+            params.add(statuses.get(i).toLowerCase(Locale.ROOT));
+        }
+        condition.append(")");
+        conditions.add(condition.toString());
+    }
+
+    private void appendRangeFilter(
+        List<String> conditions,
+        List<Object> params,
+        String column,
+        LocalDateTime from,
+        LocalDateTime to
+    ) {
+        if (from != null) {
+            conditions.add(column + " >= ?");
+            params.add(from);
+        }
+        if (to != null) {
+            conditions.add(column + " <= ?");
+            params.add(to);
+        }
+    }
+
+    private List<String> splitCsv(String value) {
+        List<String> values = new ArrayList<String>();
+        for (String part : value.split(",")) {
+            String normalized = part.trim();
+            if (!normalized.isEmpty()) {
+                values.add(normalized);
+            }
+        }
+        return values;
+    }
+
+    private String escapeLike(String value) {
+        return value
+            .replace("!", "!!")
+            .replace("%", "!%")
+            .replace("_", "!_");
+    }
+
+    private String workflowListOrderClause(String order) {
+        if ("asc".equalsIgnoreCase(trimToEmpty(order))) {
+            return " order by w.gmt_modified asc, w.workflow_id asc";
+        }
+        return LIST_DEFAULT_ORDER_CLAUSE;
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
+    }
+
+    private String trimToEmpty(String value) {
+        return value == null ? "" : value.trim();
     }
 
     public static final class WorkflowListRow {
@@ -331,6 +552,7 @@ public class WorkflowViewRepository {
         private final String bizKey;
         private final String workflowName;
         private final String startNode;
+        private final String latestActivityId;
         private final String latestExecutedNode;
         private final String workflowStatus;
         private final String workflowInput;
@@ -343,6 +565,7 @@ public class WorkflowViewRepository {
             String bizKey,
             String workflowName,
             String startNode,
+            String latestActivityId,
             String latestExecutedNode,
             String workflowStatus,
             String workflowInput,
@@ -354,6 +577,7 @@ public class WorkflowViewRepository {
             this.bizKey = bizKey;
             this.workflowName = workflowName;
             this.startNode = startNode;
+            this.latestActivityId = latestActivityId;
             this.latestExecutedNode = latestExecutedNode;
             this.workflowStatus = workflowStatus;
             this.workflowInput = workflowInput;
@@ -375,6 +599,10 @@ public class WorkflowViewRepository {
 
         public String startNode() {
             return startNode;
+        }
+
+        public String latestActivityId() {
+            return latestActivityId;
         }
 
         public String latestExecutedNode() {

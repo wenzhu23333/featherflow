@@ -39,6 +39,8 @@ public class WorkflowQueryService {
     private static final DateTimeFormatter MODIFIED_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String ORDER_ASC = "asc";
     private static final String ORDER_DESC = "desc";
+    private static final int DEFAULT_PAGE_SIZE = 20;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final WorkflowViewRepository workflowViewRepository;
     private final ObjectMapper objectMapper;
@@ -53,7 +55,7 @@ public class WorkflowQueryService {
     }
 
     public List<WorkflowListItemView> listWorkflows(WorkflowListFilter filter) {
-        return listWorkflowPage(filter, 1, Integer.MAX_VALUE).getItems();
+        return listWorkflowPage(filter, 1, MAX_PAGE_SIZE).getItems();
     }
 
     public PageView<WorkflowListItemView> listWorkflowPage(WorkflowListFilter filter, int page, int size) {
@@ -61,17 +63,38 @@ public class WorkflowQueryService {
     }
 
     public PageView<WorkflowListItemView> listWorkflowPage(WorkflowListFilter filter, int page, int size, String order) {
-        return workflowViewRepository.findWorkflowListRows().stream()
-            .filter(row -> containsIgnoreCase(row.workflowId(), filter.workflowId()))
-            .filter(row -> containsIgnoreCase(row.bizId(), filter.bizId()))
-            .filter(row -> containsIgnoreCase(row.bizKey(), filter.bizKey()))
-            .filter(row -> matchesAnyStatus(row.workflowStatus(), filter.status()))
-            .filter(row -> isWithinRange(row.gmtCreated(), filter.createdFrom(), filter.createdTo()))
-            .filter(row -> isWithinRange(row.gmtModified(), filter.modifiedFrom(), filter.modifiedTo()))
-            .sorted(workflowListComparator(order))
+        int safeSize = normalizePageSize(size);
+        long totalElements = workflowViewRepository.countWorkflowListRows(
+            filter.workflowId(),
+            filter.bizId(),
+            filter.bizKey(),
+            filter.status(),
+            filter.workflowName(),
+            filter.createdFrom(),
+            filter.createdTo(),
+            filter.modifiedFrom(),
+            filter.modifiedTo()
+        );
+        int totalPages = calculateTotalPages(totalElements, safeSize);
+        int safePage = normalizePage(page, totalPages);
+        int offset = (safePage - 1) * safeSize;
+        List<WorkflowListItemView> items = workflowViewRepository.findWorkflowPageRows(
+                filter.workflowId(),
+                filter.bizId(),
+                filter.bizKey(),
+                filter.status(),
+                filter.workflowName(),
+                filter.createdFrom(),
+                filter.createdTo(),
+                filter.modifiedFrom(),
+                filter.modifiedTo(),
+                safeSize,
+                offset,
+                order
+            ).stream()
             .map(this::toListItemView)
-            .filter(view -> containsIgnoreCase(view.getWorkflowName(), filter.workflowName()))
-            .collect(Collectors.collectingAndThen(Collectors.toList(), rows -> paginate(rows, page, size)));
+            .collect(Collectors.toList());
+        return page(items, safePage, safeSize, totalPages, totalElements);
     }
 
     public Optional<WorkflowDetailView> getWorkflowDetail(String workflowId) {
@@ -95,7 +118,7 @@ public class WorkflowQueryService {
             .collect(Collectors.toList());
 
         WorkflowDetailRow detailRow = row.get();
-        String latestActivityId = workflowViewRepository.findLatestActivityId(workflowId).orElse(null);
+        String latestActivityId = detailRow.latestActivityId();
         return Optional.of(
             new WorkflowDetailView(
                 detailRow.workflowId(),
@@ -124,7 +147,7 @@ public class WorkflowQueryService {
             return Optional.empty();
         }
         WorkflowDetailRow detailRow = row.get();
-        String latestActivityId = workflowViewRepository.findLatestActivityId(workflowId).orElse(null);
+        String latestActivityId = detailRow.latestActivityId();
         return Optional.of(
             new WorkflowDetailView(
                 detailRow.workflowId(),
@@ -178,7 +201,7 @@ public class WorkflowQueryService {
         int activitySize,
         String activityOrder
     ) {
-        if (!workflowViewRepository.findWorkflowDetailRow(workflowId).isPresent()) {
+        if (!workflowViewRepository.workflowExists(workflowId)) {
             return Optional.empty();
         }
         return Optional.of(buildWorkflowActivityTimeline(workflowId, activityPage, activitySize, activityOrder));
@@ -189,7 +212,7 @@ public class WorkflowQueryService {
     }
 
     public Optional<List<ActivityFlowNodeView>> getCompressedWorkflowActivityFlow(String workflowId) {
-        if (!workflowViewRepository.findWorkflowDetailRow(workflowId).isPresent()) {
+        if (!workflowViewRepository.workflowExists(workflowId)) {
             return Optional.empty();
         }
         return Optional.of(buildCompressedWorkflowActivityFlow(workflowId));
@@ -502,13 +525,17 @@ public class WorkflowQueryService {
     }
 
     private <T> PageView<T> paginate(List<T> rows, int page, int size) {
-        int safeSize = size <= 0 ? 20 : size;
+        int safeSize = normalizePageSize(size);
         int totalElements = rows.size();
-        int totalPages = Math.max(1, (int) Math.ceil(totalElements / (double) safeSize));
-        int safePage = page <= 0 ? 1 : Math.min(page, totalPages);
+        int totalPages = calculateTotalPages(totalElements, safeSize);
+        int safePage = normalizePage(page, totalPages);
         int fromIndex = Math.min((safePage - 1) * safeSize, totalElements);
         int toIndex = Math.min(fromIndex + safeSize, totalElements);
         List<T> pageItems = rows.subList(fromIndex, toIndex);
+        return page(pageItems, safePage, safeSize, totalPages, totalElements);
+    }
+
+    private <T> PageView<T> page(List<T> pageItems, int safePage, int safeSize, int totalPages, long totalElements) {
         PaginationView pagination = new PaginationView(
             safePage,
             safeSize,
@@ -520,6 +547,28 @@ public class WorkflowQueryService {
             safePage < totalPages ? safePage + 1 : totalPages
         );
         return new PageView<T>(pageItems, pagination);
+    }
+
+    private int normalizePageSize(int size) {
+        if (size <= 0) {
+            return DEFAULT_PAGE_SIZE;
+        }
+        return Math.min(size, MAX_PAGE_SIZE);
+    }
+
+    private int calculateTotalPages(long totalElements, int safeSize) {
+        if (totalElements <= 0) {
+            return 1;
+        }
+        long totalPages = (totalElements + safeSize - 1) / safeSize;
+        return totalPages > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) totalPages;
+    }
+
+    private int normalizePage(int page, int totalPages) {
+        if (page <= 0) {
+            return 1;
+        }
+        return Math.min(page, totalPages);
     }
 
     private static final class OperationMetadata {

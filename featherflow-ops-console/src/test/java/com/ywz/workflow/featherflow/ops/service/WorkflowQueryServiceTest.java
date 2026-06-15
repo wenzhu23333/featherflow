@@ -2,6 +2,7 @@ package com.ywz.workflow.featherflow.ops.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository;
 import com.ywz.workflow.featherflow.ops.view.ActivityFlowNodeView;
 import com.ywz.workflow.featherflow.ops.view.ActivityTimelineItemView;
 import com.ywz.workflow.featherflow.ops.view.PageView;
@@ -9,8 +10,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ActiveProfiles;
@@ -24,6 +27,8 @@ class WorkflowQueryServiceTest {
 
     @Autowired
     private WorkflowQueryService workflowQueryService;
+    @SpyBean
+    private WorkflowViewRepository workflowViewRepository;
 
     @Test
     void shouldReturnFullActivityTimelineWithEveryAttempt() {
@@ -76,6 +81,16 @@ class WorkflowQueryServiceTest {
         assertThat(chargePayment.isLatestNode()).isTrue();
         assertThat(activityIds(chargePayment.getAttempts())).containsExactly("act-g-200");
         assertThat(chargePayment.getAttempts().get(0).getOutput()).contains("payment gateway timeout");
+    }
+
+    @Test
+    void shouldUseBoundedRepositoryQueryForWorkflowPages() {
+        Mockito.clearInvocations(workflowViewRepository);
+
+        PageView<?> page = workflowQueryService.listWorkflowPage(WorkflowListFilter.empty(), 1, 1, "desc");
+
+        assertThat(page.getItems()).hasSize(1);
+        Mockito.verify(workflowViewRepository, Mockito.never()).findWorkflowListRows();
     }
 
     @Test

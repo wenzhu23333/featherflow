@@ -18,6 +18,13 @@
             <p>默认每页展示 10 条，可按需切换分页大小。</p>
         </div>
         <div class="action-group">
+            <button type="button"
+                    class="secondary-button"
+                    th:attr="hx-get=@{/workflows/table}"
+                    hx-target="#workflow-list-container"
+                    hx-include="#workflow-filter-form,#workflow-page-input"
+                    hx-sync="#workflow-list-container:abort"
+                    hx-swap="innerHTML">刷新列表</button>
             <div class="pager-summary">
                 <span th:text="'第 ' + ${workflowPage.pagination.page} + ' / ' + ${workflowPage.pagination.totalPages} + ' 页'">第 1 / 1 页</span>
                 <span th:text="'共 ' + ${workflowPage.pagination.totalElements} + ' 条'">共 0 条</span>

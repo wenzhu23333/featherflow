@@ -25,7 +25,7 @@
         <div class="panel-header">
             <div>
                 <h2>筛选条件</h2>
-                <p>列表每 5 秒自动刷新，并自动保留当前筛选与分页状态。</p>
+                <p>按条件检索工作流，保留当前筛选与分页状态。</p>
             </div>
         </div>
         <form id="workflow-filter-form"
@@ -86,11 +86,7 @@
 
     <input type="hidden" id="workflow-page-input" name="page" th:value="${page}">
     <div id="workflow-list-container"
-         class="panel table-panel"
-         hx-get="/workflows/table"
-         hx-trigger="every 5s"
-         hx-include="#workflow-filter-form,#workflow-page-input"
-         hx-swap="innerHTML">
+         class="panel table-panel">
         <div th:replace="~{workflows/list-table :: table(${workflows},${workflowPage},${dateFilterErrors})}"></div>
     </div>
 </div>

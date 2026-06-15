@@ -77,8 +77,15 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("hx-get=\"/workflows/wf-detail-0001/summary\"");
         assertThat(page).contains("id=\"workflow-detail-timeline-container\"");
         assertThat(page).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=5&amp;activityOrder=asc\"");
-        assertThat(page).contains("hx-trigger=\"every 3s\"");
-        assertThat(page).contains("hx-sync=\"#workflow-detail-timeline-container:abort\"");
+        assertThat(page).doesNotContain("hx-trigger=\"every");
+        String summaryRefreshButton = extractButtonByText(page, "刷新摘要");
+        assertThat(summaryRefreshButton).contains("hx-get=\"/workflows/wf-detail-0001/summary\"");
+        assertThat(summaryRefreshButton).contains("hx-target=\"#workflow-detail-summary-container\"");
+        assertThat(summaryRefreshButton).contains("hx-sync=\"#workflow-detail-summary-container:abort\"");
+        String timelineRefreshButton = extractButtonByText(page, "刷新时间线");
+        assertThat(timelineRefreshButton).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=5&amp;activityOrder=asc\"");
+        assertThat(timelineRefreshButton).contains("hx-target=\"#workflow-detail-timeline-container\"");
+        assertThat(timelineRefreshButton).contains("hx-sync=\"#workflow-detail-timeline-container:replace\"");
         assertThat(page).contains("class=\"cell-block json-preview-block\"");
         assertThat(page).contains("class=\"json-preview-widget\"");
         assertThat(page).contains("class=\"json-preview-open\"");
@@ -204,6 +211,10 @@ class WorkflowDetailPageTest {
         assertThat(fragment).contains("日志中心");
         assertThat(fragment).contains("暂无链接");
         assertThat(fragment).contains("copy-value-button");
+        String refreshButton = extractButtonByText(fragment, "刷新摘要");
+        assertThat(refreshButton).contains("hx-get=\"/workflows/wf-detail-0001/summary\"");
+        assertThat(refreshButton).contains("hx-target=\"#workflow-detail-summary-container\"");
+        assertThat(refreshButton).contains("hx-sync=\"#workflow-detail-summary-container:abort\"");
         assertThat(fragment).doesNotContain("<html");
 
         Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getWorkflowSummary("wf-detail-0001");
@@ -220,7 +231,11 @@ class WorkflowDetailPageTest {
         String fragment = result.getResponse().getContentAsString();
         assertThat(fragment).contains("id=\"workflow-detail-timeline-container\"");
         assertThat(fragment).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=5&amp;activityOrder=asc\"");
-        assertThat(fragment).contains("hx-sync=\"#workflow-detail-timeline-container:abort\"");
+        assertThat(fragment).doesNotContain("hx-trigger=\"every");
+        String refreshButton = extractButtonByText(fragment, "刷新时间线");
+        assertThat(refreshButton).contains("hx-get=\"/workflows/wf-detail-0001/timeline?activityPage=1&amp;activitySize=5&amp;activityOrder=asc\"");
+        assertThat(refreshButton).contains("hx-target=\"#workflow-detail-timeline-container\"");
+        assertThat(refreshButton).contains("hx-sync=\"#workflow-detail-timeline-container:replace\"");
         assertThat(fragment).contains("class=\"panel timeline-section\"");
         assertThat(fragment).contains("activity-timeline-table");
         assertThat(fragment).contains("class=\"pager-summary\"");
@@ -391,5 +406,12 @@ class WorkflowDetailPageTest {
             count++;
             from = index + fragment.length();
         }
+    }
+
+    private String extractButtonByText(String html, String buttonText) {
+        Pattern pattern = Pattern.compile("(?s)<button\\b[^>]*>\\s*" + Pattern.quote(buttonText) + "\\s*</button>");
+        Matcher matcher = pattern.matcher(html);
+        assertThat(matcher.find()).isTrue();
+        return matcher.group();
     }
 }

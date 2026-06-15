@@ -24,7 +24,7 @@
         <div class="panel-header">
             <div>
                 <h2>筛选条件</h2>
-                <p>操作历史每 5 秒自动刷新，适合观察命令消费状态变化。</p>
+                <p>按 workflow、operator 和时间范围检索命令消费状态。</p>
             </div>
         </div>
         <form id="operation-filter-form"
@@ -74,11 +74,7 @@
     </section>
 
     <section id="operation-history-container"
-             class="panel table-panel"
-             hx-get="/operations/table"
-             hx-trigger="every 5s"
-             hx-include="#operation-filter-form"
-             hx-swap="innerHTML">
+             class="panel table-panel">
         <th:block th:replace="~{operations/list-table :: table(${operations},${dateFilterErrors})}"></th:block>
     </section>
 </div>

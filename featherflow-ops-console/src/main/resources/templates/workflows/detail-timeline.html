@@ -3,17 +3,19 @@
 <body>
 <th:block th:fragment="timelineContainer(workflowId,activities,activityPagination,activityFlowNodes)">
     <div id="workflow-detail-timeline-container"
-         class="panel timeline-section"
-         th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.page},activitySize=${activityPagination.size},activityOrder=${activityOrder})}"
-         hx-trigger="every 3s"
-         hx-sync="#workflow-detail-timeline-container:abort"
-         hx-swap="outerHTML">
+         class="panel timeline-section">
         <div class="table-toolbar">
             <div>
                 <h2>活动时间线</h2>
                 <p>展示每一步 activity 的输入和输出，便于快速定位链路问题。</p>
             </div>
             <div class="action-group" th:if="${activityPagination != null}">
+                <button type="button"
+                        class="secondary-button"
+                        th:attr="hx-get=@{/workflows/{workflowId}/timeline(workflowId=${workflowId},activityPage=${activityPagination.page},activitySize=${activityPagination.size},activityOrder=${activityOrder})}"
+                        hx-target="#workflow-detail-timeline-container"
+                        hx-sync="#workflow-detail-timeline-container:replace"
+                        hx-swap="outerHTML">刷新时间线</button>
                 <div class="pager-summary">
                     <span th:text="'活动第 ' + ${activityPagination.page} + ' / ' + ${activityPagination.totalPages} + ' 页'">活动第 1 / 1 页</span>
                     <span th:text="'共 ' + ${activityPagination.totalElements} + ' 步'">共 0 步</span>

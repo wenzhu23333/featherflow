@@ -13,6 +13,15 @@
             <h2>命令记录</h2>
             <p>支持按 workflow、operator 和时间范围检索 operation 历史。</p>
         </div>
+        <div class="action-group">
+            <button type="button"
+                    class="secondary-button"
+                    th:attr="hx-get=@{/operations/table}"
+                    hx-target="#operation-history-container"
+                    hx-include="#operation-filter-form"
+                    hx-sync="#operation-history-container:abort"
+                    hx-swap="innerHTML">刷新操作历史</button>
+        </div>
     </div>
     <table id="operation-history-table" class="data-table">
         <thead>

@@ -7,8 +7,14 @@
             <div class="panel-header">
                 <div>
                     <h2>基础信息</h2>
-                    <p>摘要区域每 3 秒自动刷新，便于观察状态变化。</p>
+                    <p>展示工作流基础字段、最新活动和当前状态。</p>
                 </div>
+                <button type="button"
+                        class="secondary-button"
+                        th:attr="hx-get=@{/workflows/{workflowId}/summary(workflowId=${detail.workflowId})}"
+                        hx-target="#workflow-detail-summary-container"
+                        hx-sync="#workflow-detail-summary-container:abort"
+                        hx-swap="innerHTML">刷新摘要</button>
             </div>
             <table class="data-table info-table">
                 <tbody>

@@ -53,7 +53,12 @@ class OperationHistoryPageTest {
         assertThat(page).contains("name=\"createdTo\"");
         assertThat(page).contains("operation-history-container");
         assertThat(page).contains("hx-get=\"/operations/table\"");
-        assertThat(page).contains("hx-trigger=\"every 5s\"");
+        assertThat(page).doesNotContain("hx-trigger=\"every");
+        String refreshButton = extractButtonByText(page, "刷新操作历史");
+        assertThat(refreshButton).contains("hx-get=\"/operations/table\"");
+        assertThat(refreshButton).contains("hx-target=\"#operation-history-container\"");
+        assertThat(refreshButton).contains("hx-include=\"#operation-filter-form\"");
+        assertThat(refreshButton).contains("hx-sync=\"#operation-history-container:abort\"");
         assertThat(page).contains("<th>Biz ID</th>");
         assertThat(page).contains("manual-stop");
         assertThat(page).contains("alice");
@@ -108,6 +113,12 @@ class OperationHistoryPageTest {
         assertThat(fragment).contains("operation-history-row-3");
         assertThat(fragment).contains("wf-detail-0002");
         assertThat(fragment).contains("biz-2002");
+        assertThat(fragment).doesNotContain("hx-trigger=\"every");
+        String refreshButton = extractButtonByText(fragment, "刷新操作历史");
+        assertThat(refreshButton).contains("hx-get=\"/operations/table\"");
+        assertThat(refreshButton).contains("hx-target=\"#operation-history-container\"");
+        assertThat(refreshButton).contains("hx-include=\"#operation-filter-form\"");
+        assertThat(refreshButton).contains("hx-sync=\"#operation-history-container:abort\"");
         assertThat(fragment).doesNotContain("<html");
     }
 
@@ -182,5 +193,12 @@ class OperationHistoryPageTest {
             index += snippet.length();
         }
         return count;
+    }
+
+    private String extractButtonByText(String html, String buttonText) {
+        Pattern pattern = Pattern.compile("(?s)<button\\b[^>]*>\\s*" + Pattern.quote(buttonText) + "\\s*</button>");
+        Matcher matcher = pattern.matcher(html);
+        assertThat(matcher.find()).isTrue();
+        return matcher.group();
     }
 }

@@ -23,10 +23,7 @@
         </nav>
     </header>
     <div id="workflow-detail-container" class="detail-grid">
-        <div id="workflow-detail-summary-container"
-             th:attr="hx-get=@{/workflows/{workflowId}/summary(workflowId=${detail.workflowId})}"
-             hx-trigger="every 3s"
-             hx-swap="innerHTML">
+        <div id="workflow-detail-summary-container">
             <div th:replace="~{workflows/detail-summary :: summary(${detail})}"></div>
         </div>
         <div th:replace="~{workflows/detail-timeline :: timelineContainer(${detail.workflowId},${detail.activities},${detail.activityPagination},${detail.activityFlowNodes})}"></div>

@@ -52,7 +52,12 @@ class WorkflowListPageTest {
         assertThat(page).contains("class=\"panel table-panel\"");
         assertThat(page).contains("class=\"table-scroll workflow-table-scroll\"");
         assertThat(page).contains("hx-get=\"/workflows/table\"");
-        assertThat(page).contains("hx-trigger=\"every 5s\"");
+        assertThat(page).doesNotContain("hx-trigger=\"every");
+        String refreshButton = extractButtonByText(page, "刷新列表");
+        assertThat(refreshButton).contains("hx-get=\"/workflows/table\"");
+        assertThat(refreshButton).contains("hx-target=\"#workflow-list-container\"");
+        assertThat(refreshButton).contains("hx-include=\"#workflow-filter-form,#workflow-page-input\"");
+        assertThat(refreshButton).contains("hx-sync=\"#workflow-list-container:abort\"");
         String runningRow = extractRowById(page, "workflow-row-wf-running-0001");
         String terminatedRow = extractRowById(page, "workflow-row-wf-terminated-01");
 
@@ -475,6 +480,13 @@ class WorkflowListPageTest {
 
     private String extractAnchorByText(String html, String linkText) {
         Pattern pattern = Pattern.compile("(?s)<a\\b[^>]*>\\s*" + Pattern.quote(linkText) + "\\s*</a>");
+        Matcher matcher = pattern.matcher(html);
+        assertThat(matcher.find()).isTrue();
+        return matcher.group();
+    }
+
+    private String extractButtonByText(String html, String buttonText) {
+        Pattern pattern = Pattern.compile("(?s)<button\\b[^>]*>\\s*" + Pattern.quote(buttonText) + "\\s*</button>");
         Matcher matcher = pattern.matcher(html);
         assertThat(matcher.find()).isTrue();
         return matcher.group();

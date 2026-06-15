@@ -34,6 +34,14 @@ class OpsConsoleProfileConfigurationTest {
 
         assertThat(properties.getProperty("spring.datasource.driver-class-name")).isEqualTo("com.mysql.cj.jdbc.Driver");
         assertThat(properties.getProperty("spring.datasource.url")).contains("jdbc:mysql://");
+        assertThat(properties.getProperty("spring.datasource.hikari.minimum-idle"))
+                .isEqualTo("${FEATHERFLOW_OPS_DATASOURCE_MIN_IDLE:5}");
+        assertThat(properties.getProperty("spring.datasource.hikari.maximum-pool-size"))
+                .isEqualTo("${FEATHERFLOW_OPS_DATASOURCE_MAX_POOL_SIZE:20}");
+        assertThat(properties.getProperty("spring.datasource.hikari.connection-timeout"))
+                .isEqualTo("${FEATHERFLOW_OPS_DATASOURCE_CONNECTION_TIMEOUT_MS:5000}");
+        assertThat(properties.getProperty("spring.jdbc.template.query-timeout"))
+                .isEqualTo("${FEATHERFLOW_OPS_JDBC_QUERY_TIMEOUT:10s}");
         assertThat(properties.getProperty("spring.sql.init.mode")).isEqualTo("never");
     }
 
