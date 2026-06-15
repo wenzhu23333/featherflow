@@ -551,7 +551,8 @@ select:focus {
 }
 
 .status-terminated,
-.status-pending {
+.status-pending,
+.status-not_started {
     color: #475467;
     background: var(--neutral-soft);
 }

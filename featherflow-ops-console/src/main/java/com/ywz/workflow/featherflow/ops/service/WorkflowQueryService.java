@@ -17,6 +17,8 @@ import com.ywz.workflow.featherflow.ops.view.PageView;
 import com.ywz.workflow.featherflow.ops.view.PaginationView;
 import com.ywz.workflow.featherflow.ops.view.WorkflowDetailView;
 import com.ywz.workflow.featherflow.ops.view.WorkflowListItemView;
+import com.ywz.workflow.featherflow.service.WorkflowDefinitionQueryService;
+import com.ywz.workflow.featherflow.service.WorkflowDefinitionStepView;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -45,10 +47,16 @@ public class WorkflowQueryService {
 
     private final WorkflowViewRepository workflowViewRepository;
     private final ObjectMapper objectMapper;
+    private final WorkflowDefinitionQueryService workflowDefinitionQueryService;
 
-    public WorkflowQueryService(WorkflowViewRepository workflowViewRepository, ObjectMapper objectMapper) {
+    public WorkflowQueryService(
+        WorkflowViewRepository workflowViewRepository,
+        ObjectMapper objectMapper,
+        WorkflowDefinitionQueryService workflowDefinitionQueryService
+    ) {
         this.workflowViewRepository = workflowViewRepository;
         this.objectMapper = objectMapper;
+        this.workflowDefinitionQueryService = workflowDefinitionQueryService;
     }
 
     public List<WorkflowListItemView> listWorkflows() {
@@ -119,14 +127,15 @@ public class WorkflowQueryService {
         if (!row.isPresent()) {
             return Optional.empty();
         }
+        WorkflowDetailRow detailRow = row.get();
         PageView<ActivityTimelineItemView> activityPageView =
             buildWorkflowActivityTimeline(workflowId, activityPage, activitySize, activityOrder);
-        List<ActivityFlowNodeView> activityFlowNodes = buildCompressedWorkflowActivityFlow(workflowId);
+        List<ActivityFlowNodeView> activityFlowNodes =
+            buildCompressedWorkflowActivityFlow(workflowId, detailRow.workflowName());
         List<OperationRecordView> operations = workflowViewRepository.findOperationRecordRows(workflowId).stream()
             .map(this::toOperationRecordView)
             .collect(Collectors.toList());
 
-        WorkflowDetailRow detailRow = row.get();
         ActivitySummaryRow latestActivity = findLatestActivitySummary(workflowId);
         String latestActivityId = latestActivity == null ? detailRow.latestActivityId() : latestActivity.activityId();
         String latestExecutedNode = latestActivity == null ? detailRow.latestExecutedNode() : latestActivity.executedNode();
@@ -225,10 +234,11 @@ public class WorkflowQueryService {
     }
 
     public Optional<List<ActivityFlowNodeView>> getCompressedWorkflowActivityFlow(String workflowId) {
-        if (!workflowViewRepository.workflowExists(workflowId)) {
+        Optional<WorkflowDetailRow> row = workflowViewRepository.findWorkflowDetailRow(workflowId);
+        if (!row.isPresent()) {
             return Optional.empty();
         }
-        return Optional.of(buildCompressedWorkflowActivityFlow(workflowId));
+        return Optional.of(buildCompressedWorkflowActivityFlow(workflowId, row.get().workflowName()));
     }
 
     public List<OperationHistoryItemView> listOperations() {
@@ -303,11 +313,17 @@ public class WorkflowQueryService {
         return paginate(activities, activityPage, activitySize);
     }
 
-    private List<ActivityFlowNodeView> buildCompressedWorkflowActivityFlow(String workflowId) {
-        return buildActivityFlowNodes(workflowViewRepository.findActivityTimelineRows(workflowId));
+    private List<ActivityFlowNodeView> buildCompressedWorkflowActivityFlow(String workflowId, String workflowName) {
+        return buildActivityFlowNodes(
+            workflowViewRepository.findActivityTimelineRows(workflowId),
+            findDefinitionSteps(workflowName)
+        );
     }
 
-    private List<ActivityFlowNodeView> buildActivityFlowNodes(List<ActivityTimelineRow> activityRows) {
+    private List<ActivityFlowNodeView> buildActivityFlowNodes(
+        List<ActivityTimelineRow> activityRows,
+        List<WorkflowDefinitionStepView> definitionSteps
+    ) {
         List<ActivityTimelineItemView> attempts = activityRows.stream()
             .sorted(activityTimelineComparator(ORDER_ASC))
             .map(this::toActivityTimelineItemView)
@@ -324,28 +340,70 @@ public class WorkflowQueryService {
         String latestActivityId = attempts.isEmpty() ? null : attempts.get(attempts.size() - 1).getActivityId();
         List<ActivityFlowNodeView> nodes = new ArrayList<ActivityFlowNodeView>();
         int sequence = 1;
+        for (WorkflowDefinitionStepView step : definitionSteps) {
+            String activityName = step.getActivityName();
+            List<ActivityTimelineItemView> nodeAttempts = groupedAttempts.remove(activityName);
+            if (nodeAttempts == null || nodeAttempts.isEmpty()) {
+                nodes.add(new ActivityFlowNodeView(
+                    sequence,
+                    activityName,
+                    "NOT_STARTED",
+                    "-",
+                    "-",
+                    0,
+                    0,
+                    0,
+                    0,
+                    false,
+                    Collections.<ActivityTimelineItemView>emptyList()
+                ));
+            } else {
+                nodes.add(toActivityFlowNode(sequence, activityName, nodeAttempts, latestActivityId));
+            }
+            sequence++;
+        }
         for (Map.Entry<String, List<ActivityTimelineItemView>> entry : groupedAttempts.entrySet()) {
-            List<ActivityTimelineItemView> nodeAttempts = entry.getValue();
-            ActivityTimelineItemView latestAttempt = nodeAttempts.get(nodeAttempts.size() - 1);
-            int failedAttempts = countAttemptsByStatus(nodeAttempts, "FAILED");
-            int successfulAttempts = countAttemptsByStatus(nodeAttempts, "SUCCESSFUL");
-            int retryTimes = Math.max(nodeAttempts.size() - 1, 0);
-            nodes.add(new ActivityFlowNodeView(
-                sequence,
-                entry.getKey(),
-                latestAttempt.getStatus(),
-                latestAttempt.getExecutedNode(),
-                latestAttempt.getGmtModifiedDisplay(),
-                nodeAttempts.size(),
-                failedAttempts,
-                retryTimes,
-                successfulAttempts,
-                latestAttempt.getActivityId().equals(latestActivityId),
-                Collections.singletonList(latestAttempt)
-            ));
+            nodes.add(toActivityFlowNode(sequence, entry.getKey(), entry.getValue(), latestActivityId));
             sequence++;
         }
         return nodes;
+    }
+
+    private ActivityFlowNodeView toActivityFlowNode(
+        int sequence,
+        String activityName,
+        List<ActivityTimelineItemView> nodeAttempts,
+        String latestActivityId
+    ) {
+        ActivityTimelineItemView latestAttempt = nodeAttempts.get(nodeAttempts.size() - 1);
+        int failedAttempts = countAttemptsByStatus(nodeAttempts, "FAILED");
+        int successfulAttempts = countAttemptsByStatus(nodeAttempts, "SUCCESSFUL");
+        int retryTimes = Math.max(nodeAttempts.size() - 1, 0);
+        return new ActivityFlowNodeView(
+            sequence,
+            activityName,
+            latestAttempt.getStatus(),
+            latestAttempt.getExecutedNode(),
+            latestAttempt.getGmtModifiedDisplay(),
+            nodeAttempts.size(),
+            failedAttempts,
+            retryTimes,
+            successfulAttempts,
+            latestAttempt.getActivityId().equals(latestActivityId),
+            Collections.singletonList(latestAttempt)
+        );
+    }
+
+    private List<WorkflowDefinitionStepView> findDefinitionSteps(String workflowName) {
+        if (isBlank(workflowName)) {
+            return Collections.emptyList();
+        }
+        try {
+            return workflowDefinitionQueryService.listActivitySteps(workflowName);
+        } catch (IllegalArgumentException ex) {
+            LOGGER.debug("Workflow definition not found for ops flow overview, workflowName={}", workflowName);
+            return Collections.emptyList();
+        }
     }
 
     private int countAttemptsByStatus(List<ActivityTimelineItemView> attempts, String status) {

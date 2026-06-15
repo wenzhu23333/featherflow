@@ -109,7 +109,7 @@
             <div class="activity-flow-header">
                 <div>
                     <h3>执行链路总览</h3>
-                    <p>按 activity 名称聚合已落库执行记录，展示每个大节点的重试和最终状态。</p>
+                    <p>按工作流定义顺序展示节点，已执行节点聚合最新结果和重试状态。</p>
                 </div>
                 <span class="pager-summary" th:text="'共 ' + ${activityFlowNodes.size()} + ' 个节点'">共 0 个节点</span>
             </div>
@@ -133,7 +133,7 @@
                         <span class="activity-flow-status">
                             <span class="status-badge"
                                   th:classappend="${' status-' + #strings.toLowerCase(node.finalStatus)}"
-                                  th:text="'最终 ' + ${node.finalStatus}">最终 SUCCESSFUL</span>
+                                  th:text="${node.totalAttempts == 0 ? '未执行' : '最终 ' + node.finalStatus}">最终 SUCCESSFUL</span>
                             <span class="activity-flow-current-badge" th:if="${node.latestNode}">最新执行</span>
                         </span>
                     </summary>
@@ -143,7 +143,9 @@
                             <span th:text="'最近更新时间: ' + ${node.latestModifiedDisplay}">最近更新时间: -</span>
                         </div>
                         <div class="section-note">最新结果</div>
-                        <table class="data-table activity-flow-attempts">
+                        <div class="section-note" th:if="${#lists.isEmpty(node.attempts)}">暂无执行记录</div>
+                        <table class="data-table activity-flow-attempts"
+                               th:if="${!#lists.isEmpty(node.attempts)}">
                             <thead>
                             <tr>
                                 <th>Activity ID</th>

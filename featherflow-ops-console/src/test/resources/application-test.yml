@@ -13,5 +13,6 @@ spring:
 featherflow:
   definition-locations:
     - classpath:/workflows/ops-definition-workflow.yml
+    - classpath:/workflows/graph-workflow.yml
   ops:
     test-profile-active: true

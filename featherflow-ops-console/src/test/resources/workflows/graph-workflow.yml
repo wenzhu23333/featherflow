@@ -1,0 +1,18 @@
+workflow:
+  name: graphWorkflow
+  activities:
+    - name: validateOrder
+      handler: validateOrderHandler
+      desc: 校验订单 / Validate order
+      retryInterval: PT3S
+      maxRetryTimes: 2
+    - name: chargePayment
+      handler: chargePaymentHandler
+      desc: 扣款 / Charge payment
+      retryInterval: PT5S
+      maxRetryTimes: 1
+    - name: captureFunds
+      handler: captureFundsHandler
+      desc: 入账 / Capture funds
+      retryInterval: PT5S
+      maxRetryTimes: 0

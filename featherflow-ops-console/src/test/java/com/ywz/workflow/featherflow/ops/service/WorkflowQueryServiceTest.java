@@ -58,7 +58,7 @@ class WorkflowQueryServiceTest {
             workflowQueryService.getCompressedWorkflowActivityFlow("wf-graph-0001");
 
         assertThat(compressedFlow).isPresent();
-        assertThat(compressedFlow.get()).hasSize(2);
+        assertThat(compressedFlow.get()).hasSize(3);
 
         ActivityFlowNodeView validateOrder = compressedFlow.get().get(0);
         assertThat(validateOrder.getActivityName()).isEqualTo("validateOrder");
@@ -81,6 +81,16 @@ class WorkflowQueryServiceTest {
         assertThat(chargePayment.isLatestNode()).isTrue();
         assertThat(activityIds(chargePayment.getAttempts())).containsExactly("act-g-200");
         assertThat(chargePayment.getAttempts().get(0).getOutput()).contains("payment gateway timeout");
+
+        ActivityFlowNodeView captureFunds = compressedFlow.get().get(2);
+        assertThat(captureFunds.getActivityName()).isEqualTo("captureFunds");
+        assertThat(captureFunds.getFinalStatus()).isEqualTo("NOT_STARTED");
+        assertThat(captureFunds.getTotalAttempts()).isEqualTo(0);
+        assertThat(captureFunds.getFailedTimes()).isEqualTo(0);
+        assertThat(captureFunds.getRetryTimes()).isEqualTo(0);
+        assertThat(captureFunds.getSuccessfulTimes()).isEqualTo(0);
+        assertThat(captureFunds.isLatestNode()).isFalse();
+        assertThat(captureFunds.getAttempts()).isEmpty();
     }
 
     @Test

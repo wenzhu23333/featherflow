@@ -163,8 +163,10 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("执行链路总览");
         assertThat(page).contains("id=\"activity-flow-node-1\"");
         assertThat(page).contains("id=\"activity-flow-node-2\"");
+        assertThat(page).contains("id=\"activity-flow-node-3\"");
         assertThat(page).contains("data-activity-name=\"validateOrder\"");
         assertThat(page).contains("data-activity-name=\"chargePayment\"");
+        assertThat(page).contains("data-activity-name=\"captureFunds\"");
         assertThat(countOccurrences(page, "data-activity-name=\"validateOrder\"")).isEqualTo(1);
         assertThat(page).contains("执行 3 次");
         assertThat(page).contains("失败 2 次");
@@ -174,10 +176,13 @@ class WorkflowDetailPageTest {
         assertThat(page).contains("失败 1 次");
         assertThat(page).contains("重试 0 次");
         assertThat(page).contains("最终 FAILED");
+        assertThat(page).contains("未执行");
+        assertThat(page).contains("暂无执行记录");
         assertThat(page).contains("最新执行");
 
         String validateNode = extractById(page, "activity-flow-node-1", "details");
         String chargeNode = extractById(page, "activity-flow-node-2", "details");
+        String captureNode = extractById(page, "activity-flow-node-3", "details");
         assertThat(validateNode).contains("act-g-102");
         assertThat(validateNode).contains("最新结果");
         assertThat(validateNode).doesNotContain("act-g-100");
@@ -187,7 +192,11 @@ class WorkflowDetailPageTest {
         assertThat(chargeNode).contains("act-g-200");
         assertThat(chargeNode).contains("payment gateway timeout");
         assertThat(chargeNode).contains("activity-flow-current");
+        assertThat(captureNode).contains("captureFunds");
+        assertThat(captureNode).contains("未执行");
+        assertThat(captureNode).contains("暂无执行记录");
         assertThat(page.indexOf("activity-flow-node-1")).isLessThan(page.indexOf("activity-flow-node-2"));
+        assertThat(page.indexOf("activity-flow-node-2")).isLessThan(page.indexOf("activity-flow-node-3"));
     }
 
     @Test
@@ -263,11 +272,14 @@ class WorkflowDetailPageTest {
         assertThat(fragment).contains("id=\"activity-flow-overview\"");
         assertThat(fragment).contains("data-activity-name=\"validateOrder\"");
         assertThat(fragment).contains("data-activity-name=\"chargePayment\"");
+        assertThat(fragment).contains("data-activity-name=\"captureFunds\"");
         assertThat(fragment).contains("执行 3 次");
         assertThat(fragment).contains("失败 2 次");
         assertThat(fragment).contains("重试 2 次");
         assertThat(fragment).contains("最终 SUCCESSFUL");
         assertThat(fragment).contains("最终 FAILED");
+        assertThat(fragment).contains("未执行");
+        assertThat(fragment).contains("暂无执行记录");
         assertThat(fragment).doesNotContain("<html");
     }
 
