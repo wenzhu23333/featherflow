@@ -34,6 +34,9 @@ public class WorkflowRecoveryLifecycle implements SmartLifecycle {
             log.info("Startup workflow recovery scheduler is disabled");
             return;
         }
+        if (!isRecoveryConfigurationSafe()) {
+            return;
+        }
         scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(runnable, "featherflow-recovery");
             thread.setDaemon(true);
@@ -41,11 +44,12 @@ public class WorkflowRecoveryLifecycle implements SmartLifecycle {
         });
         stopAt = Instant.now().plusMillis(properties.getRunningWorkflowRecoveryWindowMillis());
         log.info(
-            "Start startup workflow recovery scheduler, delayMillis={}, intervalMillis={}, windowMillis={}, staleMillis={}, batchSize={}, stopAt={}",
+            "Start startup workflow recovery scheduler, delayMillis={}, intervalMillis={}, windowMillis={}, staleMillis={}, minStaleMillis={}, batchSize={}, stopAt={}",
             Long.valueOf(properties.getRunningWorkflowRecoveryDelayMillis()),
             Long.valueOf(properties.getRunningWorkflowRecoveryIntervalMillis()),
             Long.valueOf(properties.getRunningWorkflowRecoveryWindowMillis()),
             Long.valueOf(properties.getRunningWorkflowRecoveryStaleMillis()),
+            Long.valueOf(properties.getRunningWorkflowRecoveryMinStaleMillis()),
             Integer.valueOf(properties.getRunningWorkflowRecoveryBatchSize()),
             stopAt
         );
@@ -86,6 +90,35 @@ public class WorkflowRecoveryLifecycle implements SmartLifecycle {
     public void stop(Runnable callback) {
         stop();
         callback.run();
+    }
+
+    private boolean isRecoveryConfigurationSafe() {
+        long minStaleMillis = properties.getRunningWorkflowRecoveryMinStaleMillis();
+        long staleMillis = properties.getRunningWorkflowRecoveryStaleMillis();
+        int batchSize = properties.getRunningWorkflowRecoveryBatchSize();
+        if (minStaleMillis <= 0L) {
+            log.error(
+                "Skip startup workflow recovery scheduler because minStaleMillis must be positive, minStaleMillis={}",
+                Long.valueOf(minStaleMillis)
+            );
+            return false;
+        }
+        if (staleMillis < minStaleMillis) {
+            log.error(
+                "Skip startup workflow recovery scheduler because staleMillis is below minimum, staleMillis={}, minStaleMillis={}",
+                Long.valueOf(staleMillis),
+                Long.valueOf(minStaleMillis)
+            );
+            return false;
+        }
+        if (batchSize <= 0) {
+            log.error(
+                "Skip startup workflow recovery scheduler because batchSize must be positive, batchSize={}",
+                Integer.valueOf(batchSize)
+            );
+            return false;
+        }
+        return true;
     }
 
     private void recoverOnceWithinStartupWindow() {

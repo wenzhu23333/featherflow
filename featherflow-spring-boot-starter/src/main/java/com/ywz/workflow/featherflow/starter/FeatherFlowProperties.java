@@ -15,6 +15,7 @@ public class FeatherFlowProperties {
     private long runningWorkflowRecoveryIntervalMillis = 30000L;
     private long runningWorkflowRecoveryWindowMillis = 600000L;
     private long runningWorkflowRecoveryStaleMillis = 300000L;
+    private long runningWorkflowRecoveryMinStaleMillis = 300000L;
     private int runningWorkflowRecoveryBatchSize = 100;
     private int corePoolSize = Math.max(2, Runtime.getRuntime().availableProcessors());
     private int maxPoolSize = Math.max(4, Runtime.getRuntime().availableProcessors() * 2);
@@ -87,6 +88,14 @@ public class FeatherFlowProperties {
 
     public void setRunningWorkflowRecoveryStaleMillis(long runningWorkflowRecoveryStaleMillis) {
         this.runningWorkflowRecoveryStaleMillis = runningWorkflowRecoveryStaleMillis;
+    }
+
+    public long getRunningWorkflowRecoveryMinStaleMillis() {
+        return runningWorkflowRecoveryMinStaleMillis;
+    }
+
+    public void setRunningWorkflowRecoveryMinStaleMillis(long runningWorkflowRecoveryMinStaleMillis) {
+        this.runningWorkflowRecoveryMinStaleMillis = runningWorkflowRecoveryMinStaleMillis;
     }
 
     public int getRunningWorkflowRecoveryBatchSize() {

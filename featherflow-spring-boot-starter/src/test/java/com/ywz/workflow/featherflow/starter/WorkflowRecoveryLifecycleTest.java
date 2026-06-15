@@ -60,6 +60,23 @@ class WorkflowRecoveryLifecycleTest {
     }
 
     @Test
+    void shouldNotStartWhenStaleMillisIsBelowMinimum(CapturedOutput output) throws Exception {
+        RecordingRecoveryService recoveryService = new RecordingRecoveryService();
+        FeatherFlowProperties properties = new FeatherFlowProperties();
+        properties.setRunningWorkflowRecoveryDelayMillis(1L);
+        properties.setRunningWorkflowRecoveryStaleMillis(60000L);
+        properties.setRunningWorkflowRecoveryMinStaleMillis(300000L);
+        WorkflowRecoveryLifecycle lifecycle = new WorkflowRecoveryLifecycle(recoveryService, properties);
+
+        lifecycle.start();
+        Thread.sleep(30L);
+
+        assertThat(lifecycle.isRunning()).isFalse();
+        assertThat(recoveryService.calls.get()).isZero();
+        assertThat(output).contains("staleMillis is below minimum");
+    }
+
+    @Test
     void shouldKeepScanningWhenOneRecoveryScanFails() throws Exception {
         RecordingRecoveryService recoveryService = new RecordingRecoveryService();
         recoveryService.failuresBeforeSuccess.set(1);
