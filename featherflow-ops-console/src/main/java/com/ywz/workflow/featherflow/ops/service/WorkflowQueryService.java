@@ -10,7 +10,6 @@ import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.Operat
 import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.WorkflowDetailRow;
 import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.WorkflowListRow;
 import com.ywz.workflow.featherflow.ops.view.ActivityFlowNodeView;
-import com.ywz.workflow.featherflow.ops.view.ActivityFlowOverviewView;
 import com.ywz.workflow.featherflow.ops.view.ActivityTimelineItemView;
 import com.ywz.workflow.featherflow.ops.view.AllowedActionsView;
 import com.ywz.workflow.featherflow.ops.view.OperationRecordView;
@@ -18,8 +17,6 @@ import com.ywz.workflow.featherflow.ops.view.PageView;
 import com.ywz.workflow.featherflow.ops.view.PaginationView;
 import com.ywz.workflow.featherflow.ops.view.WorkflowDetailView;
 import com.ywz.workflow.featherflow.ops.view.WorkflowListItemView;
-import com.ywz.workflow.featherflow.service.WorkflowDefinitionQueryService;
-import com.ywz.workflow.featherflow.service.WorkflowDefinitionStepView;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -45,21 +42,16 @@ public class WorkflowQueryService {
     private static final String ORDER_DESC = "desc";
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 100;
-    private static final String DEFINITION_MISSING_WARNING =
-        "定义未加载，无法展示还未执行的步骤。请配置 featherflow.definition-locations 指向业务服务使用的 workflow XML/YML。";
 
     private final WorkflowViewRepository workflowViewRepository;
     private final ObjectMapper objectMapper;
-    private final WorkflowDefinitionQueryService workflowDefinitionQueryService;
 
     public WorkflowQueryService(
         WorkflowViewRepository workflowViewRepository,
-        ObjectMapper objectMapper,
-        WorkflowDefinitionQueryService workflowDefinitionQueryService
+        ObjectMapper objectMapper
     ) {
         this.workflowViewRepository = workflowViewRepository;
         this.objectMapper = objectMapper;
-        this.workflowDefinitionQueryService = workflowDefinitionQueryService;
     }
 
     public List<WorkflowListItemView> listWorkflows() {
@@ -133,8 +125,8 @@ public class WorkflowQueryService {
         WorkflowDetailRow detailRow = row.get();
         PageView<ActivityTimelineItemView> activityPageView =
             buildWorkflowActivityTimeline(workflowId, activityPage, activitySize, activityOrder);
-        ActivityFlowOverviewView activityFlow =
-            buildCompressedWorkflowActivityFlow(workflowId, detailRow.workflowName());
+        List<ActivityFlowNodeView> activityFlowNodes =
+            buildCompressedWorkflowActivityFlow(workflowId);
         List<OperationRecordView> operations = workflowViewRepository.findOperationRecordRows(workflowId).stream()
             .map(this::toOperationRecordView)
             .collect(Collectors.toList());
@@ -156,9 +148,7 @@ public class WorkflowQueryService {
                 formatTime(detailRow.gmtCreated()),
                 formatTime(detailRow.gmtModified()),
                 activityPageView,
-                activityFlow.getNodes(),
-                activityFlow.isDefinitionMissing(),
-                activityFlow.getDefinitionWarning(),
+                activityFlowNodes,
                 operations,
                 latestActivityId,
                 buildAllowedActions(detailRow.workflowStatus(), latestActivityId)
@@ -190,8 +180,6 @@ public class WorkflowQueryService {
                 formatTime(detailRow.gmtModified()),
                 paginate(Collections.<ActivityTimelineItemView>emptyList(), 1, 5),
                 Collections.<ActivityFlowNodeView>emptyList(),
-                false,
-                "",
                 Collections.<OperationRecordView>emptyList(),
                 latestActivityId,
                 buildAllowedActions(detailRow.workflowStatus(), latestActivityId)
@@ -241,15 +229,11 @@ public class WorkflowQueryService {
     }
 
     public Optional<List<ActivityFlowNodeView>> getCompressedWorkflowActivityFlow(String workflowId) {
-        return getCompressedWorkflowActivityFlowOverview(workflowId).map(ActivityFlowOverviewView::getNodes);
-    }
-
-    public Optional<ActivityFlowOverviewView> getCompressedWorkflowActivityFlowOverview(String workflowId) {
         Optional<WorkflowDetailRow> row = workflowViewRepository.findWorkflowDetailRow(workflowId);
         if (!row.isPresent()) {
             return Optional.empty();
         }
-        return Optional.of(buildCompressedWorkflowActivityFlow(workflowId, row.get().workflowName()));
+        return Optional.of(buildCompressedWorkflowActivityFlow(workflowId));
     }
 
     public List<OperationHistoryItemView> listOperations() {
@@ -324,23 +308,11 @@ public class WorkflowQueryService {
         return paginate(activities, activityPage, activitySize);
     }
 
-    private ActivityFlowOverviewView buildCompressedWorkflowActivityFlow(String workflowId, String workflowName) {
-        DefinitionStepLookup lookup = findDefinitionSteps(workflowName);
-        List<ActivityFlowNodeView> nodes = buildActivityFlowNodes(
-            workflowViewRepository.findActivityTimelineRows(workflowId),
-            lookup.steps()
-        );
-        return new ActivityFlowOverviewView(
-            nodes,
-            lookup.definitionMissing(),
-            lookup.definitionMissing() ? DEFINITION_MISSING_WARNING : ""
-        );
+    private List<ActivityFlowNodeView> buildCompressedWorkflowActivityFlow(String workflowId) {
+        return buildActivityFlowNodes(workflowViewRepository.findActivityTimelineRows(workflowId));
     }
 
-    private List<ActivityFlowNodeView> buildActivityFlowNodes(
-        List<ActivityTimelineRow> activityRows,
-        List<WorkflowDefinitionStepView> definitionSteps
-    ) {
+    private List<ActivityFlowNodeView> buildActivityFlowNodes(List<ActivityTimelineRow> activityRows) {
         List<ActivityTimelineItemView> attempts = activityRows.stream()
             .sorted(activityTimelineComparator(ORDER_ASC))
             .map(this::toActivityTimelineItemView)
@@ -357,28 +329,6 @@ public class WorkflowQueryService {
         String latestActivityId = attempts.isEmpty() ? null : attempts.get(attempts.size() - 1).getActivityId();
         List<ActivityFlowNodeView> nodes = new ArrayList<ActivityFlowNodeView>();
         int sequence = 1;
-        for (WorkflowDefinitionStepView step : definitionSteps) {
-            String activityName = step.getActivityName();
-            List<ActivityTimelineItemView> nodeAttempts = groupedAttempts.remove(activityName);
-            if (nodeAttempts == null || nodeAttempts.isEmpty()) {
-                nodes.add(new ActivityFlowNodeView(
-                    sequence,
-                    activityName,
-                    "NOT_STARTED",
-                    "-",
-                    "-",
-                    0,
-                    0,
-                    0,
-                    0,
-                    false,
-                    Collections.<ActivityTimelineItemView>emptyList()
-                ));
-            } else {
-                nodes.add(toActivityFlowNode(sequence, activityName, nodeAttempts, latestActivityId));
-            }
-            sequence++;
-        }
         for (Map.Entry<String, List<ActivityTimelineItemView>> entry : groupedAttempts.entrySet()) {
             nodes.add(toActivityFlowNode(sequence, entry.getKey(), entry.getValue(), latestActivityId));
             sequence++;
@@ -409,37 +359,6 @@ public class WorkflowQueryService {
             latestAttempt.getActivityId().equals(latestActivityId),
             Collections.singletonList(latestAttempt)
         );
-    }
-
-    private DefinitionStepLookup findDefinitionSteps(String workflowName) {
-        if (isBlank(workflowName)) {
-            return new DefinitionStepLookup(Collections.<WorkflowDefinitionStepView>emptyList(), false);
-        }
-        try {
-            return new DefinitionStepLookup(workflowDefinitionQueryService.listActivitySteps(workflowName), false);
-        } catch (IllegalArgumentException ex) {
-            LOGGER.debug("Workflow definition not found for ops flow overview, workflowName={}", workflowName);
-            return new DefinitionStepLookup(Collections.<WorkflowDefinitionStepView>emptyList(), true);
-        }
-    }
-
-    private static class DefinitionStepLookup {
-
-        private final List<WorkflowDefinitionStepView> steps;
-        private final boolean definitionMissing;
-
-        DefinitionStepLookup(List<WorkflowDefinitionStepView> steps, boolean definitionMissing) {
-            this.steps = steps;
-            this.definitionMissing = definitionMissing;
-        }
-
-        List<WorkflowDefinitionStepView> steps() {
-            return steps;
-        }
-
-        boolean definitionMissing() {
-            return definitionMissing;
-        }
     }
 
     private int countAttemptsByStatus(List<ActivityTimelineItemView> attempts, String status) {

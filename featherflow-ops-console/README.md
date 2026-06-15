@@ -208,7 +208,6 @@ Maven 启动时也可以这样指定端口：
 export FEATHERFLOW_OPS_DATASOURCE_URL='jdbc:mysql://127.0.0.1:3306/featherflow?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai'
 export FEATHERFLOW_OPS_DATASOURCE_USERNAME='your_user'
 export FEATHERFLOW_OPS_DATASOURCE_PASSWORD='your_password'
-export FEATHERFLOW_OPS_DEFINITION_LOCATIONS='file:/etc/featherflow/workflows/*.yml,file:/etc/featherflow/workflows/*.xml'
 ```
 
 然后使用：
@@ -219,9 +218,7 @@ export FEATHERFLOW_OPS_DEFINITION_LOCATIONS='file:/etc/featherflow/workflows/*.y
 
 ## 工作流定义加载
 
-Ops Console 不新增 definition 表，会通过 `featherflow.definition-locations` 加载和业务服务相同的 XML/YML 编排文件。只有加载到定义后，`/workflow-definitions/{workflowName}/steps` 才能返回该类 workflow 的完整步骤描述。
-
-如果详情页“执行链路总览”提示“定义未加载”，说明当前 Ops Console 没有加载到该 `workflowName` 对应的 XML/YML，页面只能展示已经落库的 activity，无法推断还未执行的步骤。生产环境可通过 `FEATHERFLOW_OPS_DEFINITION_LOCATIONS` 指向挂载的定义文件，多个路径用英文逗号分隔；默认会尝试加载 `classpath*:/workflows/*.{yml,yaml,xml}` 和 `/etc/featherflow/workflows/*.{yml,yaml,xml}`。
+Ops Console 不新增 definition 表，`/workflow-definitions/{workflowName}/steps` 只返回当前运维台进程已加载到的 workflow 定义步骤。
 
 示例：
 

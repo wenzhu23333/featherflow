@@ -43,10 +43,6 @@ class OpsConsoleProfileConfigurationTest {
         assertThat(properties.getProperty("spring.jdbc.template.query-timeout"))
                 .isEqualTo("${FEATHERFLOW_OPS_JDBC_QUERY_TIMEOUT:10s}");
         assertThat(properties.getProperty("spring.sql.init.mode")).isEqualTo("never");
-        assertThat(properties.getProperty("featherflow.definition-locations"))
-                .contains("FEATHERFLOW_OPS_DEFINITION_LOCATIONS")
-                .contains("classpath*:/workflows/*.yml")
-                .contains("file:/etc/featherflow/workflows/*.xml");
     }
 
     private Properties loadYaml(String location) {

@@ -26,7 +26,7 @@
         <div id="workflow-detail-summary-container">
             <div th:replace="~{workflows/detail-summary :: summary(${detail})}"></div>
         </div>
-        <div th:replace="~{workflows/detail-timeline :: timelineContainer(${detail.workflowId},${detail.activities},${detail.activityPagination},${detail.activityFlowNodes},${detail.activityFlowDefinitionMissing},${detail.activityFlowDefinitionWarning})}"></div>
+        <div th:replace="~{workflows/detail-timeline :: timelineContainer(${detail.workflowId},${detail.activities},${detail.activityPagination},${detail.activityFlowNodes})}"></div>
         <div th:replace="~{workflows/detail-operations :: operations(${detail.operations})}"></div>
     </div>
 </div>

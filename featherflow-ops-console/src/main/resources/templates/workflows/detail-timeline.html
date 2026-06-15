@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <body>
-<th:block th:fragment="timelineContainer(workflowId,activities,activityPagination,activityFlowNodes,activityFlowDefinitionMissing,activityFlowDefinitionWarning)">
+<th:block th:fragment="timelineContainer(workflowId,activities,activityPagination,activityFlowNodes)">
     <div id="workflow-detail-timeline-container"
          class="panel timeline-section">
         <div class="table-toolbar">
@@ -109,10 +109,7 @@
             <div class="activity-flow-header">
                 <div>
                     <h3>执行链路总览</h3>
-                    <p>按工作流定义顺序展示节点，已执行节点聚合最新结果和重试状态。</p>
-                    <p class="activity-flow-definition-warning"
-                       th:if="${activityFlowDefinitionMissing}"
-                       th:text="${activityFlowDefinitionWarning}">定义未加载，无法展示还未执行的步骤。</p>
+                    <p>按实际执行顺序展示节点，聚合最新结果和重试状态。</p>
                 </div>
                 <span class="pager-summary" th:text="'共 ' + ${activityFlowNodes.size()} + ' 个节点'">共 0 个节点</span>
             </div>

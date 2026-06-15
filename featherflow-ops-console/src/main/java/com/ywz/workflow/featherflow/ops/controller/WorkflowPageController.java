@@ -3,7 +3,6 @@ package com.ywz.workflow.featherflow.ops.controller;
 import com.ywz.workflow.featherflow.ops.service.WorkflowQueryService;
 import com.ywz.workflow.featherflow.ops.service.FilterDateTimeParser;
 import com.ywz.workflow.featherflow.ops.service.WorkflowListFilter;
-import com.ywz.workflow.featherflow.ops.view.ActivityFlowOverviewView;
 import com.ywz.workflow.featherflow.ops.view.PageView;
 import com.ywz.workflow.featherflow.ops.view.WorkflowListItemView;
 import java.util.Arrays;
@@ -203,17 +202,15 @@ public class WorkflowPageController {
         String normalizedActivityOrder = normalizeOrder(activityOrder, ORDER_ASC);
         return workflowQueryService.getWorkflowActivityTimeline(workflowId, parsedActivityPage, parsedActivitySize, normalizedActivityOrder)
             .map(pageView -> {
-                ActivityFlowOverviewView activityFlow =
-                    workflowQueryService.getCompressedWorkflowActivityFlowOverview(workflowId)
-                        .orElse(new ActivityFlowOverviewView(Collections.emptyList(), false, ""));
                 model.addAttribute("activities", pageView.getItems());
                 model.addAttribute("activityPagination", pageView.getPagination());
-                model.addAttribute("activityFlowNodes", activityFlow.getNodes());
-                model.addAttribute("activityFlowDefinitionMissing", activityFlow.isDefinitionMissing());
-                model.addAttribute("activityFlowDefinitionWarning", activityFlow.getDefinitionWarning());
+                model.addAttribute(
+                    "activityFlowNodes",
+                    workflowQueryService.getCompressedWorkflowActivityFlow(workflowId).orElse(Collections.emptyList())
+                );
                 model.addAttribute("workflowId", workflowId);
                 model.addAttribute("activityOrder", normalizedActivityOrder);
-                return "workflows/detail-timeline :: timelineContainer(workflowId=${workflowId},activities=${activities},activityPagination=${activityPagination},activityFlowNodes=${activityFlowNodes},activityFlowDefinitionMissing=${activityFlowDefinitionMissing},activityFlowDefinitionWarning=${activityFlowDefinitionWarning})";
+                return "workflows/detail-timeline :: timelineContainer(workflowId=${workflowId},activities=${activities},activityPagination=${activityPagination},activityFlowNodes=${activityFlowNodes})";
             })
             .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Workflow not found: " + workflowId));
     }
