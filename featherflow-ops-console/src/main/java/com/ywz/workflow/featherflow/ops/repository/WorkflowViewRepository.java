@@ -50,24 +50,13 @@ public class WorkflowViewRepository {
             + " w.biz_key,"
             + " w.workflow_name,"
             + " w.start_node,"
-            + " la.activity_id as latest_activity_id,"
-            + " la.executed_node as latest_executed_node,"
+            + " null as latest_activity_id,"
+            + " null as latest_executed_node,"
             + " w.status as workflow_status,"
             + " w.input as workflow_input,"
             + " w.gmt_created,"
             + " w.gmt_modified"
             + " from workflow_instance w"
-            + " left join activity_instance la on la.workflow_id = w.workflow_id"
-            + "     and not exists ("
-            + "         select 1"
-            + "         from activity_instance nla"
-            + "         where nla.workflow_id = la.workflow_id"
-            + "           and ("
-            + "               nla.gmt_created > la.gmt_created"
-            + "               or (nla.gmt_created = la.gmt_created and nla.gmt_modified > la.gmt_modified)"
-            + "               or (nla.gmt_created = la.gmt_created and nla.gmt_modified = la.gmt_modified and nla.activity_id > la.activity_id)"
-            + "           )"
-            + "     )"
             + " where w.workflow_id = ?";
 
     private static final String WORKFLOW_EXISTS_SQL =
@@ -91,7 +80,7 @@ public class WorkflowViewRepository {
         "select a.activity_id"
             + " from activity_instance a"
             + " where a.workflow_id = ?"
-            + " order by a.gmt_created desc, a.gmt_modified desc, a.activity_id desc"
+            + " order by a.gmt_created desc, a.activity_id desc"
             + " limit 1";
 
     private static final String LATEST_ACTIVITY_SUMMARY_SQL =
@@ -104,7 +93,7 @@ public class WorkflowViewRepository {
             + " null as output"
             + " from activity_instance a"
             + " where a.workflow_id = ?"
-            + " order by a.gmt_created desc, a.gmt_modified desc, a.activity_id desc"
+            + " order by a.gmt_created desc, a.activity_id desc"
             + " limit 1";
 
     private static final String LATEST_FAILED_ACTIVITY_SUMMARY_SQL =
@@ -118,7 +107,7 @@ public class WorkflowViewRepository {
             + " from activity_instance a"
             + " where a.workflow_id = ?"
             + "   and a.status = 'FAILED'"
-            + " order by a.gmt_created desc, a.gmt_modified desc, a.activity_id desc"
+            + " order by a.gmt_created desc, a.activity_id desc"
             + " limit 1";
 
     private static final String OPERATION_SQL =

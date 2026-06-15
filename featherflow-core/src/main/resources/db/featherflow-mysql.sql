@@ -26,8 +26,6 @@ create table activity_instance (
     output longtext comment 'Activity output context snapshot or failure payload',
     status varchar(32) not null comment 'Activity execution status',
     key idx_activity_instance_workflow_created (workflow_id, gmt_created, activity_id),
-    key idx_activity_instance_workflow_created_modified (workflow_id, gmt_created, gmt_modified, activity_id),
-    key idx_activity_instance_workflow_status_created_modified (workflow_id, status, gmt_created, gmt_modified, activity_id),
     key idx_activity_instance_status (status),
     key idx_activity_instance_workflow_name (workflow_id, activity_name)
 ) engine=InnoDB default charset=utf8mb4 comment='Activity execution history table';

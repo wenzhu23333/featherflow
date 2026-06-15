@@ -21,6 +21,27 @@ class WorkflowViewRepositorySqlCompatibilityTest {
     }
 
     @Test
+    void shouldKeepWorkflowDetailQueryFromJoiningActivityTables() throws Exception {
+        String detailSql = readPrivateSql("DETAIL_SQL").toLowerCase();
+
+        assertThat(detailSql).doesNotContain("activity_instance");
+        assertThat(detailSql).doesNotContain("not exists");
+    }
+
+    @Test
+    void shouldKeepLatestActivityQueriesAlignedWithExistingIndex() throws Exception {
+        String latestActivitySql = readPrivateSql("LATEST_ACTIVITY_SUMMARY_SQL").toLowerCase();
+        String latestFailedActivitySql = readPrivateSql("LATEST_FAILED_ACTIVITY_SUMMARY_SQL").toLowerCase();
+
+        assertThat(latestActivitySql).contains("where a.workflow_id = ?");
+        assertThat(latestActivitySql).contains("order by a.gmt_created desc, a.activity_id desc");
+        assertThat(latestActivitySql).doesNotContain("gmt_modified desc");
+        assertThat(latestFailedActivitySql).contains("where a.workflow_id = ?");
+        assertThat(latestFailedActivitySql).contains("order by a.gmt_created desc, a.activity_id desc");
+        assertThat(latestFailedActivitySql).doesNotContain("gmt_modified desc");
+    }
+
+    @Test
     void shouldKeepWorkflowPageQueryFromJoiningActivityTables() {
         JdbcTemplate jdbcTemplate = Mockito.mock(JdbcTemplate.class);
         WorkflowViewRepository repository = new WorkflowViewRepository(jdbcTemplate);

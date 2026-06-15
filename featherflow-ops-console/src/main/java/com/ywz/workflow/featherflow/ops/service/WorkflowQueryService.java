@@ -127,7 +127,9 @@ public class WorkflowQueryService {
             .collect(Collectors.toList());
 
         WorkflowDetailRow detailRow = row.get();
-        String latestActivityId = detailRow.latestActivityId();
+        ActivitySummaryRow latestActivity = findLatestActivitySummary(workflowId);
+        String latestActivityId = latestActivity == null ? detailRow.latestActivityId() : latestActivity.activityId();
+        String latestExecutedNode = latestActivity == null ? detailRow.latestExecutedNode() : latestActivity.executedNode();
         return Optional.of(
             new WorkflowDetailView(
                 detailRow.workflowId(),
@@ -135,7 +137,7 @@ public class WorkflowQueryService {
                 blankToDash(detailRow.bizKey()),
                 blankToDash(detailRow.workflowName()),
                 blankToDash(detailRow.startNode()),
-                blankToDash(detailRow.latestExecutedNode()),
+                blankToDash(latestExecutedNode),
                 detailRow.workflowStatus(),
                 blankToDash(detailRow.workflowInput()),
                 "",
@@ -156,7 +158,9 @@ public class WorkflowQueryService {
             return Optional.empty();
         }
         WorkflowDetailRow detailRow = row.get();
-        String latestActivityId = detailRow.latestActivityId();
+        ActivitySummaryRow latestActivity = findLatestActivitySummary(workflowId);
+        String latestActivityId = latestActivity == null ? detailRow.latestActivityId() : latestActivity.activityId();
+        String latestExecutedNode = latestActivity == null ? detailRow.latestExecutedNode() : latestActivity.executedNode();
         return Optional.of(
             new WorkflowDetailView(
                 detailRow.workflowId(),
@@ -164,7 +168,7 @@ public class WorkflowQueryService {
                 blankToDash(detailRow.bizKey()),
                 blankToDash(detailRow.workflowName()),
                 blankToDash(detailRow.startNode()),
-                blankToDash(detailRow.latestExecutedNode()),
+                blankToDash(latestExecutedNode),
                 detailRow.workflowStatus(),
                 blankToDash(detailRow.workflowInput()),
                 "",
@@ -473,6 +477,15 @@ public class WorkflowQueryService {
             indexedRows.put(row.workflowId(), row);
         }
         return indexedRows;
+    }
+
+    private ActivitySummaryRow findLatestActivitySummary(String workflowId) {
+        List<ActivitySummaryRow> rows =
+            workflowViewRepository.findLatestActivityRows(Collections.singletonList(workflowId));
+        if (rows.isEmpty()) {
+            return null;
+        }
+        return rows.get(0);
     }
 
     private boolean containsIgnoreCase(String value, String keyword) {
