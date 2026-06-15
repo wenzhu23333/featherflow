@@ -2,6 +2,9 @@ package com.ywz.workflow.featherflow.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.ywz.workflow.featherflow.definition.ActivityDefinition;
 import com.ywz.workflow.featherflow.definition.InMemoryWorkflowDefinitionRegistry;
 import com.ywz.workflow.featherflow.definition.WorkflowDefinition;
@@ -37,6 +40,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.LoggerFactory;
 
 class WorkflowRuntimeFlowTest {
 
@@ -117,6 +121,42 @@ class WorkflowRuntimeFlowTest {
         assertThat(workflow.getBizId()).isEqualTo("biz-async");
         assertThat(step1Started.await(1, TimeUnit.SECONDS)).isTrue();
         assertThat(step2Completed.await(1, TimeUnit.SECONDS)).isTrue();
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
+    }
+
+    @Test
+    void shouldTouchWorkflowModifiedTimeAfterSuccessfulActivity() throws Exception {
+        CountDownLatch step2Started = new CountDownLatch(1);
+        CountDownLatch releaseStep2 = new CountDownLatch(1);
+        Instant oldModified = clock.instant().minus(Duration.ofMinutes(20));
+        handlerRegistry.register("step1Handler", context -> {
+            context.put("step1", true);
+            return context;
+        });
+        handlerRegistry.register("step2Handler", context -> {
+            step2Started.countDown();
+            assertThat(releaseStep2.await(1, TimeUnit.SECONDS)).isTrue();
+            context.put("step2", true);
+            return context;
+        });
+        WorkflowInstance workflow = new WorkflowInstance(
+            "wf-touch-modified-1",
+            "biz-touch-modified-1",
+            "asyncWorkflow",
+            "old-node",
+            oldModified,
+            oldModified,
+            "{\"base\":1}",
+            WorkflowStatus.RUNNING
+        );
+        workflowRepository.save(workflow);
+
+        createRuntimeService().dispatchWorkflow(workflow.getWorkflowId());
+
+        assertThat(step2Started.await(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.RUNNING);
+        assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getGmtModified()).isEqualTo(clock.instant());
+        releaseStep2.countDown();
         awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
     }
 
@@ -325,6 +365,67 @@ class WorkflowRuntimeFlowTest {
     }
 
     @Test
+    void shouldLogLatestActivityMetadataWhenRecoveringStaleRunningWorkflow() {
+        Logger logger = (Logger) LoggerFactory.getLogger(StaleRunningWorkflowRecoveryService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<ILoggingEvent>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            WorkflowInstance workflow = new WorkflowInstance(
+                "wf-recovery-log-1",
+                "biz-recovery-log-1",
+                "startupRecoveryWorkflow",
+                "old-node",
+                clock.instant().minus(Duration.ofMinutes(20)),
+                clock.instant().minus(Duration.ofMinutes(20)),
+                "{\"base\":1}",
+                WorkflowStatus.RUNNING
+            );
+            workflowRepository.save(workflow);
+            activityRepository.saveAttempt(
+                workflow.getWorkflowId() + "-01-01",
+                workflow.getWorkflowId(),
+                "step1",
+                "old-node",
+                "{\"base\":1}",
+                "{\"error\":\"first\"}",
+                ActivityExecutionStatus.FAILED,
+                clock.instant().minus(Duration.ofMinutes(20))
+            );
+            activityRepository.saveAttempt(
+                workflow.getWorkflowId() + "-01-02",
+                workflow.getWorkflowId(),
+                "step1",
+                "old-node",
+                "{\"base\":1}",
+                "{\"error\":\"second\"}",
+                ActivityExecutionStatus.FAILED,
+                clock.instant().minus(Duration.ofMinutes(19))
+            );
+            StaleRunningWorkflowRecoveryService recoveryService = new StaleRunningWorkflowRecoveryService(
+                workflowRepository,
+                new RecordingWorkflowRuntimeService(),
+                clock,
+                activityRepository,
+                new RecordingWorkflowLockService()
+            );
+
+            assertThat(recoveryService.recover(Duration.ofMinutes(10), 10)).isEqualTo(1);
+
+            assertThat(appender.list)
+                .extracting(ILoggingEvent::getFormattedMessage)
+                .anySatisfy(message -> assertThat(message)
+                    .contains("workflowId=wf-recovery-log-1")
+                    .contains("latestActivityId=wf-recovery-log-1-01-02")
+                    .contains("latestActivityName=step1")
+                    .contains("latestActivityStatus=FAILED")
+                    .contains("failedAttemptCount=2"));
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
+    @Test
     void shouldNotRecoverFreshRunningWorkflow() {
         WorkflowInstance workflow = new WorkflowInstance(
             "wf-fresh-running-1",
@@ -435,6 +536,25 @@ class WorkflowRuntimeFlowTest {
             cleanCallCount.incrementAndGet();
             lastModifiedBefore.set(modifiedBefore);
             return 2;
+        }
+    }
+
+    private static final class RecordingWorkflowRuntimeService implements WorkflowRuntimeService {
+
+        @Override
+        public void dispatchWorkflow(String workflowId) {
+        }
+
+        @Override
+        public void retryWorkflow(String workflowId) {
+        }
+
+        @Override
+        public void terminateWorkflow(String workflowId) {
+        }
+
+        @Override
+        public void skipActivity(String workflowId, String input) {
         }
     }
 }

@@ -46,6 +46,16 @@ public class InMemoryWorkflowRepository implements WorkflowRepository {
     }
 
     @Override
+    public boolean updateModifiedAtIfStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
+        WorkflowInstance workflowInstance = findRequired(workflowId);
+        if (workflowInstance.getStatus() != status) {
+            return false;
+        }
+        workflowInstance.setGmtModified(modifiedAt);
+        return true;
+    }
+
+    @Override
     public List<WorkflowInstance> findRunningModifiedBefore(Instant modifiedBefore, int limit) {
         return storage.values().stream()
             .filter(workflow -> workflow.getStatus() == WorkflowStatus.RUNNING)

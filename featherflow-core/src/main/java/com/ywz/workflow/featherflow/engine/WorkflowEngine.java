@@ -359,8 +359,20 @@ public class WorkflowEngine {
             ActivityExecutionStatus.SUCCESSFUL,
             executeTime
         );
+        touchRunningWorkflowModifiedTime(workflowInstance.getWorkflowId(), executeTime);
         log.info("Activity executed successfully, activityId={}, activityName={}", activityId, activityDefinition.getName());
         return output;
+    }
+
+    private void touchRunningWorkflowModifiedTime(String workflowId, Instant modifiedAt) {
+        try {
+            boolean updated = workflowRepository.updateModifiedAtIfStatus(workflowId, WorkflowStatus.RUNNING, modifiedAt);
+            if (!updated) {
+                log.debug("Skip touching workflow modified time because workflow is no longer RUNNING or repository does not support it, workflowId={}", workflowId);
+            }
+        } catch (RuntimeException runtimeException) {
+            log.warn("Failed to touch workflow modified time after successful activity, workflowId={}", workflowId, runtimeException);
+        }
     }
 
     private void persistFailedActivity(

@@ -17,6 +17,10 @@ public interface WorkflowRepository {
 
     void updateStatus(String workflowId, WorkflowStatus status, Instant modifiedAt);
 
+    default boolean updateModifiedAtIfStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
+        return false;
+    }
+
     /**
      * Finds workflows that are still RUNNING but have not been updated before the given time.
      * This is used for lightweight restart recovery after a pod or process exits unexpectedly.
