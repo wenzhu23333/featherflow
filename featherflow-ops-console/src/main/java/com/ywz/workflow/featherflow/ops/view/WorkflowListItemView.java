@@ -11,6 +11,7 @@ public class WorkflowListItemView {
     private final String latestActivitySummary;
     private final String latestExecutedNode;
     private final String latestFailureSummary;
+    private final String gmtCreatedDisplay;
     private final String gmtModifiedDisplay;
     private final AllowedActionsView allowedActions;
 
@@ -24,6 +25,7 @@ public class WorkflowListItemView {
         String latestActivitySummary,
         String latestExecutedNode,
         String latestFailureSummary,
+        String gmtCreatedDisplay,
         String gmtModifiedDisplay,
         AllowedActionsView allowedActions
     ) {
@@ -36,6 +38,7 @@ public class WorkflowListItemView {
         this.latestActivitySummary = latestActivitySummary;
         this.latestExecutedNode = latestExecutedNode;
         this.latestFailureSummary = latestFailureSummary;
+        this.gmtCreatedDisplay = gmtCreatedDisplay;
         this.gmtModifiedDisplay = gmtModifiedDisplay;
         this.allowedActions = allowedActions;
     }
@@ -74,6 +77,10 @@ public class WorkflowListItemView {
 
     public String getLatestFailureSummary() {
         return latestFailureSummary;
+    }
+
+    public String getGmtCreatedDisplay() {
+        return gmtCreatedDisplay;
     }
 
     public String getGmtModifiedDisplay() {

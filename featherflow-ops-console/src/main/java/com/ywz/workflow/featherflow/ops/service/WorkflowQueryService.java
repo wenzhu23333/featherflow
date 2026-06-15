@@ -271,6 +271,7 @@ public class WorkflowQueryService {
             buildLatestActivitySummary(latestActivityName, latestActivityStatus),
             blankToDash(latestExecutedNode),
             summarizeFailure(latestFailureOutput),
+            formatTime(row.gmtCreated()),
             formatTime(row.gmtModified()),
             buildAllowedActions(row.workflowStatus(), latestActivityId)
         );

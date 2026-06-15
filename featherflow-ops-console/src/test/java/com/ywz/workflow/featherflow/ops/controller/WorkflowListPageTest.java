@@ -66,6 +66,7 @@ class WorkflowListPageTest {
         assertThat(runningRow).contains("status-running");
         assertThat(runningRow).contains(">RUNNING<");
         assertThat(runningRow).contains("10.9.8.7:host-a:1234:seed");
+        assertThat(runningRow).contains("<td>2026-04-01 09:00:00</td>");
         assertThat(runningRow).contains("<td>2026-04-01 09:08:00</td>");
         assertThat(runningRow).contains("href=\"/workflows/wf-running-0001\"");
         assertThat(runningRow).contains(">查看详情<");
@@ -78,6 +79,7 @@ class WorkflowListPageTest {
         assertThat(terminatedRow).contains("status-terminated");
         assertThat(terminatedRow).contains(">TERMINATED<");
         assertThat(terminatedRow).contains("10.9.8.7:host-b:1234:seed");
+        assertThat(terminatedRow).contains("<td>2026-04-01 09:01:00</td>");
         assertThat(terminatedRow).contains("<td>2026-04-01 09:10:00</td>");
         assertThat(terminatedRow).contains("href=\"/workflows/wf-terminated-01\"");
         assertThat(terminatedRow).contains(">查看详情<");

@@ -67,6 +67,7 @@
                 <th>最新活动</th>
                 <th>最近执行节点</th>
                 <th>最新失败</th>
+                <th>创建时间</th>
                 <th>更新时间</th>
                 <th>详情</th>
                 <th>可用操作</th>
@@ -86,6 +87,7 @@
                 <td th:text="${workflow.latestActivitySummary}">latest-activity</td>
                 <td th:text="${workflow.latestExecutedNode}">latest-executed-node</td>
                 <td th:text="${workflow.latestFailureSummary}">latest-failure</td>
+                <td th:text="${workflow.gmtCreatedDisplay}">gmt-created</td>
                 <td th:text="${workflow.gmtModifiedDisplay}">gmt-modified</td>
                 <td>
                     <a th:href="@{/workflows/{workflowId}(workflowId=${workflow.workflowId})}" class="action-link">查看详情</a>
