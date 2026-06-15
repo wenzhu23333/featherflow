@@ -964,6 +964,28 @@ select:focus {
     box-shadow: 0 14px 34px rgba(15, 118, 110, 0.14);
 }
 
+.activity-flow-node.status-not_started {
+    border-color: #d0d5dd;
+    background: #f8fafc;
+    box-shadow: none;
+}
+
+.activity-flow-node.status-not_started .activity-flow-marker {
+    background: #98a2b3;
+}
+
+.activity-flow-definition-warning {
+    display: inline-flex;
+    margin: 8px 0 0;
+    padding: 7px 9px;
+    border: 1px solid #d0d5dd;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #475467;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
 .activity-flow-summary {
     display: grid;
     grid-template-columns: 34px minmax(0, 1fr) auto;

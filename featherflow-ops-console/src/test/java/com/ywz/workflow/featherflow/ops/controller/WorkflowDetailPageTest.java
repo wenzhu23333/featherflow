@@ -258,7 +258,7 @@ class WorkflowDetailPageTest {
         assertThat(fragment).doesNotContain("<html");
 
         Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getWorkflowActivityTimeline("wf-detail-0001", 1, 5, "asc");
-        Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getCompressedWorkflowActivityFlow("wf-detail-0001");
+        Mockito.verify(workflowQueryService, Mockito.atLeastOnce()).getCompressedWorkflowActivityFlowOverview("wf-detail-0001");
         Mockito.verify(workflowQueryService, Mockito.never()).getWorkflowDetail("wf-detail-0001");
     }
 

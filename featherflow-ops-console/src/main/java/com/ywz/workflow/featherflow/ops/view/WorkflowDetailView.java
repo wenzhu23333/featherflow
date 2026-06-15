@@ -17,6 +17,8 @@ public class WorkflowDetailView {
     private final String gmtModifiedDisplay;
     private final PageView<ActivityTimelineItemView> activityPage;
     private final List<ActivityFlowNodeView> activityFlowNodes;
+    private final boolean activityFlowDefinitionMissing;
+    private final String activityFlowDefinitionWarning;
     private final List<OperationRecordView> operations;
     private final String latestActivityId;
     private final AllowedActionsView allowedActions;
@@ -35,6 +37,8 @@ public class WorkflowDetailView {
         String gmtModifiedDisplay,
         PageView<ActivityTimelineItemView> activityPage,
         List<ActivityFlowNodeView> activityFlowNodes,
+        boolean activityFlowDefinitionMissing,
+        String activityFlowDefinitionWarning,
         List<OperationRecordView> operations,
         String latestActivityId,
         AllowedActionsView allowedActions
@@ -52,6 +56,8 @@ public class WorkflowDetailView {
         this.gmtModifiedDisplay = gmtModifiedDisplay;
         this.activityPage = activityPage;
         this.activityFlowNodes = activityFlowNodes;
+        this.activityFlowDefinitionMissing = activityFlowDefinitionMissing;
+        this.activityFlowDefinitionWarning = activityFlowDefinitionWarning;
         this.operations = operations;
         this.latestActivityId = latestActivityId;
         this.allowedActions = allowedActions;
@@ -111,6 +117,14 @@ public class WorkflowDetailView {
 
     public List<ActivityFlowNodeView> getActivityFlowNodes() {
         return activityFlowNodes;
+    }
+
+    public boolean isActivityFlowDefinitionMissing() {
+        return activityFlowDefinitionMissing;
+    }
+
+    public String getActivityFlowDefinitionWarning() {
+        return activityFlowDefinitionWarning;
     }
 
     public List<OperationRecordView> getOperations() {
