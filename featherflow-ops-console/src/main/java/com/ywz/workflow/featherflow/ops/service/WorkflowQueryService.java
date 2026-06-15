@@ -3,6 +3,7 @@ package com.ywz.workflow.featherflow.ops.service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository;
+import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.ActivitySummaryRow;
 import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.ActivityTimelineRow;
 import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.OperationHistoryRow;
 import com.ywz.workflow.featherflow.ops.repository.WorkflowViewRepository.OperationRecordRow;
@@ -78,7 +79,7 @@ public class WorkflowQueryService {
         int totalPages = calculateTotalPages(totalElements, safeSize);
         int safePage = normalizePage(page, totalPages);
         int offset = (safePage - 1) * safeSize;
-        List<WorkflowListItemView> items = workflowViewRepository.findWorkflowPageRows(
+        List<WorkflowListRow> rows = workflowViewRepository.findWorkflowPageRows(
                 filter.workflowId(),
                 filter.bizId(),
                 filter.bizKey(),
@@ -91,8 +92,16 @@ public class WorkflowQueryService {
                 safeSize,
                 offset,
                 order
-            ).stream()
-            .map(this::toListItemView)
+            );
+        List<String> workflowIds = rows.stream()
+            .map(WorkflowListRow::workflowId)
+            .collect(Collectors.toList());
+        Map<String, ActivitySummaryRow> latestActivities =
+            indexActivitySummaryRows(workflowViewRepository.findLatestActivityRows(workflowIds));
+        Map<String, ActivitySummaryRow> latestFailures =
+            indexActivitySummaryRows(workflowViewRepository.findLatestFailedActivityRows(workflowIds));
+        List<WorkflowListItemView> items = rows.stream()
+            .map(row -> toListItemView(row, latestActivities.get(row.workflowId()), latestFailures.get(row.workflowId())))
             .collect(Collectors.toList());
         return page(items, safePage, safeSize, totalPages, totalElements);
     }
@@ -235,18 +244,31 @@ public class WorkflowQueryService {
     }
 
     private WorkflowListItemView toListItemView(WorkflowListRow row) {
+        return toListItemView(row, null, null);
+    }
+
+    private WorkflowListItemView toListItemView(
+        WorkflowListRow row,
+        ActivitySummaryRow latestActivity,
+        ActivitySummaryRow latestFailure
+    ) {
+        String latestActivityId = latestActivity == null ? row.latestActivityId() : latestActivity.activityId();
+        String latestActivityName = latestActivity == null ? row.latestActivityName() : latestActivity.activityName();
+        String latestActivityStatus = latestActivity == null ? row.latestActivityStatus() : latestActivity.status();
+        String latestExecutedNode = latestActivity == null ? row.latestExecutedNode() : latestActivity.executedNode();
+        String latestFailureOutput = latestFailure == null ? row.latestFailureOutput() : latestFailure.output();
         return new WorkflowListItemView(
             row.workflowId(),
             row.bizId(),
             blankToDash(row.bizKey()),
             blankToDash(row.workflowName()),
             row.workflowStatus(),
-            row.latestActivityId(),
-            buildLatestActivitySummary(row.latestActivityName(), row.latestActivityStatus()),
-            blankToDash(row.latestExecutedNode()),
-            summarizeFailure(row.latestFailureOutput()),
+            latestActivityId,
+            buildLatestActivitySummary(latestActivityName, latestActivityStatus),
+            blankToDash(latestExecutedNode),
+            summarizeFailure(latestFailureOutput),
             formatTime(row.gmtModified()),
-            buildAllowedActions(row.workflowStatus(), row.latestActivityId())
+            buildAllowedActions(row.workflowStatus(), latestActivityId)
         );
     }
 
@@ -443,6 +465,14 @@ public class WorkflowQueryService {
             return "-";
         }
         return value;
+    }
+
+    private Map<String, ActivitySummaryRow> indexActivitySummaryRows(List<ActivitySummaryRow> rows) {
+        Map<String, ActivitySummaryRow> indexedRows = new LinkedHashMap<String, ActivitySummaryRow>();
+        for (ActivitySummaryRow row : rows) {
+            indexedRows.put(row.workflowId(), row);
+        }
+        return indexedRows;
     }
 
     private boolean containsIgnoreCase(String value, String keyword) {

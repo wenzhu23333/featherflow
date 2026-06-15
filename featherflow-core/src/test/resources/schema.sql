@@ -29,6 +29,8 @@ create table activity_instance (
 );
 
 create index idx_activity_instance_workflow_created on activity_instance (workflow_id, gmt_created, activity_id);
+create index idx_activity_instance_workflow_created_modified on activity_instance (workflow_id, gmt_created, gmt_modified, activity_id);
+create index idx_activity_instance_workflow_status_created_modified on activity_instance (workflow_id, status, gmt_created, gmt_modified, activity_id);
 create index idx_activity_instance_status on activity_instance (status);
 create index idx_activity_instance_workflow_name on activity_instance (workflow_id, activity_name);
 

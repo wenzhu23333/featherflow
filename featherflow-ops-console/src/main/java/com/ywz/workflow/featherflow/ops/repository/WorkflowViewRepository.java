@@ -29,37 +29,11 @@ public class WorkflowViewRepository {
             + "     w.status as workflow_status,"
             + "     w.gmt_created,"
             + "     w.gmt_modified,"
-            + "     la.activity_id as latest_activity_id,"
-            + "     la.activity_name as latest_activity_name,"
-            + "     la.executed_node as latest_executed_node,"
-            + "     la.status as latest_activity_status,"
-            + "     substring(lf.output, 1, 512) as latest_failure_output";
-
-    private static final String LIST_ACTIVITY_JOINS =
-        " left join activity_instance la on la.workflow_id = w.workflow_id"
-            + "     and not exists ("
-            + "         select 1"
-            + "         from activity_instance nla"
-            + "         where nla.workflow_id = la.workflow_id"
-            + "           and ("
-            + "               nla.gmt_created > la.gmt_created"
-            + "               or (nla.gmt_created = la.gmt_created and nla.gmt_modified > la.gmt_modified)"
-            + "               or (nla.gmt_created = la.gmt_created and nla.gmt_modified = la.gmt_modified and nla.activity_id > la.activity_id)"
-            + "           )"
-            + "     )"
-            + " left join activity_instance lf on lf.workflow_id = w.workflow_id"
-            + "     and lf.status = 'FAILED'"
-            + "     and not exists ("
-            + "         select 1"
-            + "         from activity_instance nlf"
-            + "         where nlf.workflow_id = lf.workflow_id"
-            + "           and nlf.status = 'FAILED'"
-            + "           and ("
-            + "               nlf.gmt_created > lf.gmt_created"
-            + "               or (nlf.gmt_created = lf.gmt_created and nlf.gmt_modified > lf.gmt_modified)"
-            + "               or (nlf.gmt_created = lf.gmt_created and nlf.gmt_modified = lf.gmt_modified and nlf.activity_id > lf.activity_id)"
-            + "           )"
-            + "     )";
+            + "     null as latest_activity_id,"
+            + "     null as latest_activity_name,"
+            + "     null as latest_executed_node,"
+            + "     null as latest_activity_status,"
+            + "     null as latest_failure_output";
 
     private static final String LIST_DEFAULT_ORDER_CLAUSE =
         " order by w.gmt_modified desc, w.workflow_id desc";
@@ -67,7 +41,6 @@ public class WorkflowViewRepository {
     private static final String LIST_SQL =
         LIST_PAGE_SELECT
             + " from workflow_instance w"
-            + LIST_ACTIVITY_JOINS
             + LIST_DEFAULT_ORDER_CLAUSE;
 
     private static final String DETAIL_SQL =
@@ -118,6 +91,33 @@ public class WorkflowViewRepository {
         "select a.activity_id"
             + " from activity_instance a"
             + " where a.workflow_id = ?"
+            + " order by a.gmt_created desc, a.gmt_modified desc, a.activity_id desc"
+            + " limit 1";
+
+    private static final String LATEST_ACTIVITY_SUMMARY_SQL =
+        "select"
+            + " a.workflow_id,"
+            + " a.activity_id,"
+            + " a.activity_name,"
+            + " a.executed_node,"
+            + " a.status,"
+            + " null as output"
+            + " from activity_instance a"
+            + " where a.workflow_id = ?"
+            + " order by a.gmt_created desc, a.gmt_modified desc, a.activity_id desc"
+            + " limit 1";
+
+    private static final String LATEST_FAILED_ACTIVITY_SUMMARY_SQL =
+        "select"
+            + " a.workflow_id,"
+            + " a.activity_id,"
+            + " a.activity_name,"
+            + " a.executed_node,"
+            + " a.status,"
+            + " substring(a.output, 1, 512) as output"
+            + " from activity_instance a"
+            + " where a.workflow_id = ?"
+            + "   and a.status = 'FAILED'"
             + " order by a.gmt_created desc, a.gmt_modified desc, a.activity_id desc"
             + " limit 1";
 
@@ -198,12 +198,11 @@ public class WorkflowViewRepository {
         String order
     ) {
         String orderClause = workflowListOrderClause(order);
-        StringBuilder innerSql = new StringBuilder("select")
-            .append(WORKFLOW_PAGE_COLUMNS)
+        StringBuilder sql = new StringBuilder(LIST_PAGE_SELECT)
             .append(" from workflow_instance w");
         List<Object> params = new ArrayList<Object>();
         appendWorkflowListFilters(
-            innerSql,
+            sql,
             params,
             workflowId,
             bizId,
@@ -215,19 +214,12 @@ public class WorkflowViewRepository {
             modifiedFrom,
             modifiedTo
         );
-        innerSql.append(orderClause)
+        sql.append(orderClause)
             .append(" limit ? offset ?");
         params.add(limit);
         params.add(offset);
 
-        String sql = LIST_PAGE_SELECT
-            + " from ("
-            + innerSql
-            + " ) w"
-            + LIST_ACTIVITY_JOINS
-            + orderClause;
-
-        return jdbcTemplate.query(sql, this::mapWorkflowListRow, params.toArray());
+        return jdbcTemplate.query(sql.toString(), this::mapWorkflowListRow, params.toArray());
     }
 
     public List<WorkflowListRow> findWorkflowListRows() {
@@ -295,6 +287,14 @@ public class WorkflowViewRepository {
         return Optional.ofNullable(rows.get(0));
     }
 
+    public List<ActivitySummaryRow> findLatestActivityRows(List<String> workflowIds) {
+        return findActivitySummaryRows(workflowIds, LATEST_ACTIVITY_SUMMARY_SQL);
+    }
+
+    public List<ActivitySummaryRow> findLatestFailedActivityRows(List<String> workflowIds) {
+        return findActivitySummaryRows(workflowIds, LATEST_FAILED_ACTIVITY_SUMMARY_SQL);
+    }
+
     public List<OperationRecordRow> findOperationRecordRows(String workflowId) {
         return jdbcTemplate.query(
             OPERATION_SQL,
@@ -340,6 +340,31 @@ public class WorkflowViewRepository {
             rs.getString("latest_executed_node"),
             rs.getString("latest_activity_status"),
             rs.getString("latest_failure_output")
+        );
+    }
+
+    private List<ActivitySummaryRow> findActivitySummaryRows(List<String> workflowIds, String sql) {
+        List<ActivitySummaryRow> rows = new ArrayList<ActivitySummaryRow>();
+        if (workflowIds == null || workflowIds.isEmpty()) {
+            return rows;
+        }
+        for (String workflowId : workflowIds) {
+            if (isBlank(workflowId)) {
+                continue;
+            }
+            rows.addAll(jdbcTemplate.query(sql, this::mapActivitySummaryRow, workflowId));
+        }
+        return rows;
+    }
+
+    private ActivitySummaryRow mapActivitySummaryRow(java.sql.ResultSet rs, int rowNum) throws java.sql.SQLException {
+        return new ActivitySummaryRow(
+            rs.getString("workflow_id"),
+            rs.getString("activity_id"),
+            rs.getString("activity_name"),
+            rs.getString("executed_node"),
+            rs.getString("status"),
+            rs.getString("output")
         );
     }
 
@@ -627,6 +652,56 @@ public class WorkflowViewRepository {
 
         public LocalDateTime gmtModified() {
             return gmtModified;
+        }
+    }
+
+    public static final class ActivitySummaryRow {
+
+        private final String workflowId;
+        private final String activityId;
+        private final String activityName;
+        private final String executedNode;
+        private final String status;
+        private final String output;
+
+        public ActivitySummaryRow(
+            String workflowId,
+            String activityId,
+            String activityName,
+            String executedNode,
+            String status,
+            String output
+        ) {
+            this.workflowId = workflowId;
+            this.activityId = activityId;
+            this.activityName = activityName;
+            this.executedNode = executedNode;
+            this.status = status;
+            this.output = output;
+        }
+
+        public String workflowId() {
+            return workflowId;
+        }
+
+        public String activityId() {
+            return activityId;
+        }
+
+        public String activityName() {
+            return activityName;
+        }
+
+        public String executedNode() {
+            return executedNode;
+        }
+
+        public String status() {
+            return status;
+        }
+
+        public String output() {
+            return output;
         }
     }
 
