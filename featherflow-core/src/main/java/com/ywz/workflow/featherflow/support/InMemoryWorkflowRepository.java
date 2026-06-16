@@ -46,6 +46,17 @@ public class InMemoryWorkflowRepository implements WorkflowRepository {
     }
 
     @Override
+    public boolean updateStatusIfStatus(String workflowId, WorkflowStatus expectedStatus, WorkflowStatus status, Instant modifiedAt) {
+        WorkflowInstance workflowInstance = findRequired(workflowId);
+        if (workflowInstance.getStatus() != expectedStatus) {
+            return false;
+        }
+        workflowInstance.setStatus(status);
+        workflowInstance.setGmtModified(modifiedAt);
+        return true;
+    }
+
+    @Override
     public boolean updateModifiedAtIfStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
         WorkflowInstance workflowInstance = findRequired(workflowId);
         if (workflowInstance.getStatus() != status) {

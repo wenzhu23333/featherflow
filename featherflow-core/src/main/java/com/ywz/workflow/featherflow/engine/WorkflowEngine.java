@@ -402,8 +402,14 @@ public class WorkflowEngine {
         ActivityDefinition activityDefinition,
         WorkflowControlSignalException signalException
     ) {
-        WorkflowInstance latestWorkflow = workflowRepository.findRequired(workflowId);
-        if (latestWorkflow.getStatus() != WorkflowStatus.RUNNING) {
+        boolean updated = workflowRepository.updateStatusIfStatus(
+            workflowId,
+            WorkflowStatus.RUNNING,
+            signalException.getTargetStatus(),
+            clock.instant()
+        );
+        if (!updated) {
+            WorkflowInstance latestWorkflow = workflowRepository.findRequired(workflowId);
             log.info(
                 "Skip workflow control signal because workflow is no longer RUNNING, activityName={}, targetStatus={}, currentStatus={}",
                 activityDefinition.getName(),
@@ -412,7 +418,6 @@ public class WorkflowEngine {
             );
             return;
         }
-        workflowRepository.updateStatus(workflowId, signalException.getTargetStatus(), clock.instant());
         log.warn(
             "Workflow moved by activity control signal, activityName={}, targetStatus={}",
             activityDefinition.getName(),

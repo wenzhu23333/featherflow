@@ -80,6 +80,17 @@ public class JdbcWorkflowRepository implements WorkflowRepository {
     }
 
     @Override
+    public boolean updateStatusIfStatus(String workflowId, WorkflowStatus expectedStatus, WorkflowStatus status, Instant modifiedAt) {
+        return jdbcTemplate.update(
+            "update workflow_instance set status = ?, gmt_modified = ? where workflow_id = ? and status = ?",
+            status.name(),
+            Timestamp.from(modifiedAt),
+            workflowId,
+            expectedStatus.name()
+        ) == 1;
+    }
+
+    @Override
     public boolean updateModifiedAtIfStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
         return jdbcTemplate.update(
             "update workflow_instance set gmt_modified = ? where workflow_id = ? and status = ?",

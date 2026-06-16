@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -208,6 +209,40 @@ class WorkflowRuntimeFlowTest {
         assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
             .extracting(ActivityInstance::getActivityName, ActivityInstance::getStatus)
             .containsExactly(org.assertj.core.groups.Tuple.tuple("step1", ActivityExecutionStatus.FAILED));
+    }
+
+    @Test
+    void shouldNotOverwriteWorkflowStatusChangedBeforeControlSignalIsHandled() throws Exception {
+        RacingWorkflowRepository racingRepository = new RacingWorkflowRepository(
+            "wf-stale-control-signal-1",
+            clock.instant()
+        );
+        ActivityRepository localActivityRepository = new InMemoryActivityRepository();
+        handlerRegistry.register("terminateSignalHandler", context -> {
+            racingRepository.changeStatusDuringNextStatusTransition(WorkflowStatus.COMPLETED);
+            throw new WorkflowTerminateSignalException("terminated by stale handler");
+        });
+        handlerRegistry.register("shouldNotRunHandler", context -> {
+            throw new AssertionError("workflow should stop after control signal");
+        });
+
+        WorkflowInstance workflow = new WorkflowInstance(
+            "wf-stale-control-signal-1",
+            "biz-stale-control-signal-1",
+            "terminateSignalWorkflow",
+            "old-node",
+            clock.instant(),
+            clock.instant(),
+            "{}",
+            WorkflowStatus.RUNNING
+        );
+        racingRepository.save(workflow);
+
+        createRuntimeService(racingRepository, localActivityRepository).dispatchWorkflow(workflow.getWorkflowId());
+
+        workflowExecutor.shutdown();
+        assertThat(workflowExecutor.awaitTermination(1, TimeUnit.SECONDS)).isTrue();
+        assertThat(racingRepository.findRequired(workflow.getWorkflowId()).getStatus()).isEqualTo(WorkflowStatus.COMPLETED);
     }
 
     @Test
@@ -529,6 +564,10 @@ class WorkflowRuntimeFlowTest {
     }
 
     private DefaultWorkflowRuntimeService createRuntimeService() {
+        return createRuntimeService(workflowRepository, activityRepository);
+    }
+
+    private DefaultWorkflowRuntimeService createRuntimeService(WorkflowRepository workflowRepository, ActivityRepository activityRepository) {
         WorkflowRetryScheduler workflowRetryScheduler = (workflowId, delay) -> {
         };
         WorkflowEngine engine = new WorkflowEngine(
@@ -565,6 +604,88 @@ class WorkflowRuntimeFlowTest {
             Thread.sleep(20L);
         }
         assertThat(workflowRepository.findRequired(workflowId).getStatus()).isEqualTo(expectedStatus);
+    }
+
+    private static final class RacingWorkflowRepository implements WorkflowRepository {
+
+        private final InMemoryWorkflowRepository delegate = new InMemoryWorkflowRepository();
+        private final String workflowId;
+        private final Instant modifiedAt;
+        private final AtomicReference<WorkflowStatus> statusChange = new AtomicReference<WorkflowStatus>();
+
+        private RacingWorkflowRepository(String workflowId, Instant modifiedAt) {
+            this.workflowId = workflowId;
+            this.modifiedAt = modifiedAt;
+        }
+
+        void changeStatusDuringNextStatusTransition(WorkflowStatus status) {
+            statusChange.set(status);
+        }
+
+        @Override
+        public void save(WorkflowInstance workflowInstance) {
+            delegate.save(workflowInstance);
+        }
+
+        @Override
+        public void update(WorkflowInstance workflowInstance) {
+            delegate.update(workflowInstance);
+        }
+
+        @Override
+        public WorkflowInstance find(String workflowId) {
+            return delegate.find(workflowId);
+        }
+
+        @Override
+        public WorkflowInstance findRequired(String workflowId) {
+            WorkflowInstance workflowInstance = delegate.findRequired(workflowId);
+            WorkflowStatus changedStatus = statusChange.getAndSet(null);
+            if (this.workflowId.equals(workflowId) && changedStatus != null) {
+                WorkflowInstance snapshot = copy(workflowInstance);
+                delegate.updateStatus(workflowId, changedStatus, modifiedAt);
+                return snapshot;
+            }
+            return workflowInstance;
+        }
+
+        @Override
+        public void updateStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
+            delegate.updateStatus(workflowId, status, modifiedAt);
+        }
+
+        @Override
+        public boolean updateStatusIfStatus(String workflowId, WorkflowStatus expectedStatus, WorkflowStatus status, Instant modifiedAt) {
+            WorkflowStatus changedStatus = statusChange.getAndSet(null);
+            if (this.workflowId.equals(workflowId) && changedStatus != null) {
+                delegate.updateStatus(workflowId, changedStatus, this.modifiedAt);
+            }
+            return delegate.updateStatusIfStatus(workflowId, expectedStatus, status, modifiedAt);
+        }
+
+        @Override
+        public boolean updateModifiedAtIfStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
+            return delegate.updateModifiedAtIfStatus(workflowId, status, modifiedAt);
+        }
+
+        @Override
+        public List<WorkflowInstance> findRunningModifiedBefore(Instant modifiedBefore, int limit) {
+            return delegate.findRunningModifiedBefore(modifiedBefore, limit);
+        }
+
+        private WorkflowInstance copy(WorkflowInstance workflowInstance) {
+            return new WorkflowInstance(
+                workflowInstance.getWorkflowId(),
+                workflowInstance.getBizId(),
+                workflowInstance.getBizKey(),
+                workflowInstance.getWorkflowName(),
+                workflowInstance.getStartNode(),
+                workflowInstance.getGmtCreated(),
+                workflowInstance.getGmtModified(),
+                workflowInstance.getInput(),
+                workflowInstance.getStatus()
+            );
+        }
     }
 
     private static final class RecordingWorkflowLockService implements WorkflowLockService {

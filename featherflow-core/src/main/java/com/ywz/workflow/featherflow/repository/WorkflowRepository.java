@@ -17,6 +17,15 @@ public interface WorkflowRepository {
 
     void updateStatus(String workflowId, WorkflowStatus status, Instant modifiedAt);
 
+    default boolean updateStatusIfStatus(String workflowId, WorkflowStatus expectedStatus, WorkflowStatus status, Instant modifiedAt) {
+        WorkflowInstance workflowInstance = findRequired(workflowId);
+        if (workflowInstance.getStatus() != expectedStatus) {
+            return false;
+        }
+        updateStatus(workflowId, status, modifiedAt);
+        return true;
+    }
+
     default boolean updateModifiedAtIfStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
         return false;
     }

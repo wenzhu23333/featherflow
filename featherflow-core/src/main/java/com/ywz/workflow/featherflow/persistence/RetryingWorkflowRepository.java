@@ -45,6 +45,14 @@ public class RetryingWorkflowRepository implements WorkflowRepository {
     }
 
     @Override
+    public boolean updateStatusIfStatus(String workflowId, WorkflowStatus expectedStatus, WorkflowStatus status, Instant modifiedAt) {
+        return retrier.call(
+            "workflowRepository.updateStatusIfStatus",
+            () -> Boolean.valueOf(delegate.updateStatusIfStatus(workflowId, expectedStatus, status, modifiedAt))
+        ).booleanValue();
+    }
+
+    @Override
     public boolean updateModifiedAtIfStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
         return retrier.call(
             "workflowRepository.updateModifiedAtIfStatus",
