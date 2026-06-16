@@ -12,6 +12,8 @@ import com.ywz.workflow.featherflow.engine.DefaultWorkflowExecutionScheduler;
 import com.ywz.workflow.featherflow.engine.WorkflowEngine;
 import com.ywz.workflow.featherflow.engine.WorkflowRetryScheduler;
 import com.ywz.workflow.featherflow.handler.MapBackedWorkflowActivityHandlerRegistry;
+import com.ywz.workflow.featherflow.handler.WorkflowHumanProcessingSignalException;
+import com.ywz.workflow.featherflow.handler.WorkflowTerminateSignalException;
 import com.ywz.workflow.featherflow.lock.LocalWorkflowLockService;
 import com.ywz.workflow.featherflow.lock.WorkflowLockService;
 import com.ywz.workflow.featherflow.model.ActivityExecutionStatus;
@@ -91,6 +93,20 @@ class WorkflowRuntimeFlowTest {
                 new ActivityDefinition("step2", "recoveryStep2Handler", Duration.ofSeconds(5), 0)
             )
         ));
+        registry.register(new WorkflowDefinition(
+            "terminateSignalWorkflow",
+            Arrays.asList(
+                new ActivityDefinition("step1", "terminateSignalHandler", Duration.ofSeconds(5), 3),
+                new ActivityDefinition("step2", "shouldNotRunHandler", Duration.ofSeconds(5), 3)
+            )
+        ));
+        registry.register(new WorkflowDefinition(
+            "humanProcessingSignalWorkflow",
+            Arrays.asList(
+                new ActivityDefinition("step1", "humanProcessingSignalHandler", Duration.ofSeconds(5), 3),
+                new ActivityDefinition("step2", "shouldNotRunHandler", Duration.ofSeconds(5), 3)
+            )
+        ));
         workflowExecutor = Executors.newSingleThreadExecutor(runnable -> new Thread(runnable, "workflow-test-thread"));
     }
 
@@ -158,6 +174,40 @@ class WorkflowRuntimeFlowTest {
         assertThat(workflowRepository.findRequired(workflow.getWorkflowId()).getGmtModified()).isEqualTo(clock.instant());
         releaseStep2.countDown();
         awaitStatus(workflow.getWorkflowId(), WorkflowStatus.COMPLETED, 1000L);
+    }
+
+    @Test
+    void shouldAllowHandlerToTerminateWorkflowWithSignal() throws Exception {
+        handlerRegistry.register("terminateSignalHandler", context -> {
+            throw new WorkflowTerminateSignalException("terminated by handler");
+        });
+        handlerRegistry.register("shouldNotRunHandler", context -> {
+            throw new AssertionError("workflow should stop after control signal");
+        });
+
+        WorkflowInstance workflow = createTriggeredService().startWorkflow("terminateSignalWorkflow", "biz-terminate-signal", "{}");
+
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.TERMINATED, 1000L);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(ActivityInstance::getActivityName, ActivityInstance::getStatus)
+            .containsExactly(org.assertj.core.groups.Tuple.tuple("step1", ActivityExecutionStatus.FAILED));
+    }
+
+    @Test
+    void shouldAllowHandlerToMoveWorkflowToHumanProcessingWithSignalWithoutRetry() throws Exception {
+        handlerRegistry.register("humanProcessingSignalHandler", context -> {
+            throw new WorkflowHumanProcessingSignalException("manual review required");
+        });
+        handlerRegistry.register("shouldNotRunHandler", context -> {
+            throw new AssertionError("workflow should stop after control signal");
+        });
+
+        WorkflowInstance workflow = createTriggeredService().startWorkflow("humanProcessingSignalWorkflow", "biz-hp-signal", "{}");
+
+        awaitStatus(workflow.getWorkflowId(), WorkflowStatus.HUMAN_PROCESSING, 1000L);
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()))
+            .extracting(ActivityInstance::getActivityName, ActivityInstance::getStatus)
+            .containsExactly(org.assertj.core.groups.Tuple.tuple("step1", ActivityExecutionStatus.FAILED));
     }
 
     @Test

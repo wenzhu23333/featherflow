@@ -5,6 +5,7 @@ import com.ywz.workflow.featherflow.definition.WorkflowDefinition;
 import com.ywz.workflow.featherflow.definition.WorkflowDefinitionRegistry;
 import com.ywz.workflow.featherflow.handler.WorkflowActivityHandler;
 import com.ywz.workflow.featherflow.handler.WorkflowActivityHandlerRegistry;
+import com.ywz.workflow.featherflow.handler.WorkflowControlSignalException;
 import com.ywz.workflow.featherflow.lock.WorkflowLockService;
 import com.ywz.workflow.featherflow.logging.WorkflowLogContext;
 import com.ywz.workflow.featherflow.model.ActivityExecutionStatus;
@@ -329,6 +330,10 @@ public class WorkflowEngine {
             );
             Map<String, Object> outputContext = handler.handle(activityContext);
             return persistSuccessfulActivity(workflowInstance, activityId, activityDefinition, workflowContext, outputContext, executeTime);
+        } catch (WorkflowControlSignalException signalException) {
+            persistControlSignalActivity(workflowInstance, activityId, activityDefinition, workflowContext, signalException, executeTime);
+            handleControlSignal(workflowInstance.getWorkflowId(), activityDefinition, signalException);
+            throw new StopWorkflowExecutionException();
         } catch (Throwable throwable) {
             persistFailedActivity(workflowInstance, activityId, activityDefinition, workflowContext, throwable, executeTime);
             handleRetry(workflowInstance, activityDefinition);
@@ -362,6 +367,57 @@ public class WorkflowEngine {
         touchRunningWorkflowModifiedTime(workflowInstance.getWorkflowId(), executeTime);
         log.info("Activity executed successfully, activityId={}, activityName={}", activityId, activityDefinition.getName());
         return output;
+    }
+
+    private void persistControlSignalActivity(
+        WorkflowInstance workflowInstance,
+        String activityId,
+        ActivityDefinition activityDefinition,
+        String workflowContext,
+        WorkflowControlSignalException signalException,
+        Instant executeTime
+    ) {
+        String signalOutput = serializer.failureOutput(signalException);
+        activityRepository.saveAttempt(
+            activityId,
+            workflowInstance.getWorkflowId(),
+            activityDefinition.getName(),
+            currentNode(),
+            workflowContext,
+            signalOutput,
+            ActivityExecutionStatus.FAILED,
+            executeTime
+        );
+        log.warn(
+            "Activity requested workflow control signal, activityId={}, activityName={}, targetStatus={}, message={}",
+            activityId,
+            activityDefinition.getName(),
+            signalException.getTargetStatus(),
+            signalException.getMessage()
+        );
+    }
+
+    private void handleControlSignal(
+        String workflowId,
+        ActivityDefinition activityDefinition,
+        WorkflowControlSignalException signalException
+    ) {
+        WorkflowInstance latestWorkflow = workflowRepository.findRequired(workflowId);
+        if (latestWorkflow.getStatus() != WorkflowStatus.RUNNING) {
+            log.info(
+                "Skip workflow control signal because workflow is no longer RUNNING, activityName={}, targetStatus={}, currentStatus={}",
+                activityDefinition.getName(),
+                signalException.getTargetStatus(),
+                latestWorkflow.getStatus()
+            );
+            return;
+        }
+        workflowRepository.updateStatus(workflowId, signalException.getTargetStatus(), clock.instant());
+        log.warn(
+            "Workflow moved by activity control signal, activityName={}, targetStatus={}",
+            activityDefinition.getName(),
+            signalException.getTargetStatus()
+        );
     }
 
     private void touchRunningWorkflowModifiedTime(String workflowId, Instant modifiedAt) {
