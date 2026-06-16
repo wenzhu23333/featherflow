@@ -17,13 +17,13 @@ public interface WorkflowRepository {
 
     void updateStatus(String workflowId, WorkflowStatus status, Instant modifiedAt);
 
+    /**
+     * Atomically updates workflow status only when the current status matches the expected status.
+     * Repositories must override this with a single conditional write. The default is a safe no-op
+     * because a read followed by updateStatus can overwrite concurrent status changes.
+     */
     default boolean updateStatusIfStatus(String workflowId, WorkflowStatus expectedStatus, WorkflowStatus status, Instant modifiedAt) {
-        WorkflowInstance workflowInstance = findRequired(workflowId);
-        if (workflowInstance.getStatus() != expectedStatus) {
-            return false;
-        }
-        updateStatus(workflowId, status, modifiedAt);
-        return true;
+        return false;
     }
 
     default boolean updateModifiedAtIfStatus(String workflowId, WorkflowStatus status, Instant modifiedAt) {
