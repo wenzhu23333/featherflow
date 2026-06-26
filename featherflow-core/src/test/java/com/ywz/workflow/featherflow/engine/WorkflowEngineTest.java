@@ -18,6 +18,8 @@ import com.ywz.workflow.featherflow.model.WorkflowStatus;
 import com.ywz.workflow.featherflow.repository.ActivityRepository;
 import com.ywz.workflow.featherflow.repository.WorkflowOperationRepository;
 import com.ywz.workflow.featherflow.repository.WorkflowRepository;
+import com.ywz.workflow.featherflow.context.WorkflowContextSnapshot;
+import com.ywz.workflow.featherflow.runtime.WorkflowRuntimeContext;
 import com.ywz.workflow.featherflow.service.DefaultWorkflowCommandService;
 import com.ywz.workflow.featherflow.service.DefaultWorkflowIdGenerator;
 import com.ywz.workflow.featherflow.service.DefaultWorkflowRuntimeService;
@@ -411,21 +413,49 @@ class WorkflowEngineTest {
     void shouldExposeWorkflowIdsInActivityExecutionMdc() {
         AtomicReference<String> workflowIdRef = new AtomicReference<String>();
         AtomicReference<String> bizIdRef = new AtomicReference<String>();
+        AtomicReference<String> bizKeyRef = new AtomicReference<String>();
         handlerRegistry.register("createOrderHandler", context -> {
             workflowIdRef.set(MDC.get("workflowId"));
             bizIdRef.set(MDC.get("bizId"));
+            bizKeyRef.set(MDC.get("bizKey"));
             context.put("orderCreated", true);
             return context;
         });
         handlerRegistry.register("notifyCustomerHandler", context -> context);
 
-        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-log-1", "{\"amount\":100}");
+        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-log-1", "biz-key-log-1", "{\"amount\":100}");
         WorkflowEngine engine = newEngine();
 
         engine.continueWorkflow(workflow.getWorkflowId());
 
         assertThat(workflowIdRef.get()).isEqualTo(workflow.getWorkflowId());
         assertThat(bizIdRef.get()).isEqualTo(workflow.getBizId());
+        assertThat(bizKeyRef.get()).isEqualTo(workflow.getBizKey());
+    }
+
+    @Test
+    void shouldExposeWorkflowRuntimeContextWithoutPollutingActivityContext() {
+        AtomicReference<WorkflowContextSnapshot> runtimeRef = new AtomicReference<WorkflowContextSnapshot>();
+        handlerRegistry.register("createOrderHandler", context -> {
+            runtimeRef.set(WorkflowRuntimeContext.current());
+            context.put("orderCreated", true);
+            return context;
+        });
+        handlerRegistry.register("notifyCustomerHandler", context -> context);
+
+        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-runtime-1", "biz-key-runtime-1", "{\"amount\":100}");
+        WorkflowEngine engine = newEngine();
+
+        engine.continueWorkflow(workflow.getWorkflowId());
+
+        assertThat(runtimeRef.get().getWorkflowId()).isEqualTo(workflow.getWorkflowId());
+        assertThat(runtimeRef.get().getBizId()).isEqualTo(workflow.getBizId());
+        assertThat(runtimeRef.get().getBizKey()).isEqualTo(workflow.getBizKey());
+        assertThat(WorkflowRuntimeContext.currentOrNull()).isNull();
+        assertThat(activityRepository.findByWorkflowId(workflow.getWorkflowId()).get(0).getOutput())
+            .doesNotContain("\"workflowId\"")
+            .doesNotContain("\"bizId\"")
+            .doesNotContain("\"bizKey\"");
     }
 
     @Test
@@ -437,7 +467,7 @@ class WorkflowEngineTest {
         });
         handlerRegistry.register("notifyCustomerHandler", context -> context);
 
-        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-log-2", "{\"amount\":100}");
+        WorkflowInstance workflow = commandService.startWorkflow("orderWorkflow", "biz-log-2", "biz-key-log-2", "{\"amount\":100}");
         WorkflowEngine engine = newEngine();
 
         engine.continueWorkflow(workflow.getWorkflowId());
@@ -446,6 +476,7 @@ class WorkflowEngineTest {
             assertThat(event.getFormattedMessage()).contains("create order business log");
             assertThat(event.getMDCPropertyMap()).containsEntry("workflowId", workflow.getWorkflowId());
             assertThat(event.getMDCPropertyMap()).containsEntry("bizId", workflow.getBizId());
+            assertThat(event.getMDCPropertyMap()).containsEntry("bizKey", workflow.getBizKey());
         });
     }
 

@@ -457,6 +457,20 @@ Recovery logs include:
 
 The engine opens `WorkflowLogContext` at key runtime points and writes workflow metadata into MDC. Logs written inside activity handlers with ordinary SLF4J loggers inherit the same workflow context.
 
+When a business activity handler needs runtime identifiers, use `WorkflowRuntimeContext` instead of reading them from the business `Map<String, Object>`:
+
+```java
+import com.ywz.workflow.featherflow.context.WorkflowContextSnapshot;
+import com.ywz.workflow.featherflow.runtime.WorkflowRuntimeContext;
+
+WorkflowContextSnapshot runtime = WorkflowRuntimeContext.current();
+String workflowId = runtime.getWorkflowId();
+String bizId = runtime.getBizId();
+String bizKey = runtime.getBizKey();
+```
+
+These fields are not injected into activity input/output, so they do not pollute the business context.
+
 Recommended log pattern fields:
 
 ```text

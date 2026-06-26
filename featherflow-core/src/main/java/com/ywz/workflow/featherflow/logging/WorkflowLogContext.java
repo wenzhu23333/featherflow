@@ -1,6 +1,7 @@
 package com.ywz.workflow.featherflow.logging;
 
 import com.ywz.workflow.featherflow.model.WorkflowInstance;
+import com.ywz.workflow.featherflow.context.WorkflowContextSnapshot;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.slf4j.MDC;
@@ -9,16 +10,21 @@ public final class WorkflowLogContext {
 
     public static final String WORKFLOW_ID = "workflowId";
     public static final String BIZ_ID = "bizId";
+    public static final String BIZ_KEY = "bizKey";
 
     private WorkflowLogContext() {
     }
 
     public static Scope open(WorkflowInstance workflowInstance) {
-        return open(snapshot(workflowInstance));
+        return open(WorkflowContextSnapshot.from(workflowInstance));
     }
 
     public static Scope open(String workflowId, String bizId) {
-        return open(snapshot(workflowId, bizId));
+        return open(new WorkflowContextSnapshot(workflowId, bizId, null));
+    }
+
+    public static Scope open(WorkflowContextSnapshot contextSnapshot) {
+        return open(snapshot(contextSnapshot));
     }
 
     public static Scope open(Map<String, String> context) {
@@ -32,13 +38,21 @@ public final class WorkflowLogContext {
     }
 
     public static Map<String, String> snapshot(WorkflowInstance workflowInstance) {
-        return snapshot(workflowInstance.getWorkflowId(), workflowInstance.getBizId());
+        return snapshot(WorkflowContextSnapshot.from(workflowInstance));
     }
 
     public static Map<String, String> snapshot(String workflowId, String bizId) {
+        return snapshot(new WorkflowContextSnapshot(workflowId, bizId, null));
+    }
+
+    public static Map<String, String> snapshot(WorkflowContextSnapshot contextSnapshot) {
         Map<String, String> context = capture();
-        putIfNotBlank(context, WORKFLOW_ID, workflowId);
-        putIfNotBlank(context, BIZ_ID, bizId);
+        if (contextSnapshot == null) {
+            return context;
+        }
+        putIfNotBlank(context, WORKFLOW_ID, contextSnapshot.getWorkflowId());
+        putIfNotBlank(context, BIZ_ID, contextSnapshot.getBizId());
+        putIfNotBlank(context, BIZ_KEY, contextSnapshot.getBizKey());
         return context;
     }
 

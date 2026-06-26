@@ -7,13 +7,14 @@ import com.ywz.workflow.featherflow.handler.WorkflowActivityHandler;
 import com.ywz.workflow.featherflow.handler.WorkflowActivityHandlerRegistry;
 import com.ywz.workflow.featherflow.handler.WorkflowControlSignalException;
 import com.ywz.workflow.featherflow.lock.WorkflowLockService;
-import com.ywz.workflow.featherflow.logging.WorkflowLogContext;
 import com.ywz.workflow.featherflow.model.ActivityExecutionStatus;
 import com.ywz.workflow.featherflow.model.ActivityInstance;
 import com.ywz.workflow.featherflow.model.WorkflowInstance;
 import com.ywz.workflow.featherflow.model.WorkflowStatus;
 import com.ywz.workflow.featherflow.repository.ActivityRepository;
 import com.ywz.workflow.featherflow.repository.WorkflowRepository;
+import com.ywz.workflow.featherflow.context.WorkflowContextSnapshot;
+import com.ywz.workflow.featherflow.runtime.WorkflowExecutionContext;
 import com.ywz.workflow.featherflow.support.WorkflowContextSerializer;
 import com.ywz.workflow.featherflow.support.WorkflowNodeIdentity;
 import java.time.Clock;
@@ -119,7 +120,9 @@ public class WorkflowEngine {
      */
     public void continueWorkflow(String workflowId) {
         WorkflowInstance workflowInstance = workflowRepository.findRequired(workflowId);
-        try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflowInstance)) {
+        try (WorkflowExecutionContext.Scope ignored = WorkflowExecutionContext.open(
+            WorkflowContextSnapshot.from(workflowInstance)
+        )) {
             WorkflowDefinition definition = loadDefinition(workflowInstance);
             log.info(
                 "Continue workflow execution, definitionName={}, activityCount={}",
@@ -145,7 +148,9 @@ public class WorkflowEngine {
      */
     public void skipActivity(String workflowId, String skipInput) {
         WorkflowInstance workflowInstance = workflowRepository.findRequired(workflowId);
-        try (WorkflowLogContext.Scope ignored = WorkflowLogContext.open(workflowInstance)) {
+        try (WorkflowExecutionContext.Scope ignored = WorkflowExecutionContext.open(
+            WorkflowContextSnapshot.from(workflowInstance)
+        )) {
             ActivityInstance target = requireLatestSkippableActivity(workflowInstance);
             WorkflowDefinition definition = loadDefinition(workflowInstance);
             String baseContext = resolveActivityRetryContext(

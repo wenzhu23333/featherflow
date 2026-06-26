@@ -1,10 +1,10 @@
 package com.ywz.workflow.featherflow.demo.handler;
 
 import com.ywz.workflow.featherflow.handler.WorkflowActivityHandler;
+import com.ywz.workflow.featherflow.runtime.WorkflowRuntimeContext;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 @Component("submitAsyncJobHandler")
@@ -14,7 +14,7 @@ public class SubmitAsyncJobHandler implements WorkflowActivityHandler {
 
     @Override
     public Map<String, Object> handle(Map<String, Object> context) {
-        String workflowId = MDC.get("workflowId");
+        String workflowId = WorkflowRuntimeContext.current().getWorkflowId();
         String asyncJobId = "JOB-" + workflowId.replace("-", "");
         log.info("Submit async demo job, workflowId={}, asyncJobId={}", workflowId, asyncJobId);
 

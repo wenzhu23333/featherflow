@@ -1,10 +1,11 @@
 package com.ywz.workflow.featherflow.demo.handler;
 
 import com.ywz.workflow.featherflow.handler.WorkflowActivityHandler;
+import com.ywz.workflow.featherflow.context.WorkflowContextSnapshot;
+import com.ywz.workflow.featherflow.runtime.WorkflowRuntimeContext;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
 @Component("notifyCustomerHandler")
@@ -14,8 +15,9 @@ public class NotifyCustomerHandler implements WorkflowActivityHandler {
 
     @Override
     public Map<String, Object> handle(Map<String, Object> context) {
-        String workflowId = MDC.get("workflowId");
-        String bizId = MDC.get("bizId");
+        WorkflowContextSnapshot runtime = WorkflowRuntimeContext.current();
+        String workflowId = runtime.getWorkflowId();
+        String bizId = runtime.getBizId();
         log.info("Notify demo customer, workflowId={}, bizId={}, orderNo={}", workflowId, bizId, context.get("orderNo"));
 
         if (Boolean.TRUE.equals(context.get("forceNotifyFailure"))) {

@@ -454,6 +454,20 @@ Spring 容器启动完成
 
 框架会在关键执行点打开 `WorkflowLogContext`，将 workflow 信息写入 MDC。业务 handler 中使用普通 SLF4J logger 打印日志时，也能继承当前执行线程里的 workflow 上下文。
 
+业务 handler 需要读取框架运行时标识时，使用 `WorkflowRuntimeContext`，不要从业务 `Map<String, Object>` 中取这些字段：
+
+```java
+import com.ywz.workflow.featherflow.context.WorkflowContextSnapshot;
+import com.ywz.workflow.featherflow.runtime.WorkflowRuntimeContext;
+
+WorkflowContextSnapshot runtime = WorkflowRuntimeContext.current();
+String workflowId = runtime.getWorkflowId();
+String bizId = runtime.getBizId();
+String bizKey = runtime.getBizKey();
+```
+
+这些字段不会注入 activity input/output，因此不会污染业务上下文。
+
 建议业务日志格式包含：
 
 ```text
